@@ -1,0 +1,54 @@
+version: '3'
+services:
+  webserver:
+    build: .
+    image: fleek_airflow 
+    restart: on-failure
+    ports:
+      - "8889:8080"
+    command: webserver
+    links:
+      - postgres:postgres
+      - scheduler:scheduler
+    env_file:
+      - dev/docker/local.env
+    volumes:
+      - airflow-logs:/usr/local/airflow/logs
+      - ./src/:/usr/local/airflow/dags/src/
+      - ~/.config/gcloud:/usr/local/airflow/.config/gcloud
+
+  scheduler:
+    build: .
+    image: fleek_airflow 
+    restart: on-failure
+    command: scheduler
+    links:
+      - postgres:postgres
+      - redis:redis
+    env_file:
+      - dev/docker/local.env
+    volumes:
+      - airflow-logs:/usr/local/airflow/logs
+      - ./src/:/usr/local/airflow/dags/src/
+      - ~/.config/gcloud:/usr/local/airflow/.config/gcloud
+
+  postgres:
+    image: postgres:9.6
+    restart: on-failure
+    ports:
+      # Don't conflict with local postgres
+      # Only affects port used when connecting from host, not between containers
+      - "5433:5432"
+    environment:
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_USER=airflow
+      - POSTGRES_DB=airflow
+
+  redis:
+    image: redis
+    restart: on-failure
+    ports:
+      - "6380:6378"
+
+volumes:
+  airflow-logs:
