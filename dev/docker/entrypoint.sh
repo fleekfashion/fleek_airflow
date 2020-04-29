@@ -17,7 +17,7 @@ if [ "$@" = "webserver" ] || [ "$@" = "worker" ] || [ "$@" = "scheduler" ] ; the
 
     echo "Initialize database..."
     $CMD initdb
-#    ./database_setup.sh
+    ./database_setup.sh
     sleep 5
 fi
 

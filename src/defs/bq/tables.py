@@ -1,0 +1,2 @@
+PERSONALIZATION_DAILY_CJ_DOWNLOAD = "daily_cj_download"
+
