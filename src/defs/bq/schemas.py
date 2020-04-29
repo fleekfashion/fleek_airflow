@@ -52,7 +52,7 @@ PERSONALIZATION = {
             {
                 "name": "advertiser_category",
                 "type": "STRING",
-                "mode": "REQUIRED"
+                "mode": "NULLABLE"
             },
             {
                 "name": "catalog_id",

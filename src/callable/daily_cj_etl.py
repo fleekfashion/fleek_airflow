@@ -50,7 +50,7 @@ def download_cj_data(parameters, bq_output_table):
         # Upload to bigquery
         bq_client = bigquery.Client(project=PROJECT)
         job_config = bigquery.LoadJobConfig(write_disposition="WRITE_APPEND")
-        bq_client.load_table_from_dataframe(df, bq_output_table, job_config=job_config)
+        bq_client.load_table_from_dataframe(df, bq_output_table, job_config=job_config).result()
           
         logging.log(level=20, msg="WOW3")
         
