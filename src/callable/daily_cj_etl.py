@@ -26,7 +26,7 @@ CJ_TO_SCHEMA = {
 }
 PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
 
-def download_cj_data(parameters, bq_output_table):
+def download_cj_data(parameters, bq_output_table, **kwargs):
 
     ## Parameter Parsing
     n_pages = parameters.get("n_pages", 1)
@@ -40,31 +40,30 @@ def download_cj_data(parameters, bq_output_table):
         
         ## Get and load data into dataframe
         data = _get_cj_data(parameters, page_number)
-        logging.log(level=20, msg=str(len(data)) )
         df = pd.DataFrame(data)
         df.rename(mapper=CJ_TO_SCHEMA, axis=1, inplace=True)
         df.product_price = df.product_price.astype("float64")
         df.product_sale_price = df.product_sale_price.astype("float64")
-        logging.log(level=20, msg="WOW2")
+        df["execution_date_timestamp"] = kwargs["execution_date"].int_timestamp
 
         # Upload to bigquery
         bq_client = bigquery.Client(project=PROJECT)
         job_config = bigquery.LoadJobConfig(write_disposition="WRITE_APPEND")
         bq_client.load_table_from_dataframe(df, bq_output_table, job_config=job_config).result()
           
-        logging.log(level=20, msg="WOW3")
         
 
 def _get_cj_data(parameters, page_number):
     ## Create URL call from parameters
     url = URL_PATH 
     for k, v in parameters.items():
-        url+=  f"{k}={v}&"
-    url+= f"page-number={page_number}" 
+        url +=  f"{k}={v}&"
+    url += f"page-number={page_number}" 
+    logging.info(url)
 
     ## Call and parse api request
     cj_response = requests.request("GET", url,
-                  headers = {"Authorization" : f"{ACCESS_TOKEN_BEARER}"})
+                  headers={"Authorization" : f"{ACCESS_TOKEN_BEARER}"})
     data = _parse_cj_response(cj_response)
     return data
 

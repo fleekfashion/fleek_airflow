@@ -1,3 +1,2 @@
-from . import schemas 
-from . import tables
+from . import personalization
 from . import datasets
