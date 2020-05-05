@@ -4,6 +4,7 @@ import os
 import logging
 
 import bs4
+import pyhash
 import pandas as pd
 import numpy as np
 
@@ -29,13 +30,12 @@ PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
 def download_cj_data(parameters, bq_output_table, **kwargs):
 
     ## Parameter Parsing
-    n_pages = parameters.get("n_pages", 1)
-    if "n_pages" in parameters.keys():
-        parameters.pop("n_pages")
+    n_pages = parameters.pop("n_pages")
+    p_tag = parameters.pop("product_tag")
     parameters["records-per-page"] = "1000"
     
     bq_client = bigquery.Client()
-
+    hasher = pyhash.farm_fingerprint_64()
     for page_number in range(1, n_pages+1):
         
         ## Get and load data into dataframe
@@ -44,7 +44,14 @@ def download_cj_data(parameters, bq_output_table, **kwargs):
         df.rename(mapper=CJ_TO_SCHEMA, axis=1, inplace=True)
         df.product_price = df.product_price.astype("float64")
         df.product_sale_price = df.product_sale_price.astype("float64")
-        df["execution_date_timestamp"] = kwargs["execution_date"].int_timestamp
+        df["execution_date"] = kwargs["execution_date"].date()
+        df["execution_timestamp"] = kwargs["execution_date"].int_timestamp
+        df["product_tag"] = p_tag
+        df["product_id"] = df.apply(lambda x: hasher(
+            x.product_name + x.advertiser_name +
+            x.product_image_url
+            )//10, axis=1
+        )
 
         # Upload to bigquery
         bq_client = bigquery.Client(project=PROJECT)
