@@ -87,11 +87,6 @@ SCHEMAS = {
             "mode": "REPEATED"
         },
         {
-            "name": "embeddings_test",
-            "type": "FLOAT64",
-            "mode": "REPEATED"
-        },
-        {
             "name": "currency",
             "type": "STRING",
             "mode": "REQUIRED"
@@ -269,11 +264,6 @@ SCHEMAS = {
         },
         {
             "name": "embeddings_production",
-            "type": "FLOAT64",
-            "mode": "REPEATED"
-        },
-        {
-            "name": "embeddings_test",
             "type": "FLOAT64",
             "mode": "REPEATED"
         },

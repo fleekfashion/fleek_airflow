@@ -1,6 +1,6 @@
 """
 DAG to run queries to CJ
-and download the data to a 
+and download the data to a
 daily BQ table.
 """
 
@@ -21,6 +21,7 @@ from src.callable.daily_cj_etl import download_cj_data
 PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
 FULL_CJ_DOWNLOAD_TABLE = ".".join([PROJECT, DATASET, pdefs.DAILY_CJ_DOWNLOAD_TABLE])
 FULL_HISTORIC_PRODUCTS_TABLE = ".".join([PROJECT, DATASET, pdefs.HISTORIC_PRODUCTS_TABLE])
+FULL_DAILY_ACTIVE_PRODUCTS_TABLE = ".".join([PROJECT, DATASET, pdefs.DAILY_ACTIVE_PRODUCTS_TABLE])
 
 DAG_ID = "daily_cj_etl_jobs"
 dag = DAG(
@@ -88,21 +89,30 @@ migrate_active_to_historic_products = BigQueryOperator(
         write_disposition="WRITE_APPEND",
         params={
             "cj_table": FULL_CJ_DOWNLOAD_TABLE,
-            "historic_table":FULL_HISTORIC_PRODUCTS_TABLE 
+            "active_table": FULL_DAILY_ACTIVE_PRODUCTS_TABLE
             },
-        sql=f"""SELECT * FROM `{{ params.historic_table }}` ht
-        WHERE ht.product_id NOT IN ( 
-            SELECT product_id from 
-            `{{ params.cj_table}}`
-        )
-        """
+        sql="template/migrate_active_to_historic_products.sql",
+        use_legacy_sql=False,
         )
             
 
+remove_inactive_products = BigQueryOperator(
+        task_id="remove_inactive_products",
+        dag=dag,
+        destination_dataset_table=FULL_DAILY_ACTIVE_PRODUCTS_TABLE,
+        write_disposition="WRITE_TRUNCATE",
+        params={
+            "cj_table": FULL_CJ_DOWNLOAD_TABLE,
+            "active_table": FULL_DAILY_ACTIVE_PRODUCTS_TABLE
+            },
+        sql="template/remove_inactive_products.sql",
+        use_legacy_sql=False,
+        )
 
 
 
 
 phase1 = [create_cj_table, create_daily_active_products_table,
           create_historic_products_table]
-phase1 >> cj_data_to_bq  >> migrate_active_to_historic_products
+phase1 >> cj_data_to_bq >> migrate_active_to_historic_products
+migrate_active_to_historic_products >> remove_inactive_products
