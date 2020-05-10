@@ -5,7 +5,7 @@ tables.
 """
 import os
 
-PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
+PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "fleek-staging")
 DATASET = "gcs_exports"
 
 # Table Names
