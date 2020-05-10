@@ -18,7 +18,7 @@ from src.defs.bq import personalization as pdefs
 from src.defs.bq import gcs_exports as g_exports
 from src.defs.bq.datasets import PERSONALIZATION as DATASET, GCS_EXPORTS
 from src.callable.daily_cj_etl import download_cj_data
-
+from src.subdags import cj_etl
 PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
 FULL_CJ_DOWNLOAD_TABLE = ".".join([PROJECT, DATASET, pdefs.DAILY_CJ_DOWNLOAD_TABLE])
 FULL_HISTORIC_PRODUCTS_TABLE = ".".join([PROJECT, DATASET, pdefs.HISTORIC_PRODUCTS_TABLE])
@@ -32,12 +32,6 @@ FULL_SAGEMAKER_EMBEDDER_PRODUCT_INFO = ".".join(
         ]
     )
 
-DAG_ID = "daily_cj_etl_jobs"
-dag = DAG(
-        DAG_ID,
-        default_args=DEFAULT_DAG_ARGS,
-        schedule_interval=timedelta(days=1),
-    )
 
 
 create_cj_table = BigQueryCreateTableOperator(

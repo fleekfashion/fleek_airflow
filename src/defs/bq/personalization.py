@@ -3,14 +3,32 @@ File containing schema
 definitions for bigquery
 tables.
 """
+import os
+from src.defs.bq import datasets
 
+PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
 
 ACTIVE_PRODUCTS_TABLE = "active_products"
 DAILY_CJ_DOWNLOAD_TABLE = "daily_cj_download"
-HISTORIC_PRODUCTS_TABLE = "historic_products"
 DAILY_NEW_PRODUCT_INFO_TABLE = "daily_new_product_info"
+HISTORIC_PRODUCTS_TABLE = "historic_products"
 
 
+FULL_ACTIVE_PRODUCTS_TABLE = ".".join([PROJECT, datasets.PERSONALIZATION, ACTIVE_PRODUCTS_TABLE])
+FULL_CJ_DOWNLOAD_TABLE = ".".join([PROJECT, datasets.PERSONALIZATION, DAILY_CJ_DOWNLOAD_TABLE])
+FULL_DAILY_NEW_PRODUCT_INFO_TABLE = ".".join([
+    PROJECT,
+    datasets.PERSONALIZATION,
+    DAILY_NEW_PRODUCT_INFO_TABLE
+    ])
+FULL_HISTORIC_PRODUCTS_TABLE = ".".join([PROJECT, datasets.PERSONALIZATION, HISTORIC_PRODUCTS_TABLE])
+
+TABLE_PARTITIONS = {
+        HISTORIC_PRODUCTS_TABLE : {
+            "type" : "DAY",
+            "field" : "execution_date"
+            }
+        }
 SCHEMAS = {
 
     ACTIVE_PRODUCTS_TABLE : [
@@ -376,3 +394,14 @@ SCHEMAS = {
     ],
 
 }
+
+
+FULL_NAMES = {}
+for table_name in SCHEMAS.keys():
+    FULL_NAMES[table_name] = ".".join(
+        [
+            PROJECT,
+            datasets.PERSONALIZATION,
+            ACTIVE_PRODUCTS_TABLE
+        ]
+    )
