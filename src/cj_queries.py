@@ -15,19 +15,28 @@ from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
 from src.airflow_tools.operators.bq_create_table_operator import BigQueryCreateTableOperator
 
 from src.defs.bq import personalization as pdefs
-from src.defs.bq.datasets import PERSONALIZATION as DATASET
+from src.defs.bq import gcs_exports as g_exports
+from src.defs.bq.datasets import PERSONALIZATION as DATASET, GCS_EXPORTS
 from src.callable.daily_cj_etl import download_cj_data
 
 PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
 FULL_CJ_DOWNLOAD_TABLE = ".".join([PROJECT, DATASET, pdefs.DAILY_CJ_DOWNLOAD_TABLE])
 FULL_HISTORIC_PRODUCTS_TABLE = ".".join([PROJECT, DATASET, pdefs.HISTORIC_PRODUCTS_TABLE])
-FULL_DAILY_ACTIVE_PRODUCTS_TABLE = ".".join([PROJECT, DATASET, pdefs.DAILY_ACTIVE_PRODUCTS_TABLE])
+FULL_ACTIVE_PRODUCTS_TABLE = ".".join([PROJECT, DATASET, pdefs.ACTIVE_PRODUCTS_TABLE])
+FULL_DAILY_NEW_PRODUCT_INFO_TABLE = ".".join([PROJECT, DATASET, pdefs.DAILY_NEW_PRODUCT_INFO_TABLE])
+FULL_SAGEMAKER_EMBEDDER_PRODUCT_INFO = ".".join(
+        [
+            PROJECT,
+            GCS_EXPORTS,
+            g_exports.SAGEMAKER_EMBEDDER_PRODUCT_INFO
+        ]
+    )
 
 DAG_ID = "daily_cj_etl_jobs"
 dag = DAG(
         DAG_ID,
         default_args=DEFAULT_DAG_ARGS,
-        schedule_interval=timedelta(days=1)
+        schedule_interval=timedelta(days=1),
     )
 
 
@@ -40,13 +49,22 @@ create_cj_table = BigQueryCreateTableOperator(
         dag=dag,
         )
 
-create_daily_active_products_table = BigQueryCreateTableOperator(
+create_active_products_table = BigQueryCreateTableOperator(
         task_id="create_daily_active_products_table",
         dag=dag,
         project_id=PROJECT,
         dataset_id=DATASET,
-        table_id=pdefs.DAILY_ACTIVE_PRODUCTS_TABLE,
-        schema_fields=pdefs.SCHEMAS[pdefs.DAILY_ACTIVE_PRODUCTS_TABLE],
+        table_id=pdefs.ACTIVE_PRODUCTS_TABLE,
+        schema_fields=pdefs.SCHEMAS[pdefs.ACTIVE_PRODUCTS_TABLE],
+        )
+
+create_daily_new_products_table = BigQueryCreateTableOperator(
+        task_id="create_daily_new_products_table",
+        dag=dag,
+        project_id=PROJECT,
+        dataset_id=DATASET,
+        table_id=pdefs.DAILY_NEW_PRODUCT_INFO_TABLE,
+        schema_fields=pdefs.SCHEMAS[pdefs.DAILY_NEW_PRODUCT_INFO_TABLE],
         )
 
 create_historic_products_table = BigQueryCreateTableOperator(
@@ -89,7 +107,7 @@ migrate_active_to_historic_products = BigQueryOperator(
         write_disposition="WRITE_APPEND",
         params={
             "cj_table": FULL_CJ_DOWNLOAD_TABLE,
-            "active_table": FULL_DAILY_ACTIVE_PRODUCTS_TABLE
+            "active_table": FULL_ACTIVE_PRODUCTS_TABLE
             },
         sql="template/migrate_active_to_historic_products.sql",
         use_legacy_sql=False,
@@ -99,20 +117,47 @@ migrate_active_to_historic_products = BigQueryOperator(
 remove_inactive_products = BigQueryOperator(
         task_id="remove_inactive_products",
         dag=dag,
-        destination_dataset_table=FULL_DAILY_ACTIVE_PRODUCTS_TABLE,
+        destination_dataset_table=FULL_ACTIVE_PRODUCTS_TABLE,
         write_disposition="WRITE_TRUNCATE",
         params={
             "cj_table": FULL_CJ_DOWNLOAD_TABLE,
-            "active_table": FULL_DAILY_ACTIVE_PRODUCTS_TABLE
+            "active_table": FULL_ACTIVE_PRODUCTS_TABLE
             },
         sql="template/remove_inactive_products.sql",
+        use_legacy_sql=False,
+        )
+
+update_daily_new_product_info_table = BigQueryOperator(
+        task_id="update_daily_new_product_info_table",
+        dag=dag,
+        destination_dataset_table=FULL_DAILY_NEW_PRODUCT_INFO_TABLE,
+        write_disposition="WRITE_TRUNCATE",
+        params={
+            "cj_table": FULL_CJ_DOWNLOAD_TABLE,
+            "active_table": FULL_ACTIVE_PRODUCTS_TABLE,
+            },
+        sql="template/update_daily_new_product_info_table.sql",
+        use_legacy_sql=False,
+        )
+
+create_sagemaker_embedder_product_info_export = BigQueryOperator(
+        task_id="create_sagemaker_embedder_product_info_export",
+        dag=dag,
+        destination_dataset_table=FULL_SAGEMAKER_EMBEDDER_PRODUCT_INFO,
+        write_disposition="WRITE_TRUNCATE",
+        params={
+            "product_info_table": FULL_DAILY_NEW_PRODUCT_INFO_TABLE,
+            },
+        sql="template/create_sagemaker_embedder_product_info_export.sql",
         use_legacy_sql=False,
         )
 
 
 
 
-phase1 = [create_cj_table, create_daily_active_products_table,
-          create_historic_products_table]
-phase1 >> cj_data_to_bq >> migrate_active_to_historic_products
-migrate_active_to_historic_products >> remove_inactive_products
+
+create_cj_table >> create_active_products_table >> create_historic_products_table >> create_daily_new_products_table 
+create_daily_new_products_table >> cj_data_to_bq >> migrate_active_to_historic_products
+migrate_active_to_historic_products >> remove_inactive_products >> update_daily_new_product_info_table
+update_daily_new_product_info_table >> create_sagemaker_embedder_product_info_export
+

@@ -31,6 +31,7 @@ services:
       - airflow-logs:/usr/local/airflow/logs
       - ./src/:/usr/local/airflow/dags/src/
       - ~/.config/gcloud:/usr/local/airflow/.config/gcloud
+      - ~/.aws:/usr/local/airflow/.aws
 
   postgres:
     image: postgres:9.6
