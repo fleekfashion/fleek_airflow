@@ -5,12 +5,16 @@ daily BQ table.
 """
 
 from airflow.operators.python_operator import PythonOperator
+from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.bigquery_operator import BigQueryOperator
 
 from src.defs.bq import personalization as pdefs
 from src.callable.daily_cj_etl import download_cj_data
 
-def get_subdag(dag):
+def get_operators(dag):
+
+    head = DummyOperator(task_id="cj_download_head", dag=dag)
+    tail = DummyOperator(task_id="cj_download_tail", dag=dag)
     operators = []
 
     parameters = [{
@@ -85,3 +89,5 @@ def get_subdag(dag):
     operators >> remove_inactive_products 
     operators.append(remove_inactive_products)
 
+    head >> operators >> tail
+    return {"head": head, "tail": tail}
