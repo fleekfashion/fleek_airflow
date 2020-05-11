@@ -45,6 +45,18 @@ INSERT INTO connection(conn_id, conn_type, extra)
 	WHERE NOT EXISTS (
 		SELECT 1 FROM connection WHERE conn_id='google_cloud_storage_default'
 	);
+
+INSERT INTO connection(conn_id, conn_type, extra)
+  SELECT 'aws_default', 'aws', '{"s3_config_file": $AWS_APPLICATION_CREDENTIALS, "s3_config_format": "aws", "region_name": "us-east-2"}'
+	WHERE NOT EXISTS (
+		SELECT 1 FROM connection WHERE conn_id='aws_default'
+	);
+
+INSERT INTO connection(conn_id, conn_type, extra)
+  SELECT 's3_default', 's3', '{"s3_config_file": $AWS_APPLICATION_CREDENTIALS, "s3_config_format": "aws", "region_name": "us-east-2"}'
+	WHERE NOT EXISTS (
+		SELECT 1 FROM connection WHERE conn_id='s3_default'
+	);
 EOF
 
 echo "ran postgres setup"
