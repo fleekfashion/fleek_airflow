@@ -1,3 +1,4 @@
+import os
 from datetime import timedelta
 from airflow.utils.dates import days_ago
 
@@ -12,3 +13,5 @@ DEFAULT_DAG_ARGS = {
         'retry_delay': timedelta(minutes=5),
         'template_searchpath': ["/usr/local/airflow/dags/src/template/"],
         }
+AIRFLOW_HOME = os.environ.get("AIRFLOW_HOME")
+SRC_DIR = f"{AIRFLOW_HOME}/dags/src"

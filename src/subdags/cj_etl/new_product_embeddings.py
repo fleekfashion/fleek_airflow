@@ -12,9 +12,9 @@ from airflow.contrib.operators.gcs_to_s3 import GoogleCloudStorageToS3Operator
 
 from src.defs.bq import personalization as pdefs, gcs_exports
 from src.defs.gcs import buckets
-#from src.airflow_tools.airflow_variables import SRC_DIR 
-#from src.callable.push_docker_image import build_repo_uri
-#from src.callable.sagemaker_processing import run_processing 
+from src.airflow_tools.airflow_variables import SRC_DIR 
+from src.callable.push_docker_image import build_repo_uri
+from src.callable.sagemaker_processing import run_processing 
 
 def get_operators(dag):
 
@@ -60,7 +60,6 @@ def get_operators(dag):
         dest_s3_key=f"s3://{buckets.MAIN}/"
     )
    
-    """
     ECR_REPO = "testpreproc"
     img_uri = build_repo_uri(ECR_REPO)
 
@@ -76,13 +75,12 @@ def get_operators(dag):
             "pid_output_filename": PID_FILENAME
             }
     proc_data = PythonOperator(
-        task_id="run_proc",
+        task_id="run_proc2",
         dag=dag,
         python_callable=run_processing,
         op_kwargs=preproc_kwargs,
         provide_context=False
     )
-    """
     
             
     update_daily_sagemaker_embedder_data >> bq_to_gcs
@@ -91,7 +89,7 @@ def get_operators(dag):
     operators.append(update_daily_sagemaker_embedder_data)
     operators.append(bq_to_gcs)
     operators.append(gcs_to_s3)
-    #operators.append(proc_data)
+    operators.append(proc_data)
 
     head >> operators >> tail
     return {"head":head, "tail":tail}
