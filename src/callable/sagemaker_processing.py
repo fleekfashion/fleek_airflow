@@ -13,7 +13,8 @@ def run_processing(docker_img_uri,
     import boto3
     REGION = boto3.session.Session().region_name
     print("REGION", REGION)
-
+    print("ROLE", ROLE)
+    
     arguments = []
     if s3_input_dir is not None:
         input_source = os.path.join([s3_input_dir, input_filename])

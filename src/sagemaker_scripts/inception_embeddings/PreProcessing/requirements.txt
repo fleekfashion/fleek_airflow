@@ -1,0 +1,5 @@
+# requirements.txt
+numpy==1.18.1
+opencv-python==3.4.2.*
+jsonlines
+pandas
