@@ -32,7 +32,7 @@ def download_cj_data(parameters, bq_output_table, **kwargs):
     ## Parameter Parsing
     n_pages = parameters.pop("n_pages")
     p_tag = parameters.pop("product_tag")
-    parameters["records-per-page"] = "10"
+    parameters["records-per-page"] = "50"
     
     bq_client = bigquery.Client()
     hasher = pyhash.farm_fingerprint_64()

@@ -4,6 +4,8 @@ and download the data to a
 daily BQ table.
 """
 
+import datetime
+
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.bigquery_operator import BigQueryOperator
@@ -15,7 +17,7 @@ from src.defs.gcs import buckets
 from src.airflow_tools.airflow_variables import SRC_DIR 
 from src.callable.push_docker_image import build_repo_uri
 from src.callable.sagemaker_processing import run_processing 
-
+from src.callable.sagemaker_transform import run_transform
 def get_operators(dag):
 
     head = DummyOperator(task_id="new_product_embeddings_head", dag=dag)
@@ -82,14 +84,35 @@ def get_operators(dag):
         provide_context=False
     )
     
+    ts = int(datetime.datetime.now().timestamp())
+    job_name = f"embeddings{ts}"
+    transform_output_path = "s3://fleek-prod/personalization/temp/sagemaker/embedding_models/output"
+
+    transform_kwargs = {
+            "model_data": 's3://fleek-prod/personalization/models/embedding_models/model4.tar.gz',
+            "input_data": "s3://fleek-prod/personalization/temp/sagemaker/embedding_models/input/images.jsonl",
+            "output_path": transform_output_path,
+            "job_name": job_name,
+            "instance_type": "ml.p2.xlarge",
+            "max_payload": 50,
+    }
+
+    embedding_transform = PythonOperator(
+        task_id="embedding_transform",
+        dag=dag,
+        python_callable=run_transform,
+        op_kwargs=transform_kwargs,
+        provide_context=False
+    )
             
     update_daily_sagemaker_embedder_data >> bq_to_gcs
-    bq_to_gcs >> gcs_to_s3     
+    bq_to_gcs >> gcs_to_s3 >> proc_data >> embedding_transform
 
     operators.append(update_daily_sagemaker_embedder_data)
     operators.append(bq_to_gcs)
     operators.append(gcs_to_s3)
     operators.append(proc_data)
+    operators.append(embedding_transform)
 
     head >> operators >> tail
     return {"head":head, "tail":tail}
