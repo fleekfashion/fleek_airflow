@@ -1,6 +1,6 @@
 # requirements.txt
 numpy==1.18.1
 jsonlines
-opencv-python==3.4.2.*
 pandas
 google-cloud-bigquery
+pyarrow

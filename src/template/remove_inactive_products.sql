@@ -1,6 +1,6 @@
 SELECT 
   cj.*,
-  active_table.embeddings_production,
+  active_table.product_embedding,
   active_table.n_views,
   active_table.n_likes,
   active_table.n_add_to_cart,

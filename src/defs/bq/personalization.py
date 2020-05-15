@@ -96,8 +96,8 @@ SCHEMAS = {
             "mode": "REQUIRED"
         },
         {
-            "name": "embeddings_production",
-            "type": "FLOAT64",
+            "name": "product_embedding",
+            "type": "FLOAT32",
             "mode": "REPEATED"
         },
         {
@@ -286,103 +286,103 @@ SCHEMAS = {
     HISTORIC_PRODUCTS_TABLE : [
         {
             "name": "execution_date",
-            "type": "DATE",
-            "mode": "REQUIRED"
+            "type": "date",
+            "mode": "required"
         },
         {
             "name": "execution_timestamp",
-            "type": "INTEGER",
-            "mode": "REQUIRED"
+            "type": "integer",
+            "mode": "required"
         },
         {
             "name": "product_id",
-            "type": "INTEGER",
-            "mode": "REQUIRED"
+            "type": "integer",
+            "mode": "required"
         },
         {
             "name": "product_name",
-            "type": "STRING",
-            "mode": "REQUIRED"
+            "type": "string",
+            "mode": "required"
         },
         {
             "name": "product_description",
-            "type": "STRING",
-            "mode": "REQUIRED"
+            "type": "string",
+            "mode": "required"
         },
         {
             "name": "product_tag",
-            "type": "STRING",
-            "mode": "REQUIRED"
+            "type": "string",
+            "mode": "required"
         },
         {
             "name": "product_price",
-            "type": "FLOAT64",
-            "mode": "REQUIRED"
+            "type": "float64",
+            "mode": "required"
         },
         {
             "name": "product_sale_price",
-            "type": "FLOAT64",
-            "mode": "NULLABLE"
+            "type": "float64",
+            "mode": "nullable"
         },
         {
             "name": "product_image_url",
-            "type": "STRING",
-            "mode": "REQUIRED"
+            "type": "string",
+            "mode": "required"
         },
         {
             "name": "product_purchase_url",
-            "type": "STRING",
-            "mode": "REQUIRED"
+            "type": "string",
+            "mode": "required"
         },
         {
             "name": "advertiser_id",
-            "type": "STRING",
-            "mode": "REQUIRED"
+            "type": "string",
+            "mode": "required"
         },
         {
             "name": "advertiser_name",
-            "type": "STRING",
-            "mode": "REQUIRED"
+            "type": "string",
+            "mode": "required"
         },
         {
             "name": "advertiser_category",
-            "type": "STRING",
-            "mode": "NULLABLE"
+            "type": "string",
+            "mode": "nullable"
         },
         {
             "name": "catalog_id",
-            "type": "STRING",
-            "mode": "REQUIRED"
+            "type": "string",
+            "mode": "required"
         },
         {
-            "name": "embeddings_production",
-            "type": "FLOAT64",
-            "mode": "REPEATED"
+            "name": "product_embedding",
+            "type": "float64",
+            "mode": "repeated"
         },
         {
             "name": "currency",
-            "type": "STRING",
-            "mode": "REQUIRED"
+            "type": "string",
+            "mode": "required"
         },
         {
             "name": "n_views",
-            "type": "INTEGER",
-            "mode": "REQUIRED"
+            "type": "integer",
+            "mode": "required"
         },
         {
             "name": "n_likes",
-            "type": "INTEGER",
-            "mode": "REQUIRED"
+            "type": "integer",
+            "mode": "required"
         },
         {
             "name": "n_add_to_cart",
-            "type": "INTEGER",
-            "mode": "REQUIRED"
+            "type": "integer",
+            "mode": "required"
         },
         {
             "name": "n_conversions",
-            "type": "INTEGER",
-            "mode": "REQUIRED"
+            "type": "integer",
+            "mode": "required"
         },
     ],
 

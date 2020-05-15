@@ -13,8 +13,7 @@ from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
 from src.airflow_tools.operators.bq_create_table_operator import BigQueryCreateTableOperator
 
 from src.defs.bq import personalization as pdefs
-from src.defs.bq import gcs_exports
-from src.defs.bq.datasets import PERSONALIZATION, GCS_EXPORTS
+from src.defs.bq import gcs_exports, gcs_imports
 
 DAILY_DELETE = [pdefs.DAILY_CJ_DOWNLOAD_TABLE, pdefs.DAILY_NEW_PRODUCT_INFO_TABLE ]
 
@@ -34,7 +33,7 @@ def get_operators(dag):
             task_id=f"create_{table_name}",
             dag=dag,
             project_id=pdefs.PROJECT,
-            dataset_id=PERSONALIZATION,
+            dataset_id=pdefs.DATASET,
             table_id=table_name,
             schema_fields=schema_fields,
             time_partitioning=pdefs.TABLE_PARTITIONS.get(table_name, None),
@@ -53,7 +52,6 @@ def get_operators(dag):
         operators.append(op)
 
     for table_name, schema_fields in gcs_exports.SCHEMAS.items():
-
         full_name = gcs_exports.FULL_NAMES[table_name]
         op1 = BigQueryTableDeleteOperator(
             task_id=f"delete_{table_name}",
@@ -61,19 +59,18 @@ def get_operators(dag):
             deletion_dataset_table=full_name,
             ignore_if_missing=True,
         )
-
         op2 = BigQueryCreateTableOperator(
             task_id=f"create_{table_name}",
             dag=dag,
             project_id=gcs_exports.PROJECT,
-            dataset_id=GCS_EXPORTS,
+            dataset_id=gcs_exports.DATASET,
             table_id=table_name,
             schema_fields=schema_fields,
             time_partitioning=gcs_exports.TABLE_PARTITIONS.get(table_name, None),
         )
-
         op1 >> op2
         operators.extend([op1, op2])
+
 
     head >> operators >> tail
     return {"head": head, "tail": tail}
