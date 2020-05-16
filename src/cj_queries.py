@@ -25,24 +25,9 @@ download_operators = cj_etl.cj_download.get_operators(dag)
 embeddings_operators = cj_etl.new_product_embeddings.get_operators(dag)
 
 
-import configparser
-p = os.environ.get("AWS_APPLICATION_CREDENTIALS")
-from airflow.contrib.hooks import aws_hook
 
 def test():
-    data = os.listdir("/usr/local/airflow/.aws/")
-    print(data)
-    
-    data = open(p, 'r')
-    print(data)
-
-
-    config = configparser.ConfigParser()
-    valid = config.read(p) # pragma: no cover
-    sections = config.sections()
-    print(sections)
-    res = aws_hook._parse_s3_config(p, config_format="aws")
-    print(res)
+    print("Sucess")
 
 from airflow.operators.python_operator import PythonOperator 
 PythonOperator(task_id="test", dag=dag, python_callable=test)

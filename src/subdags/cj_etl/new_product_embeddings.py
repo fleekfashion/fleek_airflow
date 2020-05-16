@@ -7,6 +7,8 @@ daily BQ table.
 import datetime
 import os
 
+from google.cloud import bigquery as bq
+
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.bigquery_operator import BigQueryOperator
@@ -140,14 +142,66 @@ def get_operators(dag):
         op_kwargs=postproc_kwargs,
         provide_context=False
     )
+
+
+    c = bq.Client(project=pdefs.PROJECT)
+    table = c.get_table(BQ_OUT_TABLE)
+
+    schema = table.schema
+    emb_cols = [ c.name for c in schema if "emb" in c.name ]
+    n_embs = len(emb_cols)
+    emb_cols = [ f"emb_{i}" for i in range(n_embs) ]
+    
+    sql = """
+    WITH emb_data AS (
+        SELECT
+        product_id,
+        [
+        {% for i in range(params.n_embs - 1) %}
+        emb_{{i}}, 
+        {% endfor %}
+        emb_{{params.n_embs - 1 }}
+        ] as product_embedding
+        FROM `{{ params.new_emb_table }}`
+    )
+
+    SELECT 
+        i.*,
+        e.product_embedding,
+        1 as n_likes,
+        1 as n_views,
+        1 as n_add_to_cart,
+        1 as n_conversions
+    FROM emb_data e
+    INNER JOIN `{{params.new_info_table}}` i
+    ON e.product_id = i.product_id
+    
+    """ 
+
+    add_to_active = BigQueryOperator(
+        task_id="upload_new_active_products",
+        dag=dag,
+        sql=sql,
+        use_legacy_sql=False,
+        params={
+            "n_embs": n_embs,
+            "new_emb_table": BQ_OUT_TABLE,
+            "new_info_table": pdefs.FULL_NAMES[pdefs.DAILY_NEW_PRODUCT_INFO_TABLE],
+        },
+        destination_dataset_table=pdefs.FULL_NAMES[pdefs.ACTIVE_PRODUCTS_TABLE],
+        write_disposition="WRITE_APPEND",
+    )
+
             
-    update_daily_sagemaker_embedder_data 
+    update_daily_sagemaker_embedder_data >> proc_data
     proc_data >> embedding_transform >> postproc
+    postproc >> add_to_active 
 
     operators.append(update_daily_sagemaker_embedder_data)
     operators.append(proc_data)
     operators.append(embedding_transform)
     operators.append(postproc)
+    operators.append(add_to_active)
 
     head >> operators >> tail
     return {"head":head, "tail":tail}
