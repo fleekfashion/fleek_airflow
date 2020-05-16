@@ -22,18 +22,16 @@ from src.airflow_tools.airflow_variables import SRC_DIR
 from src.callable.push_docker_image import build_repo_uri
 from src.callable.sagemaker_processing import run_processing
 from src.callable.sagemaker_transform import run_transform
-def get_operators(dag):
 
+def get_operators(dag):
     head = DummyOperator(task_id="new_product_embeddings_head", dag=dag)
     tail = DummyOperator(task_id="new_product_embeddings_tail", dag=dag)
     operators = []
     
-    export_destination_table = gcs_exports.FULL_NAMES[gcs_exports.SAGEMAKER_EMBEDDER_PRODUCT_INFO]
-
     update_daily_sagemaker_embedder_data = BigQueryOperator(
         task_id="update_daily_sagemaker_embedder_data",
         dag=dag,
-        destination_dataset_table=export_destination_table,
+        destination_dataset_table=gcs_exports.FULL_NAMES[gcs_exports.SAGEMAKER_EMBEDDER_PRODUCT_INFO],
         write_disposition="WRITE_TRUNCATE",
         params={
             "product_info_table": pdefs.FULL_NAMES[pdefs.DAILY_NEW_PRODUCT_INFO_TABLE],
@@ -43,32 +41,28 @@ def get_operators(dag):
         )
 
 
-    
-    ## Preprocess data for embedding
-    ## transformation
-    #
-    ECR_REPO = "testpreproc"
-    img_uri = build_repo_uri(ECR_REPO)
-
     S3_BASE_DIR = f"s3://{buckets.MAIN}/personalization/temp/sagemaker/embedding_models"
-    DEST_DIR = f"{S3_BASE_DIR}/input"
     IMG_FILENAME = "images.jsonl"
     PID_FILENAME = "pids.jsonl"
+    
+    ## PREPROCESSING
+    ## Process data for embedding
+    ## transformation
+    PREPROC_ECR_REP = "testpreproc"
+    PREPROC_DEST_DIR = f"{S3_BASE_DIR}/input"
     output_source = '/opt/ml/processing/output/'
-    outputs = [ProcessingOutput(destination=DEST_DIR,
+    outputs = [ProcessingOutput(destination=PREPROC_DEST_DIR,
                                 source=output_source)]
-
     arguments = [
-            f"--pid_out={output_source}/{PID_FILENAME}",
-            f"--main_out={output_source}/{IMG_FILENAME}"
-        ]
-
+        f"--pid_out={output_source}/{PID_FILENAME}",
+        f"--main_out={output_source}/{IMG_FILENAME}"
+    ]
     preproc_kwargs = {
-            "docker_img_uri": img_uri,
-            "processing_filepath": f"{SRC_DIR}/sagemaker_scripts/inception_embeddings/PreProcessing/preprocessing.py",
-            "outputs": outputs,
-            "arguments": arguments
-            }
+        "docker_img_uri": build_repo_uri(PREPROC_ECR_REP),
+        "processing_filepath": f"{SRC_DIR}/sagemaker_scripts/inception_embeddings/PreProcessing/preprocessing.py",
+        "outputs": outputs,
+        "arguments": arguments
+    }
 
     proc_data = PythonOperator(
         task_id="run_preprocessing",
@@ -79,21 +73,19 @@ def get_operators(dag):
     )
     
 
-    ## Get embeddings batch transform
-    #k
+    ## TRANSFORM
+    ## Run NN to get embeddings
     ts = int(datetime.datetime.now().timestamp())
     job_name = f"embeddings{ts}"
-    transform_output_path = "s3://fleek-prod/personalization/temp/sagemaker/embedding_models/output"
-
+    TRANSFORM_OUTPUT_PATH = f"{S3_BASE_DIR}/output"
     transform_kwargs = {
             "model_data": 's3://fleek-prod/personalization/models/embedding_models/model4.tar.gz',
-            "input_data": f"{DEST_DIR}/{IMG_FILENAME}",
-            "output_path": transform_output_path,
+            "input_data": f"{PREPROC_DEST_DIR}/{IMG_FILENAME}",
+            "output_path": TRANSFORM_OUTPUT_PATH,
             "job_name": job_name,
             "instance_type": "ml.p2.xlarge",
             "max_payload": 50,
     }
-
     embedding_transform = PythonOperator(
         task_id="embedding_transform",
         dag=dag,
@@ -101,9 +93,11 @@ def get_operators(dag):
         op_kwargs=transform_kwargs,
         provide_context=False
     )
-
-    EMB_PATH = f"{transform_output_path}/{IMG_FILENAME}.out"
-    PID_PATH = f"{DEST_DIR}/{PID_FILENAME}"
+    
+    ## POSTPROCESSING
+    ## Upload data to BQ
+    EMB_PATH = f"{TRANSFORM_OUTPUT_PATH}/{IMG_FILENAME}.out"
+    PID_PATH = f"{PREPROC_DEST_DIR}/{PID_FILENAME}"
     BQ_OUT_TABLE = f"{gcs_imports.PROJECT}.{gcs_imports.DATASET}.{gcs_imports.DAILY_NEW_PRODUCT_EMBEDDINGS_TABLE}"
     
     INPUT_DEST1 = "/opt/ml/processing/input1"
@@ -127,13 +121,14 @@ def get_operators(dag):
             f"--bq_output_table={BQ_OUT_TABLE}"
         ]
     
-    img_uri = build_repo_uri(ecr_repo="embedding-postprocessing")
+    POSTPROC_ECR_REPO = "embedding-postprocessing"
     postproc_kwargs = {
-            "docker_img_uri": img_uri,
-            "processing_filepath": f"{SRC_DIR}/sagemaker_scripts/inception_embeddings/PostProcessing/processing.py",
-            "inputs": inputs,
-            "arguments": arguments
-            }
+        "docker_img_uri": build_repo_uri(ecr_repo=POSTPROC_ECR_REPO)
+,
+        "processing_filepath": f"{SRC_DIR}/sagemaker_scripts/inception_embeddings/PostProcessing/processing.py",
+        "inputs": inputs,
+        "arguments": arguments
+    }
 
     postproc = PythonOperator(
         task_id="post_processing",
@@ -146,42 +141,14 @@ def get_operators(dag):
 
     c = bq.Client(project=pdefs.PROJECT)
     table = c.get_table(BQ_OUT_TABLE)
-
     schema = table.schema
     emb_cols = [ c.name for c in schema if "emb" in c.name ]
     n_embs = len(emb_cols)
-    emb_cols = [ f"emb_{i}" for i in range(n_embs) ]
     
-    sql = """
-    WITH emb_data AS (
-        SELECT
-        product_id,
-        [
-        {% for i in range(params.n_embs - 1) %}
-        emb_{{i}}, 
-        {% endfor %}
-        emb_{{params.n_embs - 1 }}
-        ] as product_embedding
-        FROM `{{ params.new_emb_table }}`
-    )
-
-    SELECT 
-        i.*,
-        e.product_embedding,
-        1 as n_likes,
-        1 as n_views,
-        1 as n_add_to_cart,
-        1 as n_conversions
-    FROM emb_data e
-    INNER JOIN `{{params.new_info_table}}` i
-    ON e.product_id = i.product_id
-    
-    """ 
-
     add_to_active = BigQueryOperator(
         task_id="upload_new_active_products",
         dag=dag,
-        sql=sql,
+        sql="template/upload_new_active_products.sql",
         use_legacy_sql=False,
         params={
             "n_embs": n_embs,
@@ -195,7 +162,7 @@ def get_operators(dag):
             
     update_daily_sagemaker_embedder_data >> proc_data
     proc_data >> embedding_transform >> postproc
-    postproc >> add_to_active 
+    postproc >> add_to_active
 
     operators.append(update_daily_sagemaker_embedder_data)
     operators.append(proc_data)
