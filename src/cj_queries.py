@@ -17,8 +17,9 @@ from src.subdags import cj_etl
 DAG_ID = "daily_cj_etl_jobs"
 dag = DAG(
         DAG_ID,
-        default_args=DEFAULT_DAG_ARGS,
+        catchup=False,
         schedule_interval=timedelta(days=1),
+        default_args=DEFAULT_DAG_ARGS,
     )
 
 head = DummyOperator(task_id=f"{DAG_ID}_dag_head", dag=dag)

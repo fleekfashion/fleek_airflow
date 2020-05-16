@@ -16,8 +16,8 @@ from src.subdags import table_setup
 DAG_ID = "daily_table_setup"
 dag = DAG(
         DAG_ID,
-        default_args=DEFAULT_DAG_ARGS,
         schedule_interval=timedelta(days=1),
+        default_args=DEFAULT_DAG_ARGS,
     )
 
 head = DummyOperator(task_id=f"{DAG_ID}_dag_head", dag=dag)
