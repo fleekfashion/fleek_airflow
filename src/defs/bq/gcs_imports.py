@@ -9,6 +9,8 @@ PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "fleek-staging")
 DATASET = "gcs_imports"
 
 DAILY_NEW_PRODUCT_EMBEDDINGS_TABLE = "daily_new_product_embeddings"
+TABLE_PARTITIONS = {
+    }
 
 SCHEMAS = {
 }
