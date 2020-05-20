@@ -1,30 +1,35 @@
 """
-DAG to run queries to CJ
-and download the data to a
-daily BQ table.
+TLDR: Download and update active_products.
+
+Overview
+1. Download data from data streams
+2. Run new products through embedding model
+3. Migrate old product to historical
+4. Update active products
 """
 
-import os
 from datetime import timedelta
 
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
 
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
-from src.airflow_tools.utils import get_table_setup_sensor
+from src.airflow_tools import dag_defs
+from src.airflow_tools.utils import get_dag_sensor
 from src.subdags import cj_etl
 
-DAG_ID = "daily_cj_etl_jobs"
+DAG_ID = dag_defs.DATA_DOWNLOAD_ETL
 dag = DAG(
         DAG_ID,
         catchup=False,
         schedule_interval=timedelta(days=1),
         default_args=DEFAULT_DAG_ARGS,
+        description=__doc__
     )
 
 head = DummyOperator(task_id=f"{DAG_ID}_dag_head", dag=dag)
 tail = DummyOperator(task_id=f"{DAG_ID}_dag_tail", dag=dag)
-table_setup_sensor = get_table_setup_sensor(dag)
+table_setup_sensor = get_dag_sensor(dag=dag, external_dag_id=dag_defs.TABLE_SETUP)
 
 download_operators = cj_etl.cj_download.get_operators(dag)
 embeddings_operators = cj_etl.new_product_embeddings.get_operators(dag)
@@ -36,4 +41,8 @@ embeddings_operators['tail'] >> tail
 def _test():
     print("Sucess")
 from airflow.operators.python_operator import PythonOperator
-PythonOperator(task_id="test", dag=dag, python_callable=_test)
+PythonOperator(
+    task_id="test", 
+    dag=dag, 
+    python_callable=_test
+)

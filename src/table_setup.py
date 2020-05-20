@@ -1,7 +1,10 @@
 """
-DAG to run queries to CJ
-and download the data to a
-daily BQ table.
+TLDR: Set up BigQuery Tables for All Dags.
+
+Overview
+1. Delete all temporary tables
+2. Delete all import/export tables
+3. Create tables in schema files
 """
 
 import os
@@ -11,13 +14,14 @@ from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
 
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
+from src.airflow_tools.dag_defs import TABLE_SETUP as DAG_ID
 from src.subdags import table_setup
 
-DAG_ID = "daily_table_setup"
 dag = DAG(
         DAG_ID,
         schedule_interval=timedelta(days=1),
         default_args=DEFAULT_DAG_ARGS,
+        doc_md=__doc__
     )
 
 head = DummyOperator(task_id=f"{DAG_ID}_dag_head", dag=dag)

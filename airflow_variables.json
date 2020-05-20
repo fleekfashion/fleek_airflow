@@ -1,0 +1,13 @@
+{
+    "variables": {
+        "cj_queries_uri_path" : "personalization/airflow/defs/cj_queries.json",
+        "ecr_images": {
+            "emb_preproc": "testpreproc",
+            "emb_postproc": "embedding-postprocessing"
+        },
+        "model_uris": {
+            "image_embedding": "s3://fleek-prod/personalization/models/embedding_models/model4.tar.gz"
+        }
+    }
+}
+

@@ -1,18 +1,22 @@
+"""
+Run sagemaker batch
+batch transformation job.
+"""
 import os
 from sagemaker.tensorflow.serving import Model
 
 ROLE = os.environ.get("AWS_IAM_ROLE", None)
 
-def run_transform(model_data, input_data, output_path,
-                        instance_type, job_name,
-                        content_type="application/jsonlines",
-                        split_type="Line",
-                        assemble_with="Line",
-                        strategy="MultiRecord",
-                        max_payload=6,
-                        framework_version="2.1",
-                        ):
-    
+def run_transform(model_data: str, input_data: str, output_path: str,
+                  instance_type: str, job_name: str,
+                  content_type: str = "application/jsonlines",
+                  split_type: str = "Line",
+                  assemble_with: str = "Line",
+                  strategy: str = "MultiRecord",
+                  max_payload: int = 6,
+                  framework_version: str = "2.1",
+                  ) -> None:
+   
     model = Model(model_data=model_data,
                   role=ROLE, framework_version=framework_version)
 
@@ -29,5 +33,5 @@ def run_transform(model_data, input_data, output_path,
                           job_name=job_name,
                           wait=True,
                           logs=True
-                     )
+                          )
     print("Great Success")

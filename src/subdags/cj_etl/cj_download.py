@@ -1,8 +1,11 @@
 """
-DAG to run queries to CJ
-and download the data to a
-daily BQ table.
+SubDag to run
+Daily CJ Downloads
 """
+
+import json
+
+from google.cloud import storage
 
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
@@ -10,21 +13,22 @@ from airflow.contrib.operators.bigquery_operator import BigQueryOperator
 
 from src.defs.bq import personalization as pdefs
 from src.callable.daily_cj_etl import download_cj_data
+from src.airflow_tools.airflow_variables import DAG_CONFIG, DAG_TYPE
 
-def get_operators(dag):
-
+def get_operators(dag: DAG_TYPE) -> dict:
+    f"{__doc__}"
     head = DummyOperator(task_id="cj_download_head", dag=dag)
     tail = DummyOperator(task_id="cj_download_tail", dag=dag)
     operators = []
+    
+    c = storage.Client(pdefs.PROJECT)
+    prefix = DAG_CONFIG["cj_queries_uri_path"]
 
-    parameters = [{
-        "n_pages": 1,
-        "product_tag": "none",
-        "website-id" : "9089281",
-        "advertiser-ids": "joined",
-        "keywords": "",
-        "records-per-page": "1000",
-        }]
+    blobs = c.list_blobs(bucket_or_name=pdefs.PROJECT,
+            prefix=prefix)
+    blob = list(blobs)[0]
+    parameters = json.loads(blob.download_as_string().decode())
+    parameters = parameters["queries"]
     
     downloads = []
     for p in parameters:
@@ -80,7 +84,7 @@ def get_operators(dag):
         )
 
     downloads >> update_daily_new_product_info_table
-    downloads >> migrate_active_to_historic_products 
+    downloads >> migrate_active_to_historic_products
 
     operators.extend(downloads)
     operators.append(update_daily_new_product_info_table)

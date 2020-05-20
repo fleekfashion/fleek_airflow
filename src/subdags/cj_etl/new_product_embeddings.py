@@ -1,29 +1,28 @@
 """
-DAG to run queries to CJ
-and download the data to a
-daily BQ table.
+DAG to run new products
+through embedding model
+and upload to active products
 """
 
 import datetime
-import os
 
 from google.cloud import bigquery as bq
 
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.bigquery_operator import BigQueryOperator
-from airflow.contrib.operators.bigquery_to_gcs import BigQueryToCloudStorageOperator
-from airflow.contrib.operators.gcs_to_s3 import GoogleCloudStorageToS3Operator
-from sagemaker.processing import ScriptProcessor, ProcessingInput, ProcessingOutput
+from sagemaker.processing import ProcessingInput, ProcessingOutput
 
 from src.defs.bq import personalization as pdefs, gcs_exports, gcs_imports
 from src.defs.gcs import buckets
-from src.airflow_tools.airflow_variables import SRC_DIR
+from src.airflow_tools.airflow_variables import SRC_DIR, DAG_CONFIG, DAG_TYPE
 from src.callable.push_docker_image import build_repo_uri
 from src.callable.sagemaker_processing import run_processing
 from src.callable.sagemaker_transform import run_transform
 
-def get_operators(dag):
+def get_operators(dag: DAG_TYPE) -> dict:
+    f"{__doc__}"
+
     head = DummyOperator(task_id="new_product_embeddings_head", dag=dag)
     tail = DummyOperator(task_id="new_product_embeddings_tail", dag=dag)
     operators = []
@@ -40,7 +39,6 @@ def get_operators(dag):
         use_legacy_sql=False,
         )
 
-
     S3_BASE_DIR = f"s3://{buckets.MAIN}/personalization/temp/sagemaker/embedding_models"
     IMG_FILENAME = "images.jsonl"
     PID_FILENAME = "pids.jsonl"
@@ -48,7 +46,7 @@ def get_operators(dag):
     ## PREPROCESSING
     ## Process data for embedding
     ## transformation
-    PREPROC_ECR_REP = "testpreproc"
+    PREPROC_ECR_REPO = DAG_CONFIG["ecr_images"]["emb_preproc"]
     PREPROC_DEST_DIR = f"{S3_BASE_DIR}/input"
     output_source = '/opt/ml/processing/output/'
     outputs = [ProcessingOutput(destination=PREPROC_DEST_DIR,
@@ -58,7 +56,7 @@ def get_operators(dag):
         f"--main_out={output_source}/{IMG_FILENAME}"
     ]
     preproc_kwargs = {
-        "docker_img_uri": build_repo_uri(PREPROC_ECR_REP),
+        "docker_img_uri": build_repo_uri(PREPROC_ECR_REPO),
         "processing_filepath": f"{SRC_DIR}/sagemaker_scripts/inception_embeddings/PreProcessing/preprocessing.py",
         "outputs": outputs,
         "arguments": arguments
@@ -71,7 +69,6 @@ def get_operators(dag):
         op_kwargs=preproc_kwargs,
         provide_context=False
     )
-    
 
     ## TRANSFORM
     ## Run NN to get embeddings
@@ -79,7 +76,7 @@ def get_operators(dag):
     job_name = f"embeddings{ts}"
     TRANSFORM_OUTPUT_PATH = f"{S3_BASE_DIR}/output"
     transform_kwargs = {
-            "model_data": 's3://fleek-prod/personalization/models/embedding_models/model4.tar.gz',
+            "model_data": DAG_CONFIG["model_uris"]["image_embedding"],
             "input_data": f"{PREPROC_DEST_DIR}/{IMG_FILENAME}",
             "output_path": TRANSFORM_OUTPUT_PATH,
             "job_name": job_name,
@@ -121,10 +118,9 @@ def get_operators(dag):
             f"--bq_output_table={BQ_OUT_TABLE}"
         ]
     
-    POSTPROC_ECR_REPO = "embedding-postprocessing"
+    POSTPROC_ECR_REPO = DAG_CONFIG["ecr_images"]["emb_postproc"]
     postproc_kwargs = {
-        "docker_img_uri": build_repo_uri(ecr_repo=POSTPROC_ECR_REPO)
-,
+        "docker_img_uri": build_repo_uri(ecr_repo=POSTPROC_ECR_REPO),
         "processing_filepath": f"{SRC_DIR}/sagemaker_scripts/inception_embeddings/PostProcessing/processing.py",
         "inputs": inputs,
         "arguments": arguments
@@ -159,7 +155,6 @@ def get_operators(dag):
         write_disposition="WRITE_APPEND",
     )
 
-            
     update_daily_sagemaker_embedder_data >> proc_data
     proc_data >> embedding_transform >> postproc
     postproc >> add_to_active
@@ -172,5 +167,3 @@ def get_operators(dag):
 
     head >> operators >> tail
     return {"head":head, "tail":tail}
-
-    

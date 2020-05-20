@@ -1,8 +1,7 @@
-
 """
-DAG to run queries to CJ
-and download the data to a
-daily BQ table.
+DAG to delete and
+recreate gcs_export
+table operators
 """
 
 from airflow.operators.dummy_operator import DummyOperator
@@ -14,10 +13,8 @@ from src.defs.bq import gcs_exports
 
 
 def get_operators(dag):
-    """
-    Get list of all create
-    table operators for cj etl
-    dag
+    f"""
+    {__doc__}
     """
     head = DummyOperator(task_id="gcs_exports_table_setup_head", dag=dag)
     tail = DummyOperator(task_id="gcs_exports_table_setup_tail", dag=dag)

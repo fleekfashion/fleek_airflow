@@ -97,7 +97,7 @@ SCHEMAS = {
         },
         {
             "name": "product_embedding",
-            "type": "FLOAT32",
+            "type": "FLOAT64",
             "mode": "REPEATED"
         },
         {

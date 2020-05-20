@@ -1,7 +1,7 @@
-import requests
 import json
 import os
 import logging
+import requests
 
 import bs4
 import pyhash
@@ -27,7 +27,7 @@ CJ_TO_SCHEMA = {
 }
 PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
 
-def download_cj_data(parameters, bq_output_table, **kwargs):
+def download_cj_data(parameters: dict, bq_output_table: str, **kwargs) -> None:
 
     ## Parameter Parsing
     n_pages = parameters.pop("n_pages")
