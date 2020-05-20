@@ -1,0 +1,7 @@
+# requirements.txt
+numpy==1.18.1
+jsonlines
+pandas
+google-cloud-bigquery
+tensorflow==2.1.0
+dill
