@@ -38,9 +38,13 @@ h_df = historic_data.to_dataframe()
 n_active = len(a_df.product_id)
 df = pd.concat( [a_df, h_df], ignore_index=True)
 
-embeddings = np.zeros( [ len(df.product_id.unique()), len(df.product_embedding[0]) ], dtype=np.float32 )
-pid_to_ind = {}
-ind = 0
+## TODO
+## ind starts at 1 and we add 1 row to the emb matrix 
+## so that the 0th index is a 0 embedding. We will use
+## this for any product_ids that we do not recognize 
+embeddings = np.zeros( [ len(df.product_id.unique()) + 1, len(df.product_embedding[0]) ], dtype=np.float32 )
+pid_to_ind = {0:0}
+ind = 1
 cntr = 0
 
 while cntr < len(df):
@@ -114,16 +118,14 @@ model = tf.keras.models.Model(inputs=inputs,
                               outputs={
                                   "top_scores": top_n_scores, 
                                   "top_inds": top_n_args,
-                                  "emb": embedded,
                               }
                              )
                  
-# preprocessing function for serving
+# TF function for serving
 @tf.function()
 def serve_predict(user_product_interactions):
     prediction = model(user_product_interactions)
     return prediction
-
 serve_predict = serve_predict.get_concrete_function(user_product_interactions=tf.TensorSpec( 
     shape=model.inputs[0].shape, 
     dtype=model.inputs[0].dtype, 
@@ -136,7 +138,7 @@ def preprocessing(user_product_interactions: list) -> list:
     for i, up in enumerate(user_product_interactions):
         inds  = []
         for pid in up:
-            inds.append( pid_to_ind[pid] )
+            inds.append( pid_to_ind.get(pid, 0) )
         values.append(inds)
     return values
 
@@ -165,5 +167,4 @@ model.save(MODEL_FOLDER_PATH+"/1", save_format="tf", signatures={
 with tarfile.open(f"{MODEL_OUTPUT_PATH}", "w:gz") as tar:
     tar.add(MODEL_FOLDER_PATH,
             arcname=os.path.basename(MODEL_FOLDER_PATH))
-
-#shutil.rmtree(MODEL_FOLDER_PATH)
+shutil.rmtree(MODEL_FOLDER_PATH)
