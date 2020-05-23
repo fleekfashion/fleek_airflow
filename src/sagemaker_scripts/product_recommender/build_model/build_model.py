@@ -1,12 +1,12 @@
 import os
 import tarfile
-import argparse 
+import argparse
 import shutil
+import pickle 
 
 from google.cloud import bigquery as bq
 import numpy as np
 import pandas as pd
-import dill
 import tensorflow as tf
 
 
@@ -14,11 +14,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--processor_out", type=str, required=True)
 parser.add_argument("--model_out", type=str, required=True)
 parser.add_argument("--project", type=str, required=True)
+parser.add_argument("--top_n", type=int, required=True)
 args = parser.parse_args()
 
-PROJECT = args.project 
+PROJECT = args.project
 PROC_OUTPUT_PATH = args.processor_out
 MODEL_OUTPUT_PATH = args.model_out
+TOP_N = args.top_n
 
 c = bq.Client(PROJECT)
 query1 = f"""
@@ -112,8 +114,8 @@ decoder = embeddings.T
 inputs = tf.keras.layers.Input(shape=(None,), dtype=tf.int32)
 embedded = Embedder(depth=len(pid_to_ind))(inputs)
 scores = Recommender(encoder=encoder, decoder=decoder, n_active=n_active)(embedded)
-top_n_scores = TopN(10, argsort=False)(scores)
-top_n_args = TopN(10, argsort=True)(scores)
+top_n_scores = TopN(TOP_N, argsort=False)(scores)
+top_n_args = TopN(TOP_N, argsort=True)(scores)
 model = tf.keras.models.Model(inputs=inputs, 
                               outputs={
                                   "top_scores": top_n_scores, 
@@ -131,28 +133,11 @@ serve_predict = serve_predict.get_concrete_function(user_product_interactions=tf
     dtype=model.inputs[0].dtype, 
     name="user_product_interactions") 
 )
-
-
-def preprocessing(user_product_interactions: list) -> list:
-    values = [] 
-    for i, up in enumerate(user_product_interactions):
-        inds  = []
-        for pid in up:
-            inds.append( pid_to_ind.get(pid, 0) )
-        values.append(inds)
-    return values
-
-def postprocessing(top_inds: list) -> list:
-    output = np.zeros(shape=(len(top_inds), len(top_inds[0]) ), dtype=np.int64)
-    for i, row in enumerate(top_inds):
-        output[i] = ind_to_pid[row]
-    return output.tolist()
-
 ## Save functions
 with open(PROC_OUTPUT_PATH, "wb") as handle:
-    dill.dump({
-        "preprocessing": preprocessing,
-        "postprocessing": postprocessing
+    pickle.dump({
+        "ind_to_pid": ind_to_pid.tolist(),
+        "pid_to_ind": pid_to_ind
     }, handle)
 
     MODEL_BASE_PATH = os.path.dirname(MODEL_OUTPUT_PATH) 
