@@ -3,10 +3,12 @@
         "cj_queries_uri_path" : "personalization/airflow/defs/cj_queries.json",
         "ecr_images": {
             "emb_preproc": "testpreproc",
-            "emb_postproc": "embedding-postprocessing"
+            "emb_postproc": "embedding-postprocessing",
+            "product_recommender" : "rec-model"
         },
         "model_uris": {
-            "image_embedding": "s3://fleek-prod/personalization/models/embedding_models/model4.tar.gz"
+            "image_embedding": "s3://fleek-prod/personalization/models/embedding_models/model.tar.gz",
+            "product_recommender": "s3://fleek-prod/personalization/temp/sagemaker/recommenders/v1/model.tar.gz"
         }
     }
 }

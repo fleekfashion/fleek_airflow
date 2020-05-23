@@ -1,10 +1,14 @@
+import os
+import tarfile
+import argparse 
+import shutil
+
 from google.cloud import bigquery as bq
 import numpy as np
 import pandas as pd
 import dill
 import tensorflow as tf
 
-import argparse 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--processor_out", type=str, required=True)
@@ -17,9 +21,9 @@ PROC_OUTPUT_PATH = args.processor_out
 MODEL_OUTPUT_PATH = args.model_out
 
 c = bq.Client(PROJECT)
-query1 = """
+query1 = f"""
 SELECT product_id, product_embedding
-FROM `fleek-prod.personalization.active_products` 
+FROM `{PROJECT}.personalization.active_products` 
 """
 active_data = c.query(query1).result()
 a_df = active_data.to_dataframe()
@@ -77,7 +81,8 @@ class Recommender(tf.keras.layers.Layer):
         
     def call(self, inputs):
         user_emb = tf.matmul(inputs, self.V)
-        scores = tf.matmul(user_emb, self.Vt)
+        normalized_emb = tf.math.l2_normalize(user_emb, axis=1)
+        scores = tf.matmul(normalized_emb, self.Vt)
         filtered_scores = tf.multiply(scores, tf.cast(inputs == 0, tf.float32) )
         filtered_scores = filtered_scores[:, :self.n_active]
         return filtered_scores
@@ -100,7 +105,7 @@ class TopN(tf.keras.layers.Layer):
 encoder = embeddings
 decoder = embeddings.T
 
-inputs = tf.keras.layers.Input(shape=(None,))
+inputs = tf.keras.layers.Input(shape=(None,), dtype=tf.int32)
 embedded = Embedder(depth=len(pid_to_ind))(inputs)
 scores = Recommender(encoder=encoder, decoder=decoder, n_active=n_active)(embedded)
 top_n_scores = TopN(10, argsort=False)(scores)
@@ -119,8 +124,11 @@ def serve_predict(user_product_interactions):
     prediction = model(user_product_interactions)
     return prediction
 
-                
-serve_predict = serve_predict.get_concrete_function(user_product_interactions=tf.TensorSpec( shape=model.inputs[0].shape,dtype=model.inputs[0].dtype, name="user_product_interactions") )
+serve_predict = serve_predict.get_concrete_function(user_product_interactions=tf.TensorSpec( 
+    shape=model.inputs[0].shape, 
+    dtype=model.inputs[0].dtype, 
+    name="user_product_interactions") 
+)
 
 
 def preprocessing(user_product_interactions: list) -> list:
@@ -128,7 +136,7 @@ def preprocessing(user_product_interactions: list) -> list:
     for i, up in enumerate(user_product_interactions):
         inds  = []
         for pid in up:
-            inds.append( float(pid_to_ind[pid]) )
+            inds.append( pid_to_ind[pid] )
         values.append(inds)
     return values
 
@@ -145,7 +153,17 @@ with open(PROC_OUTPUT_PATH, "wb") as handle:
         "postprocessing": postprocessing
     }, handle)
 
-model.save(MODEL_OUTPUT_PATH, save_format="tf", signatures={
+    MODEL_BASE_PATH = os.path.dirname(MODEL_OUTPUT_PATH) 
+    MODEL_FOLDER_PATH = MODEL_BASE_PATH + "/model"
+    os.mkdir(MODEL_FOLDER_PATH)
+
+model.save(MODEL_FOLDER_PATH+"/1", save_format="tf", signatures={
             tf.saved_model.DEFAULT_SERVING_SIGNATURE_DEF_KEY : serve_predict
     } 
 )
+
+with tarfile.open(f"{MODEL_OUTPUT_PATH}", "w:gz") as tar:
+    tar.add(MODEL_FOLDER_PATH,
+            arcname=os.path.basename(MODEL_FOLDER_PATH))
+
+#shutil.rmtree(MODEL_FOLDER_PATH)
