@@ -1,8 +1,12 @@
 version: '3'
 services:
   test:
-    image: rec_model 
+    image: rec-model 
     volumes:
       - ./output:/opt/ml/processing/output
       - ./build_model.py:/build_model.py
-    command: "/build_model.py --processor_out=/opt/ml/processing/output/processor.dill --model_out=/opt/ml/processing/output/model.tar.gz --project=fleek-prod --top_n=10"
+    command: "/build_model.py \
+              --processor_out=/opt/ml/processing/output/processor.pickle \
+              --model_out=/opt/ml/processing/output/model.tar.gz \
+              --project=fleek-prod \
+              --top_n=10"

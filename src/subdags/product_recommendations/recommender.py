@@ -33,7 +33,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
 
     ## Build Model VARS
     MODEL_FILENAME = "model.tar.gz"
-    PROCESSOR_FILENAME = "processor.dill"
+    PROCESSOR_FILENAME = "processor.pickle"
     TOP_N = 10
     outputs = [ProcessingOutput(destination=S3_BASE_DIR,
                                 source=MACHINE_OUTPUT_SOURCE)]
@@ -107,9 +107,61 @@ def get_operators(dag: DAG_TYPE) -> dict:
         op_kwargs=transform_kwargs,
         provide_context=False
     )
+    
+    ## POSTPROC
+    RECOMMENDATIONS_FILENAME = USER_DATA_FILENAME + ".out"
+
+    BASE_INPUT_DEST = "/opt/ml/processing/input"
+    REC_INPUT_DEST = f"{BASE_INPUT_DEST}/rec"
+    ID_INPUT_DEST = f"{BASE_INPUT_DEST}/id"
+    PROC_INPUT_DEST = f"{BASE_INPUT_DEST}/proc"
+    BQ_OUTPUT_TABLE = f"{pdefs.PROJECT}.{gcs_imports.DATASET}.user_product_recommendations"
+
+    inputs = [
+           ProcessingInput(
+               source=f"{TRANSFORM_OUTPUT_PATH}/{RECOMMENDATIONS_FILENAME}",
+               destination=f"{REC_INPUT_DEST}",
+               input_name=f"{RECOMMENDATIONS_FILENAME}"
+            ),
+           ProcessingInput(
+               source=f"{PREPROC_DEST_DIR}/{ID_FILENAME}",
+               destination=f"{ID_INPUT_DEST}",
+               input_name=f"{ID_FILENAME}"
+            ),
+           ProcessingInput(
+               source=f"{S3_BASE_DIR}/{PROCESSOR_FILENAME}",
+               destination=f"{PROC_INPUT_DEST}",
+               input_name=f"{PROCESSOR_FILENAME}"
+            ),
+       ]
+
+
+    arguments = [
+        f"--main_input_path={REC_INPUT_DEST}/{RECOMMENDATIONS_FILENAME}",
+        f"--id_input_path={ID_INPUT_DEST}/{ID_FILENAME}",
+        f"--processor_path={PROC_INPUT_DEST}/{PROCESSOR_FILENAME}",
+        f"--project={pdefs.PROJECT}",
+        f"--bq_output_table={BQ_OUTPUT_TABLE}",
+    ]
+    
+    postprocessing_kwargs = {
+        "docker_img_uri": build_repo_uri(ECR_REPO),
+        "processing_filepath": f"{SRC_DIR}/sagemaker_scripts/product_recommender/postprocessing/processing.py",
+        "inputs": inputs,
+        "arguments": arguments
+    }
+
+    postprocessing = PythonOperator(
+        task_id="sagemaker_recommender_postprocessing",
+        dag=dag,
+        python_callable=run_processing,
+        op_kwargs=postprocessing_kwargs,
+        provide_context=False
+    )
 
     
-    head >> build_model >> preprocessing 
-    preprocessing >> recommender_transform >> tail
+    head >> build_model >> preprocessing
+    preprocessing >> recommender_transform >> postprocessing
+    postprocessing >> tail
 
     return {"head":head, "tail":tail}
