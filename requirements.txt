@@ -98,6 +98,7 @@ marshmallow==2.21.0
 marshmallow-enum==1.5.1
 marshmallow-sqlalchemy==0.23.0
 mccabe==0.6.1
+mysqlclient==1.4.6
 numpy==1.18.3
 oauthlib==3.1.0
 packaging==20.3
