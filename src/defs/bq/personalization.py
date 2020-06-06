@@ -13,8 +13,6 @@ DAILY_CJ_DOWNLOAD_TABLE = "daily_cj_download"
 DAILY_NEW_PRODUCT_INFO_TABLE = "daily_new_product_info"
 HISTORIC_PRODUCTS_TABLE = "historic_products"
 
-
-
 TABLE_PARTITIONS = {
         HISTORIC_PRODUCTS_TABLE : {
             "type" : "DAY",

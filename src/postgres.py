@@ -21,10 +21,11 @@ from airflow.contrib.operators.bigquery_table_delete_operator import BigQueryTab
 
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
 from src.airflow_tools.operators import cloudql_operators as csql
-from src.subdags import table_setup
-from src.defs.bq import personalization as pdefs
+from src.airflow_tools.queries import postgre_queries as pquery
+from src.defs.bq import gcs_imports, gcs_exports, personalization as pdefs
 from src.defs.postgre import utils as postutils
 from src.defs.postgre import personalization as postdefs
+from src.subdags import table_setup
 
 DAG_ID = "testing"
 dag = DAG(
@@ -34,37 +35,11 @@ dag = DAG(
         doc_md=__doc__
     )
 
-GCP_PROJECT_ID = "fleek-prod"
-INSTANCE_NAME = "fleek-app-prod1"
-DB_NAME = "ktest"
-REGION = "us-central1"
-USER = "postgres"
-TEST = 'test'
-
-db_create_body = {
-    "instance": INSTANCE_NAME,
-    "name": DB_NAME,
-    "project": GCP_PROJECT_ID
-}
-
-
-CONN_ID = 'google_cloud_sql_ktest'
-
-sql_db_create_task2 = CloudSqlInstanceDatabaseCreateOperator(
-    dag=dag,
-    gcp_cloudsql_conn_id=CONN_ID,
-    body=db_create_body,
-    instance=INSTANCE_NAME,
-    task_id='sql_db_create_task2'
-)
-
-
 ################################
-## PRODUCT TABLE
+## User Recs 
 ################################
-TABLE_NAME = "fleek-prod.gcs_imports.user_product_recommendations"
-
-DEST = "fleek-prod.personalization.test_rec"
+TABLE_NAME = gcs_imports.FULL_NAMES[gcs_imports.USER_PRODUCT_RECOMMENDATIONS_TABLE]
+DEST = gcs_exports.get_full_name(gcs_exports.USER_RECOMMENDATIONS_TABLE)
 TOP_N = 10
 BATCH_SIZE = 3
 BATCHES = [ b for b in range(0, TOP_N, BATCH_SIZE)]
@@ -117,8 +92,8 @@ recs_bq_to_gcs = BigQueryToCloudStorageOperator(
     print_header=False
 )
 
-rec_table = "user_product_recs"
-staging_rec_table = rec_table+ postutils.DENOMER
+TABLE = postdefs.USER_RECOMMENDATIONS_TABLE
+STAGING_TABLE = TABLE + postutils.DENOMER
 columns = [
     "user_id bigint NOT NULL",
     "batch integer NOT NULL"
@@ -130,14 +105,14 @@ tail = f"""PARTITION BY LIST(batch);
 CREATE INDEX ON user_product_recs (user_id);
 """
 for b in range(len(BATCHES)):
-    tail += f"CREATE TABLE IF NOT EXISTS {staging_rec_table}_{b} PARTITION OF {staging_rec_table} FOR VALUES IN ({b});\n"
+    tail += f"CREATE TABLE IF NOT EXISTS {STAGING_TABLE}_{b} PARTITION OF {STAGING_TABLE} FOR VALUES IN ({b});\n"
 
 postgre_build_rec_table = CloudSqlQueryOperator(
     dag=dag,
-    gcp_cloudsql_conn_id=CONN_ID,
+    gcp_cloudsql_conn_id=postdefs.CONN_ID,
     task_id="build_postgres_user_product_recs_table",
-    sql=postutils.create_table_query(
-        staging_rec_table,
+    sql=pquery.create_table_query(
+        STAGING_TABLE,
         columns,
         tail=tail,
         drop=True
@@ -149,21 +124,21 @@ data_import = csql.get_import_operator(
         task_id="postgre_import_rec_data",
         uri=GCS_DEST,
         database="ktest",
-        table=staging_rec_table,
-        instance=INSTANCE_NAME
+        table=STAGING_TABLE,
+        instance=postdefs.INSTANCE
     )
 
 tail = ""
 for b in range(len(BATCHES)):
-    tail += f"ALTER TABLE {staging_rec_table}_{b} RENAME TO {rec_table}_{b};\n"
+    tail += f"ALTER TABLE {STAGING_TABLE}_{b} RENAME TO {TABLE}_{b};\n"
 
 postgre_rec_table_staging_to_prod = CloudSqlQueryOperator(
     dag=dag,
     gcp_cloudsql_conn_id=CONN_ID,
     task_id="postgres_user_product_recs_staging_to_prod",
-    sql=postutils.staging_to_live_query(
-        staging_name=staging_rec_table,
-        table_name=rec_table,
+    sql=pquery.staging_to_live_query(
+        staging_name=STAGING_TABLE,
+        table_name=TABLE,
         mode="OVERWRITE",
         tail=tail
     ),
@@ -222,7 +197,7 @@ postgre_build_product_staging_table = CloudSqlQueryOperator(
     dag=dag,
     gcp_cloudsql_conn_id=CONN_ID,
     task_id="build_postgres_product_info_staging_table",
-    sql=postutils.create_staging_table_query(
+    sql=pquery.create_staging_table_query(
         table_name=POSTGRE_PTABLE,
         denomer="_staging"
     )
@@ -234,7 +209,7 @@ product_data_import = csql.get_import_operator(
     uri=GCS_DEST,
     database="ktest",
     table=staging_name,
-    instance=INSTANCE_NAME,
+    instance=postdefs.INSTANCE,
     columns=cols,
 )
 
@@ -242,7 +217,7 @@ product_info_staging_to_prod = CloudSqlQueryOperator(
     dag=dag,
     gcp_cloudsql_conn_id=CONN_ID,
     task_id="postgres_product_info_staging_to_live",
-    sql=postutils.staging_to_live_query(
+    sql=pquery.staging_to_live_query(
         table_name=POSTGRE_PTABLE,
         staging_name=staging_name,
         mode="UPDATE_APPEND",
@@ -251,7 +226,6 @@ product_info_staging_to_prod = CloudSqlQueryOperator(
 )
 
 del_rec_table >> bq_rec_export_head
-bq_rec_export_tail >> sql_db_create_task2 >> postgre_build_rec_table
 bq_rec_export_tail >> recs_bq_to_gcs >> postgre_build_rec_table 
 postgre_build_rec_table >> data_import >> postgre_rec_table_staging_to_prod >> prod_info_bq_export
 

@@ -12,7 +12,7 @@
         },
         "model_parameters": {
             "product_recommender": {
-                "top_n": 5000
+                "top_n": 10
             }
         }
     }

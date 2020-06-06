@@ -12,7 +12,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
 from src.airflow_tools import dag_defs
 from src.airflow_tools.utils import get_dag_sensor
-from src.subdags.product_recommendations import recommender
+from src.subdags import product_recommendations as subdags
 
 DAG_ID = dag_defs.PRODUCT_RECOMMENDATIONS
 dag = DAG(
@@ -28,10 +28,12 @@ tail = DummyOperator(task_id=f"{DAG_ID}_dag_tail", dag=dag)
 table_setup_sensor = get_dag_sensor(dag=dag, external_dag_id=dag_defs.TABLE_SETUP)
 table_setup_sensor >> head
 
-rec_operators = recommender.get_operators(dag)
+rec_operators = subdags.recommender.get_operators(dag)
+postgre_upload_operators = subdags.postgre_export.get_operators(dag)
 
 head >> rec_operators["head"]
-rec_operators["tail"] >> tail
+rec_operators["tail"] >> postgre_upload_operators["head"]
+postgre_upload_operators["tail"] >> tail
 
 def _test():
     print("Sucess")

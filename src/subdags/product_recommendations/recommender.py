@@ -10,6 +10,7 @@ from google.cloud import bigquery as bq
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.bigquery_operator import BigQueryOperator
+from airflow.contrib.operators.bigquery_table_delete_operator import BigQueryTableDeleteOperator
 from sagemaker.processing import ProcessingInput, ProcessingOutput
 
 from src.defs.bq import personalization as pdefs, gcs_exports, gcs_imports
@@ -19,22 +20,24 @@ from src.callable.push_docker_image import build_repo_uri
 from src.callable.sagemaker_processing import run_processing
 from src.callable.sagemaker_transform import run_transform
 
+# Global Args 
+S3_BASE_DIR = f"s3://{buckets.MAIN}/personalization/temp/sagemaker/recommenders/v1"
+MACHINE_OUTPUT_SOURCE = "/opt/ml/processing/output"
+ECR_REPO = DAG_CONFIG["ecr_images"]["product_recommender"]
+
 def get_operators(dag: DAG_TYPE) -> dict:
     f"{__doc__}"
 
     head = DummyOperator(task_id="product_recs_head", dag=dag)
     tail = DummyOperator(task_id="product_recs_tail", dag=dag)
-    
-    # Global Args 
-    S3_BASE_DIR = f"s3://{buckets.MAIN}/personalization/temp/sagemaker/recommenders/v1"
-    MACHINE_OUTPUT_SOURCE = "/opt/ml/processing/output"
-    ECR_REPO = DAG_CONFIG["ecr_images"]["product_recommender"]
-        
 
     ## Build Model VARS
     MODEL_FILENAME = "model.tar.gz"
     PROCESSOR_FILENAME = "processor.pickle"
-    TOP_N = 10
+    TOP_N = DAG_CONFIG.get("model_parameters").get(
+        "product_recommender").get(
+        "top_n")
+
     outputs = [ProcessingOutput(destination=S3_BASE_DIR,
                                 source=MACHINE_OUTPUT_SOURCE)]
     arguments = [
@@ -150,6 +153,13 @@ def get_operators(dag: DAG_TYPE) -> dict:
         "inputs": inputs,
         "arguments": arguments
     }
+    
+    delete_rec_table = BigQueryTableDeleteOperator(
+        task_id=f"delete_bq_sagemaker_import_rec_table",
+        dadg=dag,
+        deletion_dataset_table=BQ_OUTPUT_TABLE,
+        ignore_if_missing=True
+    )
 
     postprocessing = PythonOperator(
         task_id="sagemaker_recommender_postprocessing",
@@ -161,7 +171,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
 
     
     head >> build_model >> preprocessing
-    preprocessing >> recommender_transform >> postprocessing
-    postprocessing >> tail
+    preprocessing >> recommender_transform >> delete_rec_table
+    delete_rec_table >> postprocessing >> tail
 
     return {"head":head, "tail":tail}

@@ -76,7 +76,7 @@ def get_batch_rec(main_input_path, id_input_path):
         yield df
     id_f.close()       
 
-generator = get_batch_rec(MAIN_INPUT_PATH, ID_INPUT_PATH, )
+generator = get_batch_rec(MAIN_INPUT_PATH, ID_INPUT_PATH)
 for df in generator:
     c = bq.Client(PROJECT)
     job_config = bq.LoadJobConfig(write_disposition="WRITE_APPEND")
