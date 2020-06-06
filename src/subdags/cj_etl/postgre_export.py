@@ -7,37 +7,25 @@ Overview
 3. Create tables in schema files
 """
 
-import os
-from datetime import timedelta
-
-import numpy as np
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.bigquery_operator import BigQueryOperator
 
-from airflow.contrib.operators.gcp_sql_operator import CloudSqlInstanceDatabaseCreateOperator, CloudSqlQueryOperator, CloudSqlInstanceImportOperator
+from airflow.contrib.operators.gcp_sql_operator import CloudSqlQueryOperator
 from airflow.contrib.operators.bigquery_to_gcs import BigQueryToCloudStorageOperator
-from airflow.contrib.operators.bigquery_table_delete_operator import BigQueryTableDeleteOperator
 
-from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
 from src.airflow_tools.operators import cloudql_operators as csql
-from src.subdags import table_setup
-from src.defs.bq import personalization as pdefs
-from src.defs.postgre import utils as postutils
+from src.airflow_tools.queries import postgre_queries as pquery
+from src.defs.bq import gcs_imports, gcs_exports, personalization as pdefs
 from src.defs.postgre import personalization as postdefs
+from src.defs.postgre import utils as postutils
 
-GCP_PROJECT_ID = "fleek-prod"
-INSTANCE_NAME = "fleek-app-prod1"
-DB_NAME = "ktest"
-REGION = "us-central1"
-USER = "postgres"
-TEST = 'test'
 ################################
 ## PRODUCT TABLE
 ################################
 
 
-def get_operators(dag):
+def get_operators(dag: DAG):
     head = DummyOperator(task_id="postgre_export_head", dag=dag)
     tail = DummyOperator(task_id="postgre_export_tail", dag=dag)
 
@@ -111,9 +99,9 @@ def get_operators(dag):
 
     postgre_build_product_table = CloudSqlQueryOperator(
         dag=dag,
-        gcp_cloudsql_conn_id=CONN_ID,
+        gcp_cloudsql_conn_id=postdefs.CONN_ID,
         task_id="build_postgres_product_info_table",
-        sql=postutils.create_table_query(
+        sql=pquery.create_table_query(
             table_name=POSTGRE_PTABLE,
             columns=col_info,
             tail=tail,
@@ -124,9 +112,9 @@ def get_operators(dag):
     staging_name = POSTGRE_PTABLE + "_staging"
     postgre_build_product_staging_table = CloudSqlQueryOperator(
         dag=dag,
-        gcp_cloudsql_conn_id=CONN_ID,
+        gcp_cloudsql_conn_id=postdefs.CONN_ID,
         task_id="build_postgres_product_info_staging_table",
-        sql=postutils.create_staging_table_query(
+        sql=pquery.create_staging_table_query(
             table_name=POSTGRE_PTABLE,
             denomer="_staging"
         )
@@ -138,15 +126,15 @@ def get_operators(dag):
         uri=GCS_DEST,
         database="ktest",
         table=staging_name,
-        instance=INSTANCE_NAME,
+        instance=postdefs.INSTANCE,
         columns=cols,
     )
 
     product_info_staging_to_prod = CloudSqlQueryOperator(
         dag=dag,
-        gcp_cloudsql_conn_id=CONN_ID,
+        gcp_cloudsql_conn_id=postdefs.CONN_ID,
         task_id="postgres_product_info_staging_to_live",
-        sql=postutils.staging_to_live_query(
+        sql=pquery.staging_to_live_query(
             table_name=POSTGRE_PTABLE,
             staging_name=staging_name,
             mode="UPDATE_APPEND",
@@ -154,6 +142,10 @@ def get_operators(dag):
         )
     )
 
-    prod_info_bq_export >> prods_bq_to_gcs >> postgre_build_product_table 
+    head >> prod_info_bq_export >> prods_bq_to_gcs >> postgre_build_product_table 
     postgre_build_product_table >> postgre_build_product_staging_table >> product_data_import >> product_info_staging_to_prod
+    product_info_staging_to_prod >> tail
+
+    return {"head": head, "tail": tail}
+    
 

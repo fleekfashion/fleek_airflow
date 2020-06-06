@@ -7,15 +7,13 @@ Overview
 3. Create tables in schema files
 """
 
-import os
 from datetime import timedelta
 
-import numpy as np
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.bigquery_operator import BigQueryOperator
 
-from airflow.contrib.operators.gcp_sql_operator import CloudSqlInstanceDatabaseCreateOperator, CloudSqlQueryOperator, CloudSqlInstanceImportOperator
+from airflow.contrib.operators.gcp_sql_operator import CloudSqlQueryOperator 
 from airflow.contrib.operators.bigquery_to_gcs import BigQueryToCloudStorageOperator
 from airflow.contrib.operators.bigquery_table_delete_operator import BigQueryTableDeleteOperator
 
@@ -134,7 +132,7 @@ for b in range(len(BATCHES)):
 
 postgre_rec_table_staging_to_prod = CloudSqlQueryOperator(
     dag=dag,
-    gcp_cloudsql_conn_id=CONN_ID,
+    gcp_cloudsql_conn_id=postdefs.CONN_ID,
     task_id="postgres_user_product_recs_staging_to_prod",
     sql=pquery.staging_to_live_query(
         staging_name=STAGING_TABLE,
@@ -195,7 +193,7 @@ prods_bq_to_gcs = BigQueryToCloudStorageOperator(
 staging_name = POSTGRE_PTABLE + "_staging"
 postgre_build_product_staging_table = CloudSqlQueryOperator(
     dag=dag,
-    gcp_cloudsql_conn_id=CONN_ID,
+    gcp_cloudsql_conn_id=postdefs.CONN_ID,
     task_id="build_postgres_product_info_staging_table",
     sql=pquery.create_staging_table_query(
         table_name=POSTGRE_PTABLE,
@@ -215,7 +213,7 @@ product_data_import = csql.get_import_operator(
 
 product_info_staging_to_prod = CloudSqlQueryOperator(
     dag=dag,
-    gcp_cloudsql_conn_id=CONN_ID,
+    gcp_cloudsql_conn_id=postdefs.CONN_ID,
     task_id="postgres_product_info_staging_to_live",
     sql=pquery.staging_to_live_query(
         table_name=POSTGRE_PTABLE,
@@ -226,7 +224,7 @@ product_info_staging_to_prod = CloudSqlQueryOperator(
 )
 
 del_rec_table >> bq_rec_export_head
-bq_rec_export_tail >> recs_bq_to_gcs >> postgre_build_rec_table 
+bq_rec_export_tail >> recs_bq_to_gcs >> postgre_build_rec_table
 postgre_build_rec_table >> data_import >> postgre_rec_table_staging_to_prod >> prod_info_bq_export
 
 prod_info_bq_export >> prods_bq_to_gcs

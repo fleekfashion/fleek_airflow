@@ -33,16 +33,19 @@ table_setup_sensor = get_dag_sensor(dag=dag, external_dag_id=dag_defs.TABLE_SETU
 
 download_operators = cj_etl.cj_download.get_operators(dag)
 embeddings_operators = cj_etl.new_product_embeddings.get_operators(dag)
+postgre_export_operators = cj_etl.postgre_export.get_operators(dag)
 
 head >> table_setup_sensor >> download_operators["head"]
 download_operators["tail"] >> embeddings_operators["head"]
+download_operators["tail"] >> postgre_export_operators["head"]
 embeddings_operators['tail'] >> tail
+postgre_export_operators['tail'] >> tail
 
 def _test():
     print("Sucess")
 from airflow.operators.python_operator import PythonOperator
 PythonOperator(
-    task_id="test", 
-    dag=dag, 
+    task_id="test",
+    dag=dag,
     python_callable=_test
 )

@@ -5,10 +5,6 @@ Overview
 3. Create tables in schema files
 """
 
-import os
-from datetime import timedelta
-
-import numpy as np
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.bigquery_operator import BigQueryOperator
@@ -20,7 +16,7 @@ from airflow.contrib.operators.bigquery_table_delete_operator import BigQueryTab
 from src.airflow_tools.airflow_variables import DAG_CONFIG
 from src.airflow_tools.operators import cloudql_operators as csql
 from src.airflow_tools.queries import postgre_queries as pquery
-from src.defs.bq import gcs_imports, gcs_exports 
+from src.defs.bq import gcs_imports, gcs_exports
 from src.defs.postgre import utils as postutils
 from src.defs.postgre import personalization as postdefs
 

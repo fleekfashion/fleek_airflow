@@ -20,8 +20,8 @@ def create_table_query(table_name: str, columns: str,
     query += "END TRANSACTION;"
     return query
 
-def create_staging_table_query(table_name: str, 
-        denomer=utils.DENOMER):
+def create_staging_table_query(table_name: str,
+                               denomer=utils.DENOMER):
     staging_name = table_name+denomer
     query1 = "BEGIN TRANSACTION;\n"
     query1 += f"DROP TABLE IF EXISTS {staging_name};\n"
