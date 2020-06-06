@@ -30,6 +30,18 @@ tail = DummyOperator(task_id=f"{DAG_ID}_dag_tail", dag=dag)
 p_tables = table_setup.personalization.get_operators(dag)
 g_exp_tables = table_setup.gcs_exports.get_operators(dag)
 g_imp_tables = table_setup.gcs_imports.get_operators(dag)
+postgre_tables = table_setup.postgre_personalization.get_operators(dag)
 
-head >> [ p_tables['head'], g_exp_tables['head'], g_imp_tables['head'] ]
-[ p_tables['tail'], g_exp_tables['tail'], g_exp_tables['tail'] ] >> tail
+head >> [ 
+    p_tables['head'], 
+    g_exp_tables['head'], 
+    g_imp_tables['head'],
+    postgre_tables['head']
+]
+
+[ 
+    p_tables['tail'], 
+    g_exp_tables['tail'], 
+    g_imp_tables['tail'],
+    postgre_tables['tail']
+] >> tail

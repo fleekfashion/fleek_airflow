@@ -16,8 +16,8 @@ def get_operators(dag):
     f"""
     {__doc__} 
     """
-    head = DummyOperator(task_id="table_setup_head", dag=dag)
-    tail = DummyOperator(task_id="table_setup_tail", dag=dag)
+    head = DummyOperator(task_id="gcs_imports_table_setup_head", dag=dag)
+    tail = DummyOperator(task_id="gcs_imports_table_setup_tail", dag=dag)
     operators = []
 
     for table_name, schema_fields in gcs_imports.SCHEMAS.items():
