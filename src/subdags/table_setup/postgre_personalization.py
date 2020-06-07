@@ -11,6 +11,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.gcp_sql_operator import CloudSqlQueryOperator
 
 from src.airflow_tools.operators import cloudql_operators as csql
+from src.airflow_tools.queries import postgre_queries as pquery 
 from src.defs.postgre import utils as postutils
 from src.defs.postgre import personalization as postdefs
 
@@ -27,7 +28,7 @@ def get_operators(dag: DAG) -> dict:
             dag=dag,
             gcp_cloudsql_conn_id=postdefs.CONN_ID,
             task_id=f"create_postgres_{table_name}_table",
-            sql=postutils.create_table_query(
+            sql=pquery.create_table_query(
                 table_name=table_name,
                 columns=table_info["schema"],
                 tail=table_info["tail"],

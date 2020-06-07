@@ -20,7 +20,7 @@ from src.defs.bq import gcs_imports, gcs_exports
 from src.defs.postgre import utils as postutils
 from src.defs.postgre import personalization as postdefs
 
-TABLE_NAME = gcs_imports.FULL_NAMES[gcs_imports.USER_PRODUCT_RECOMMENDATIONS_TABLE]
+TABLE_NAME = gcs_imports.get_full_name(gcs_imports.USER_PRODUCT_RECOMMENDATIONS_TABLE)
 DEST = gcs_exports.get_full_name(gcs_exports.USER_RECOMMENDATIONS_TABLE)
 TOP_N = DAG_CONFIG.get("model_parameters").get(
     "product_recommender").get(
@@ -28,8 +28,8 @@ TOP_N = DAG_CONFIG.get("model_parameters").get(
 GCS_DEST = "gs://fleek-prod/personalization/postgre_upload/product_recs"
 
 def get_operators(dag: DAG):
-    head = DummyOperator(task_id="product_recs_head", dag=dag)
-    tail = DummyOperator(task_id="product_recs_tail", dag=dag)
+    head = DummyOperator(task_id="postgre_export_head", dag=dag)
+    dag_tail = DummyOperator(task_id="postgre_export_tail", dag=dag)
 
     batch_size = 3
     batches = [b for b in range(0, TOP_N, batch_size)]
@@ -134,6 +134,6 @@ def get_operators(dag: DAG):
 
     head >> del_rec_table >> bq_rec_export_head
     bq_rec_export_tail >> recs_bq_to_gcs >> postgre_build_rec_table 
-    postgre_build_rec_table >> data_import >> postgre_rec_table_staging_to_prod
+    postgre_build_rec_table >> data_import >> postgre_rec_table_staging_to_prod >> dag_tail
     
-    return {"head": head, "tail": tail}
+    return {"head": head, "tail": dag_tail}

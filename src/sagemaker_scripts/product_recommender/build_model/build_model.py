@@ -16,6 +16,7 @@ parser.add_argument("--model_out", type=str, required=True)
 parser.add_argument("--project", type=str, required=True)
 parser.add_argument("--top_n", type=int, required=True)
 args = parser.parse_args()
+print(args)
 
 PROJECT = args.project
 PROC_OUTPUT_PATH = args.processor_out

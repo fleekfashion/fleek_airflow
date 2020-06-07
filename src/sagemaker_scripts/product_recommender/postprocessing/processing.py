@@ -14,6 +14,7 @@ parser.add_argument("--project", type=str, required=True)
 parser.add_argument("--bq_output_table", type=str, required=True)
 parser.add_argument("--processor_path", type=str, required=True)
 args = parser.parse_args()
+print(args)
 
 PROJECT = args.project
 MAIN_INPUT_PATH = args.main_input_path

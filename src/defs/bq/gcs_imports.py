@@ -16,6 +16,16 @@ TABLE_PARTITIONS = {
 SCHEMAS = {
 }
 
+def get_full_name(table_name):
+    name = ".".join(
+        [
+            PROJECT,
+            DATASET,
+            table_name
+        ]
+    )
+    return name
+
 FULL_NAMES = {}
 for table_name in SCHEMAS:
     FULL_NAMES[table_name] = ".".join(

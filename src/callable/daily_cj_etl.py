@@ -10,6 +10,10 @@ import numpy as np
 
 from google.cloud import bigquery
 
+def build_product_id(advertiser_name, image_url):
+    hasher = pyhash.farm_fingerprint_64()
+    return hasher(advertiser_name + image_url) // 10
+
 URL_PATH = "https://product-search.api.cj.com/v2/product-search?"
 ACCESS_TOKEN_BEARER = "Bearer 692245ytkcqqyq3k155pgyr53g"
 CJ_TO_SCHEMA = {
@@ -35,9 +39,7 @@ def download_cj_data(parameters: dict, bq_output_table: str, **kwargs) -> None:
     parameters["records-per-page"] = "50"
     
     bq_client = bigquery.Client()
-    hasher = pyhash.farm_fingerprint_64()
     for page_number in range(1, n_pages+1):
-        
         ## Get and load data into dataframe
         data = _get_cj_data(parameters, page_number)
         df = pd.DataFrame(data)
@@ -47,10 +49,10 @@ def download_cj_data(parameters: dict, bq_output_table: str, **kwargs) -> None:
         df["execution_date"] = kwargs["execution_date"].date()
         df["execution_timestamp"] = kwargs["execution_date"].int_timestamp
         df["product_tag"] = p_tag
-        df["product_id"] = df.apply(lambda x: hasher(
-            x.product_name + x.advertiser_name +
-            x.product_image_url
-            )//10, axis=1
+        df["product_id"] = df.apply(lambda x: build_product_id(
+            advertiser_name=x.advertiser_name, 
+            image_url=x.product_image_url
+            ), axis=1
         )
 
         # Upload to bigquery

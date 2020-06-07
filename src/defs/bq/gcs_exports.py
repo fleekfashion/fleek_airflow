@@ -35,7 +35,7 @@ SCHEMAS = {
 }
 
 def get_full_name(table_name):
-    name = FULL_NAMES[table_name] = ".".join(
+    name = ".".join(
         [
             PROJECT,
             DATASET,

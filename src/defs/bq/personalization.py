@@ -20,6 +20,16 @@ TABLE_PARTITIONS = {
             }
         }
 
+def get_full_name(table_name):
+    name = ".".join(
+        [
+            PROJECT,
+            DATASET,
+            table_name
+        ]
+    )
+    return name
+
 SCHEMAS = {
 
     ACTIVE_PRODUCTS_TABLE : [

@@ -156,7 +156,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
     
     delete_rec_table = BigQueryTableDeleteOperator(
         task_id=f"delete_bq_sagemaker_import_rec_table",
-        dadg=dag,
+        dag=dag,
         deletion_dataset_table=BQ_OUTPUT_TABLE,
         ignore_if_missing=True
     )

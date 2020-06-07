@@ -9,6 +9,7 @@ parser.add_argument("--project", type=str, required=True)
 parser.add_argument("--main_out", type=str, required=True)
 parser.add_argument("--uid_out", type=str, required=True)
 args = parser.parse_args()
+print(args)
 
 PROJECT = args.project
 MAIN_OUT = args.main_out

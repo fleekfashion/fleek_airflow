@@ -27,7 +27,7 @@ from src.defs.postgre import utils as postutils
 
 def get_operators(dag: DAG):
     head = DummyOperator(task_id="postgre_export_head", dag=dag)
-    tail = DummyOperator(task_id="postgre_export_tail", dag=dag)
+    dag_tail = DummyOperator(task_id="postgre_export_tail", dag=dag)
 
     TABLE_NAME = pdefs.FULL_NAMES[pdefs.ACTIVE_PRODUCTS_TABLE] 
     DEST = "fleek-prod.gcs_exports.postgre_product_info"
@@ -144,8 +144,8 @@ def get_operators(dag: DAG):
 
     head >> prod_info_bq_export >> prods_bq_to_gcs >> postgre_build_product_table 
     postgre_build_product_table >> postgre_build_product_staging_table >> product_data_import >> product_info_staging_to_prod
-    product_info_staging_to_prod >> tail
+    product_info_staging_to_prod >> dag_tail
 
-    return {"head": head, "tail": tail}
+    return {"head": head, "tail": dag_tail}
     
 

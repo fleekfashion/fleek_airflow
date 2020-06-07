@@ -36,7 +36,7 @@ dag = DAG(
 ################################
 ## User Recs 
 ################################
-TABLE_NAME = gcs_imports.FULL_NAMES[gcs_imports.USER_PRODUCT_RECOMMENDATIONS_TABLE]
+TABLE_NAME = gcs_imports.get_full_name(gcs_imports.USER_PRODUCT_RECOMMENDATIONS_TABLE)
 DEST = gcs_exports.get_full_name(gcs_exports.USER_RECOMMENDATIONS_TABLE)
 TOP_N = 10
 BATCH_SIZE = 3
