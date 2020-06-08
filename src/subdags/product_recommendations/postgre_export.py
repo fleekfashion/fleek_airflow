@@ -90,7 +90,7 @@ def get_operators(dag: DAG):
         columns.append(f"top_products_{b} bigint NOT NULL")
 
     tail = f"""PARTITION BY LIST(batch);
-    CREATE INDEX ON user_product_recs (user_id);
+    CREATE INDEX ON {STAGING_TABLE} (user_id);
     """
     for b in range(len(batches)):
         tail += f"CREATE TABLE IF NOT EXISTS {STAGING_TABLE}_{b} PARTITION OF {STAGING_TABLE} FOR VALUES IN ({b});\n"
@@ -98,7 +98,7 @@ def get_operators(dag: DAG):
     postgre_build_rec_table = CloudSqlQueryOperator(
         dag=dag,
         gcp_cloudsql_conn_id=postdefs.CONN_ID,
-        task_id="build_postgres_user_product_recs_table",
+        task_id="build_postgres_user_product_recs_staging_table",
         sql=pquery.create_table_query(
             STAGING_TABLE,
             columns,
@@ -109,7 +109,7 @@ def get_operators(dag: DAG):
         
     data_import = csql.get_import_operator(
         dag=dag,
-        task_id="postgre_import_rec_data",
+        task_id="postgre_import_rec_data_to_staging",
         uri=GCS_DEST,
         database="ktest",
         table=STAGING_TABLE,
