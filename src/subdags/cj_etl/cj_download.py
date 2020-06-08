@@ -19,7 +19,6 @@ def get_operators(dag: DAG_TYPE) -> dict:
     f"{__doc__}"
     head = DummyOperator(task_id="cj_download_head", dag=dag)
     tail = DummyOperator(task_id="cj_download_tail", dag=dag)
-    operators = []
     
     c = storage.Client(pdefs.PROJECT)
     prefix = DAG_CONFIG["cj_queries_uri_path"]
@@ -70,8 +69,8 @@ def get_operators(dag: DAG_TYPE) -> dict:
         use_legacy_sql=False,
         )
                 
-    remove_inactive_products = BigQueryOperator(
-        task_id="remove_inactive_products",
+    update_active_products = BigQueryOperator(
+        task_id="update_active_products",
         dag=dag,
         destination_dataset_table=pdefs.FULL_NAMES[pdefs.ACTIVE_PRODUCTS_TABLE],
         write_disposition="WRITE_TRUNCATE",
@@ -79,19 +78,16 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "cj_table": pdefs.FULL_NAMES[pdefs.DAILY_CJ_DOWNLOAD_TABLE],
             "active_table": pdefs.FULL_NAMES[pdefs.ACTIVE_PRODUCTS_TABLE]
             },
-        sql="template/remove_inactive_products.sql",
+        sql="template/update_active_products.sql",
         use_legacy_sql=False,
         )
 
+    head >> downloads
     downloads >> update_daily_new_product_info_table
     downloads >> migrate_active_to_historic_products
 
-    operators.extend(downloads)
-    operators.append(update_daily_new_product_info_table)
-    operators.append(migrate_active_to_historic_products)
 
-    operators >> remove_inactive_products 
-    operators.append(remove_inactive_products)
-
-    head >> operators >> tail
+    update_daily_new_product_info_table >> update_active_products
+    migrate_active_to_historic_products >> update_active_products
+    update_active_products >> tail
     return {"head": head, "tail": tail}
