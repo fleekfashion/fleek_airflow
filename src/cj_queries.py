@@ -37,8 +37,7 @@ postgre_export_operators = cj_etl.postgre_export.get_operators(dag)
 
 head >> table_setup_sensor >> download_operators["head"]
 download_operators["tail"] >> embeddings_operators["head"]
-download_operators["tail"] >> postgre_export_operators["head"]
-embeddings_operators['tail'] >> tail
+embeddings_operators["tail"] >> postgre_export_operators["head"]
 postgre_export_operators['tail'] >> tail
 
 def _test():

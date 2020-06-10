@@ -53,7 +53,7 @@ def _write_truncate(table_name, staging_name):
 
 def _overwrite_query(table_name, staging_name):
     query = ""
-    query += f"DROP TABLE {table_name};\n"
+    query += f"DROP TABLE IF EXISTS {table_name};\n"
     query += f"ALTER TABLE {staging_name} RENAME TO {table_name};\n"
     return query
 

@@ -32,7 +32,6 @@ def get_operators(dag: DAG) -> dict:
                 table_name=table_name,
                 columns=table_info["schema"],
                 tail=table_info["tail"],
-                drop=True
             )
         )
         operators.append(op)
