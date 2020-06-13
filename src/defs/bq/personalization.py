@@ -64,6 +64,11 @@ SCHEMAS = {
             "mode": "REQUIRED"
         },
         {
+            "name": "product_brand",
+            "type": "STRING",
+            "mode": "REQUIRED"
+        },
+        {
             "name": "product_price",
             "type": "FLOAT64",
             "mode": "REQUIRED"
@@ -91,6 +96,11 @@ SCHEMAS = {
         {
             "name": "advertiser_name",
             "type": "STRING",
+            "mode": "REQUIRED"
+        },
+        {
+            "name": "product_last_update",
+            "type": "DATE",
             "mode": "REQUIRED"
         },
         {
@@ -152,6 +162,11 @@ SCHEMAS = {
             "mode": "REQUIRED"
         },
         {
+            "name": "product_brand",
+            "type": "STRING",
+            "mode": "REQUIRED"
+        },
+        {
             "name": "product_price",
             "type": "FLOAT64",
             "mode": "REQUIRED"
@@ -159,6 +174,11 @@ SCHEMAS = {
         {
             "name": "product_sale_price",
             "type": "FLOAT64",
+            "mode": "NULLABLE"
+        },
+        {
+            "name": "product_currency",
+            "type": "STRING",
             "mode": "NULLABLE"
         },
         {
@@ -179,6 +199,11 @@ SCHEMAS = {
         {
             "name": "advertiser_name",
             "type": "STRING",
+            "mode": "REQUIRED"
+        },
+        {
+            "name": "product_last_update",
+            "type": "DATE",
             "mode": "REQUIRED"
         },
     ],
