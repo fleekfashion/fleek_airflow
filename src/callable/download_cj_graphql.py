@@ -93,6 +93,7 @@ def _get_cj_df(company_id, website_id, limit, advertiser_id, query_params):
     ## Add Product Tag to DF
     cj_df = json_normalize(batch)
     cj_df['product_tag'] = product_tag
+    cj_df.fillna(value=pd.np.nan, inplace=True)
     return cj_df
 
 def _drop_row(row, drop_kwargs):
@@ -133,8 +134,9 @@ def _build_products_df(cj_df, drop_kwargs):
     final_df['product_brand'] = cj_df['brand']
     final_df['product_name'] = cj_df.title
     final_df['product_description'] = cj_df.description
-    final_df['product_price'] = cj_df['price.amount']
-    final_df['product_sale_price'] = cj_df.get('salePrice.amount', None)
+    final_df['product_tag'] = cj_df.product_tag
+    final_df['product_price'] = cj_df['price.amount'].astype('float')
+    final_df['product_sale_price'] = cj_df.get('salePrice.amount', cj_df.get("price.amount", pd.np.nan)).astype('float')
     final_df['product_currency'] = cj_df['price.currency']
     final_df['product_purchase_url'] = cj_df.apply(lambda x: get_correct_link(x),
                                                    axis=1)
@@ -154,6 +156,7 @@ def _insert_fleek_columns(df: pd.DataFrame, kwargs: dict) -> pd.DataFrame:
             advertiser_name=x.advertiser_name,
             image_url=x.product_image_url), 
         axis=1)
+    df = df.drop_duplicates(subset="product_id").reset_index(drop=True)
     return df
 
 def download_cj_data(query_data: dict, drop_kwargs: dict,
@@ -166,6 +169,7 @@ def download_cj_data(query_data: dict, drop_kwargs: dict,
         df = _build_products_df(cj_df, drop_kwargs)
         dataframes.append(df)
     final_df = pd.concat(dataframes).reset_index(drop=True)
-    return final_df
     final_df = _insert_fleek_columns(final_df, kwargs)
+    print(final_df.columns)
+    _upload_to_bigquery(final_df, bq_output_table) 
     return final_df

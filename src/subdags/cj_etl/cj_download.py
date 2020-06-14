@@ -4,6 +4,7 @@ Daily CJ Downloads
 """
 
 import json
+import copy
 
 from google.cloud import storage
 
@@ -13,6 +14,7 @@ from airflow.contrib.operators.bigquery_operator import BigQueryOperator
 
 from src.defs.bq import personalization as pdefs
 from src.callable.daily_cj_etl import download_cj_data
+from src.callable.download_cj_graphql import download_cj_data
 from src.airflow_tools.airflow_variables import DAG_CONFIG, DAG_TYPE
 
 def get_operators(dag: DAG_TYPE) -> dict:
@@ -22,26 +24,33 @@ def get_operators(dag: DAG_TYPE) -> dict:
     
     c = storage.Client(pdefs.PROJECT)
     prefix = DAG_CONFIG["cj_queries_uri_path"]
-
+    prefix = "personalization/airflow/defs/final_cj_queries.json"
     blobs = c.list_blobs(bucket_or_name=pdefs.PROJECT,
             prefix=prefix)
     blob = list(blobs)[0]
     parameters = json.loads(blob.download_as_string().decode())
-    parameters = parameters["queries"]
+    #parameters = parameters["queries"]
     
+    ## TODO Truncate table before adding to it
+
+    advertiser_ids = parameters.pop("advertiser_ids")
     downloads = []
-    for p in parameters:
+    for advertiser_id in advertiser_ids:
+        query_data = copy.deepcopy(parameters)
+        query_data['advertiser_id'] = advertiser_id
         cj_data_to_bq = PythonOperator(
-            task_id="run_daily_cj_download",
+            task_id=f"run_daily_cj_download_{advertiser_id}",
             dag=dag,
             python_callable=download_cj_data,
             op_kwargs={
-                "parameters": p,
+                "query_data": query_data,
                 "bq_output_table": pdefs.FULL_NAMES[pdefs.DAILY_CJ_DOWNLOAD_TABLE],
+                "drop_kwargs": {},
             },
             provide_context=True
         )
         downloads.append(cj_data_to_bq)
+        break
 
     update_daily_new_product_info_table = BigQueryOperator(
         task_id="update_daily_new_product_info_table",

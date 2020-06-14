@@ -34,18 +34,13 @@ SCHEMAS = {
 
     ACTIVE_PRODUCTS_TABLE : [
         {
-            "name": "execution_date",
-            "type": "DATE",
-            "mode": "REQUIRED"
-        },
-        {
-            "name": "execution_timestamp",
-            "type": "INTEGER",
-            "mode": "REQUIRED"
-        },
-        {
             "name": "product_id",
             "type": "INTEGER",
+            "mode": "REQUIRED"
+        },
+        {
+            "name": "advertiser_name",
+            "type": "STRING",
             "mode": "REQUIRED"
         },
         {
@@ -64,7 +59,7 @@ SCHEMAS = {
             "mode": "REQUIRED"
         },
         {
-            "name": "product_brand",
+            "name": "product_purchase_url",
             "type": "STRING",
             "mode": "REQUIRED"
         },
@@ -74,8 +69,18 @@ SCHEMAS = {
             "mode": "REQUIRED"
         },
         {
+            "name": "product_brand",
+            "type": "STRING",
+            "mode": "REQUIRED"
+        },
+        {
             "name": "product_sale_price",
             "type": "FLOAT64",
+            "mode": "REQUIRED"
+        },
+        {
+            "name": "product_currency",
+            "type": "STRING",
             "mode": "NULLABLE"
         },
         {
@@ -84,24 +89,29 @@ SCHEMAS = {
             "mode": "REQUIRED"
         },
         {
+            "name": "product_last_update",
+            "type": "DATE",
+            "mode": "REQUIRED"
+        },
+        {
+            "name": "execution_date",
+            "type": "DATE",
+            "mode": "REQUIRED"
+        },
+        {
+            "name": "execution_timestamp",
+            "type": "INTEGER",
+            "mode": "REQUIRED"
+        },
+        {
             "name": "product_additional_image_urls",
             "type": "STRING",
             "mode": "NULLABLE"
         },
         {
-            "name": "product_purchase_url",
+            "name": "advertiser_country",
             "type": "STRING",
-            "mode": "REQUIRED"
-        },
-        {
-            "name": "advertiser_name",
-            "type": "STRING",
-            "mode": "REQUIRED"
-        },
-        {
-            "name": "product_last_update",
-            "type": "DATE",
-            "mode": "REQUIRED"
+            "mode": "NULLABLE"
         },
         {
             "name": "product_embedding",
@@ -132,18 +142,13 @@ SCHEMAS = {
 
     DAILY_CJ_DOWNLOAD_TABLE : [
         {
-            "name": "execution_date",
-            "type": "DATE",
-            "mode": "REQUIRED"
-        },
-        {
-            "name": "execution_timestamp",
-            "type": "INTEGER",
-            "mode": "REQUIRED"
-        },
-        {
             "name": "product_id",
             "type": "INTEGER",
+            "mode": "REQUIRED"
+        },
+        {
+            "name": "advertiser_name",
+            "type": "STRING",
             "mode": "REQUIRED"
         },
         {
@@ -162,7 +167,7 @@ SCHEMAS = {
             "mode": "REQUIRED"
         },
         {
-            "name": "product_brand",
+            "name": "product_purchase_url",
             "type": "STRING",
             "mode": "REQUIRED"
         },
@@ -172,9 +177,14 @@ SCHEMAS = {
             "mode": "REQUIRED"
         },
         {
+            "name": "product_brand",
+            "type": "STRING",
+            "mode": "REQUIRED"
+        },
+        {
             "name": "product_sale_price",
             "type": "FLOAT64",
-            "mode": "NULLABLE"
+            "mode": "REQUIRED"
         },
         {
             "name": "product_currency",
@@ -187,24 +197,29 @@ SCHEMAS = {
             "mode": "REQUIRED"
         },
         {
+            "name": "product_last_update",
+            "type": "DATE",
+            "mode": "REQUIRED"
+        },
+        {
+            "name": "execution_date",
+            "type": "DATE",
+            "mode": "REQUIRED"
+        },
+        {
+            "name": "execution_timestamp",
+            "type": "INTEGER",
+            "mode": "REQUIRED"
+        },
+        {
             "name": "product_additional_image_urls",
             "type": "STRING",
             "mode": "NULLABLE"
         },
         {
-            "name": "product_purchase_url",
+            "name": "advertiser_country",
             "type": "STRING",
-            "mode": "REQUIRED"
-        },
-        {
-            "name": "advertiser_name",
-            "type": "STRING",
-            "mode": "REQUIRED"
-        },
-        {
-            "name": "product_last_update",
-            "type": "DATE",
-            "mode": "REQUIRED"
+            "mode": "NULLABLE"
         },
     ],
 }
