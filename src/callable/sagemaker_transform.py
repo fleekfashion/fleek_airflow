@@ -14,6 +14,7 @@ def run_transform(model_data: str, input_data: str, output_path: str,
                   assemble_with: str = "Line",
                   strategy: str = "MultiRecord",
                   max_payload: int = 6,
+                  max_concurrent_transforms: int = 1,
                   framework_version: str = "2.1",
                   ) -> None:
    
@@ -25,6 +26,7 @@ def run_transform(model_data: str, input_data: str, output_path: str,
                                     output_path=output_path,
                                     strategy=strategy,
                                     max_payload=max_payload,
+                                    max_concurrent_transforms=max_concurrent_transforms,
                                     assemble_with=assemble_with,
                                    )
     transformer.transform(data=input_data,

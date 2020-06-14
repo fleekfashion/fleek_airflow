@@ -15,17 +15,7 @@ from airflow.contrib.operators.bigquery_operator import BigQueryOperator
 from src.defs.bq import personalization as pdefs
 from src.callable.download_cj_graphql import download_cj_data
 from src.airflow_tools.airflow_variables import DAG_CONFIG, DAG_TYPE
-
-def get_safe_truncate_operator(dag, table):
-    task_id = f"safe_truncate_{table}"
-    op = BigQueryOperator(
-        dag=dag,
-        task_id=task_id,
-        params={"table":table},
-        sql="DELETE FROM {{params.table}} WHERE 1=1",
-        use_legacy_sql=False,
-    )
-    return op
+from src.airflow_tools.operators.bq_safe_truncate_operator import get_safe_truncate_operator
 
 def get_operators(dag: DAG_TYPE) -> dict:
     f"{__doc__}"
