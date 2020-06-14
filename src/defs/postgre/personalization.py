@@ -54,7 +54,7 @@ SCHEMAS = {
                 "mode": "NOT NULL UNIQUE"
             },
             {
-                "name": "product_additional_image_url",
+                "name": "product_additional_image_urls",
                 "type": "TEXT",
                 "mode": ""
             },

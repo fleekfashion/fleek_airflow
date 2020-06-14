@@ -84,7 +84,7 @@ SCHEMAS = {
             "mode": "REQUIRED"
         },
         {
-            "name": "product_additional_image_url",
+            "name": "product_additional_image_urls",
             "type": "STRING",
             "mode": "NULLABLE"
         },
@@ -187,7 +187,7 @@ SCHEMAS = {
             "mode": "REQUIRED"
         },
         {
-            "name": "product_additional_image_url",
+            "name": "product_additional_image_urls",
             "type": "STRING",
             "mode": "NULLABLE"
         },
