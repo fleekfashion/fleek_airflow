@@ -59,8 +59,7 @@ def _load_image(img_url):
 def _main():
     c = bq.Client("fleek-prod")
     data = c.query("""SELECT DISTINCT(product_id), image_url
-            FROM  `fleek-prod.gcs_exports.sagemaker_embedder_product_info` 
-            LIMIT 100""").result().to_dataframe()
+            FROM  `fleek-prod.gcs_exports.sagemaker_embedder_product_info`""").result().to_dataframe()
     print("Loaded input data")
 
     img_urls = data["image_url"].values

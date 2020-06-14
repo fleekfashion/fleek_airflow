@@ -29,13 +29,12 @@ dag = DAG(
 
 head = DummyOperator(task_id=f"{DAG_ID}_dag_head", dag=dag)
 tail = DummyOperator(task_id=f"{DAG_ID}_dag_tail", dag=dag)
-table_setup_sensor = get_dag_sensor(dag=dag, external_dag_id=dag_defs.TABLE_SETUP)
 
 download_operators = cj_etl.cj_download.get_operators(dag)
 embeddings_operators = cj_etl.new_product_embeddings.get_operators(dag)
 postgre_export_operators = cj_etl.postgre_export.get_operators(dag)
 
-head >> table_setup_sensor >> download_operators["head"]
+head >> download_operators["head"]
 download_operators["tail"] >> embeddings_operators["head"]
 embeddings_operators["tail"] >> postgre_export_operators["head"]
 postgre_export_operators['tail'] >> tail

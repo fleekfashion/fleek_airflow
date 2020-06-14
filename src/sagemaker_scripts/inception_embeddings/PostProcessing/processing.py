@@ -39,6 +39,7 @@ for i in range(predictions.shape[-1]):
     output[f"emb_{i}"] = predictions[:, i]
 output["product_id"] = pids
 df = pd.DataFrame(output)
+print(df.head())
 
 c = bq.Client("fleek-prod")
 job_config = bq.LoadJobConfig(write_disposition="WRITE_TRUNCATE")

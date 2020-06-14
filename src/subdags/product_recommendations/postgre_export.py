@@ -132,8 +132,29 @@ def get_operators(dag: DAG):
         ),
     )
 
+    sql = f"""
+    BEGIN;
+    TRUNCATE {postdefs.USER_BATCH_TABLE};
+    INSERT INTO {postdefs.USER_BATCH_TABLE} ( user_id, batch, last_filter) 
+    SELECT 
+        DISTINCT ON
+        (user_id) user_id,
+        1 as batch, 
+        '' as last_filter
+    FROM {postdefs.USER_RECOMMENDATIONS_TABLE} ur
+    WHERE ur.batch=1;
+    END;
+    """
+    update_batch_table = CloudSqlQueryOperator(
+        dag=dag,
+        gcp_cloudsql_conn_id=postdefs.CONN_ID,
+        task_id="update_batch_table",
+        sql=sql
+    )
+
     head >> del_rec_table >> bq_rec_export_head
     bq_rec_export_tail >> recs_bq_to_gcs >> postgre_build_rec_table 
-    postgre_build_rec_table >> data_import >> postgre_rec_table_staging_to_prod >> dag_tail
+    postgre_build_rec_table >> data_import >> postgre_rec_table_staging_to_prod 
+    postgre_rec_table_staging_to_prod >> update_batch_table >> dag_tail
     
     return {"head": head, "tail": dag_tail}

@@ -22,13 +22,7 @@ def get_operators(dag):
 
     for table_name, schema_fields in gcs_imports.SCHEMAS.items():
         full_name = gcs_imports.FULL_NAMES[table_name]
-        op1 = BigQueryTableDeleteOperator(
-            task_id=f"delete_{table_name}",
-            dag=dag,
-            deletion_dataset_table=full_name,
-            ignore_if_missing=True,
-        )
-        op2 = BigQueryCreateTableOperator(
+        op = BigQueryCreateTableOperator(
             task_id=f"create_{table_name}",
             dag=dag,
             project_id=gcs_imports.PROJECT,
@@ -37,8 +31,7 @@ def get_operators(dag):
             schema_fields=schema_fields,
             time_partitioning=gcs_imports.TABLE_PARTITIONS.get(table_name, None),
         )
-        op1 >> op2
-        operators.extend([op1, op2])
+        operators.append(op)
 
 
     head >> operators >> tail

@@ -98,11 +98,11 @@ def _get_cj_df(company_id, website_id, limit, advertiser_id, query_params):
 
 def _drop_row(row, drop_kwargs):
     cases = []
-    cases.append(row.get("product_image_url", None) is None)
-    cases.append(row.get("product_price", None) is None)
-    cases.append(row.get("product_purchase_url", None) is None)
-    cases.append(row.get("product_name", None) is None)
-        
+    cases.append(row.get("product_price", np.nan) is np.nan)
+    cases.append(row.get("product_image_url", "nan").lower() == "nan")
+    cases.append(row.get("product_purchase_url", "nan").lower() == "nan")
+    cases.append(row.get("product_name", "nan").lower() == "nan")
+
     ## Drop row based on value
     def drop_row_kwargs(row, drop_kwargs):
         cases = []
@@ -118,19 +118,23 @@ def _drop_row(row, drop_kwargs):
 
 def _build_products_df(cj_df, drop_kwargs):
     ## CJ filters. 
-    cj_df = cj_df.loc[cj_df.targetCountry.apply(lambda x: x.lower() != "ca")].reset_index(drop=True)
+    if "targetCountry" in cj_df.columns:
+        cj_df = cj_df.loc[cj_df.targetCountry.apply(lambda x: x.lower() != "ca")]
+    cj_df = cj_df.reset_index(drop=True)
+    if len(cj_df) == 0:
+        return pd.DataFrame()
 
     def get_correct_link(row):
-        if row.get('linkCode.clickUrl', np.nan) is not np.nan:
+        if str(row.get('linkCode.clickUrl', "nan")).lower() != "nan":
             return row['linkCode.clickUrl']
-        if row.get('mobileLink', np.nan) is not np.nan and row.get('mobileLink', None) is not None:
+        if str(row.get('mobileLink', "nan")).lower() != "nan": 
             return row['mobileLink']
         return row['link']
 
     ## Create final df to upload
     final_df = pd.DataFrame()
     final_df['advertiser_name'] = cj_df['advertiserName']
-    final_df['advertiser_country'] = cj_df['advertiserCountry']
+    final_df['advertiser_country'] = cj_df['advertiserCountry'].astype("str")
     final_df['product_brand'] = cj_df['brand']
     final_df['product_name'] = cj_df.title
     final_df['product_description'] = cj_df.description
@@ -138,8 +142,7 @@ def _build_products_df(cj_df, drop_kwargs):
     final_df['product_price'] = cj_df['price.amount'].astype('float')
     final_df['product_sale_price'] = cj_df.get('salePrice.amount', cj_df.get("price.amount", pd.np.nan)).astype('float')
     final_df['product_currency'] = cj_df['price.currency']
-    final_df['product_purchase_url'] = cj_df.apply(lambda x: get_correct_link(x),
-                                                   axis=1)
+    final_df['product_purchase_url'] = cj_df.apply(lambda x: get_correct_link(x), axis=1)
     final_df['product_image_url'] = cj_df['imageLink']
     final_df['product_additional_image_urls'] = cj_df.additionalImageLink.apply(lambda x: ",_,".join(x))
     final_df['product_last_update'] = cj_df.lastUpdated.apply(lambda x: dateutil.parser.parse(x).date())
@@ -172,4 +175,3 @@ def download_cj_data(query_data: dict, drop_kwargs: dict,
     final_df = _insert_fleek_columns(final_df, kwargs)
     print(final_df.columns)
     _upload_to_bigquery(final_df, bq_output_table) 
-    return final_df

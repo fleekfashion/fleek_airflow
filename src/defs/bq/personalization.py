@@ -30,6 +30,10 @@ def get_full_name(table_name):
     )
     return name
 
+def get_columns(table_name):
+    schema = SCHEMAS.get(table_name)
+    return [ c['name'] for c in schema ]
+
 SCHEMAS = {
 
     ACTIVE_PRODUCTS_TABLE : [

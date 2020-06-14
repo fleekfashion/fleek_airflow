@@ -1,10 +1,14 @@
-WITH dedup AS (
-  SELECT 
-    *,
-    ROW_NUMBER() OVER (PARTITION BY {{ params.unique_col }}) as rn 
-    FROM {{ params.table }}
-)
-
-SELECT * EXCEPT(rn) 
-FROM dedup
-WHERE dedup.rn > 1
+DELETE FROM `{{ params.table }}` t
+WHERE NOT EXISTS (
+  SELECT * 
+  FROM (
+    SELECT 
+      *,
+      ROW_NUMBER() OVER (PARTITION BY product_id) as rn 
+      FROM `{{ params.table }}` 
+  ) d
+  WHERE d.rn = 1 
+  {% for col in params.columns %}
+  AND t.{{col}} = d.{{col}}
+  {% endfor %}
+ )

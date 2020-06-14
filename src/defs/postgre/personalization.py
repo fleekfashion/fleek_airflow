@@ -11,8 +11,13 @@ DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
 
 PRODUCT_INFO_TABLE = "product_info"
+USER_BATCH_TABLE = "user_batch"
 USER_EVENTS_TABLE = "user_events"
 USER_RECOMMENDATIONS_TABLE = "user_product_recommendations"
+
+def get_columns(table_name):
+    schema = SCHEMAS.get(table_name)
+    return [ c['name'] for c in schema ]
 
 SCHEMAS = {
 
@@ -132,5 +137,26 @@ SCHEMAS = {
         ],
         "tail": ""
     },
+
+    USER_BATCH_TABLE: {
+        "schema" : [
+            {
+                "name": "user_id",
+                "type": "bigint",
+                "mode": "NOT NULL"
+            },
+            {
+                "name": "batch",
+                "type": "bigint",
+                "mode": "NOT NULL"
+            },
+            {
+                "name": "last_filter",
+                "type": "TEXT",
+                "mode": "NOT NULL"
+            },
+        ],
+        "tail" : f";\nCREATE INDEX ON {USER_BATCH_TABLE} (user_id)"
+        }
 }
             

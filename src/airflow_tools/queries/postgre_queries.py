@@ -1,6 +1,6 @@
 from src.defs.postgre import utils
 
-def create_table_query(table_name: str, columns: str,
+def create_table_query(table_name: str, columns: list,
                        tail: str="", drop: bool=False):
     query = "BEGIN TRANSACTION;\n"
     if drop == True:
