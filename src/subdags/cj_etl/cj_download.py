@@ -34,8 +34,12 @@ def get_operators(dag: DAG_TYPE) -> dict:
             prefix=prefix)
     blob = list(blobs)[0]
     parameters = json.loads(blob.download_as_string().decode())
-    parameters['limit'] = 50
     
+    # TODO Read from GCS JSON
+    DROP_KWARGS = {
+        "product_brand": ["21 MEN", "RILEY ROSE", "FOREVER21 girls"],
+        "product_name": ["men", "kid", "belt ", "lipstick", "shoe"]
+    }
 
     advertiser_ids = parameters.pop("advertiser_ids")
     downloads = []
@@ -49,7 +53,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             op_kwargs={
                 "query_data": query_data,
                 "bq_output_table": pdefs.FULL_NAMES[pdefs.DAILY_CJ_DOWNLOAD_TABLE],
-                "drop_kwargs": {},
+                "drop_kwargs": DROP_KWARGS,
             },
             provide_context=True
         )

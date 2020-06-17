@@ -31,17 +31,18 @@ def create_staging_table_query(table_name: str,
 
 def staging_to_live_query(table_name: str,
                           staging_name: str, mode: str,
-                          tail: str="",
-                          key: str=None):
+                          tail: str = "",
+                          key: str = None,
+                          columns: list = []):
     query = "BEGIN TRANSACTION;\n"
     if mode == "WRITE_TRUNCATE":
         query += _write_truncate(table_name, staging_name)
     if mode == "OVERWRITE":
         query += _overwrite_query(table_name, staging_name)
-    if mode == "UPDATE_APPEND":
-        query += _update_append(table_name, staging_name, key)
-    query += f"DROP TABLE IF EXISTS {staging_name};\n"
+    if mode == "UPSERT":
+        query += upsert(table_name, staging_name, key, columns)
     query += tail
+    query += f"DROP TABLE IF EXISTS {staging_name};\n"
     query += "END TRANSACTION;"
     return query
 
@@ -58,13 +59,12 @@ def _overwrite_query(table_name, staging_name):
     return query
 
 
-def _update_append(table_name, staging_name, key):
-    query = ""
-    select_diff = f"""SELECT t.* FROM {staging_name} s\n
-RIGHT JOIN {table_name} t
-   ON s.{key} = t.{key} 
-   WHERE s.{key} = NULL
+def upsert(table_name, staging_name, key, columns):
+    column_list = ", ".join(columns)
+    upsert_columns = ", ".join([f"{c} = EXCLUDED.{c}" for c in columns])
+    query = f"""
+    INSERT INTO {table_name}({column_list})
+    SELECT {column_list} FROM {staging_name}
+    ON CONFLICT ({key}) DO UPDATE SET {upsert_columns};
     """
-    query += f"INSERT INTO {staging_name} {select_diff};\n"
-    query += _write_truncate(table_name, staging_name)
     return query

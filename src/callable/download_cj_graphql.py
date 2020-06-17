@@ -131,6 +131,14 @@ def _build_products_df(cj_df, drop_kwargs):
             return row['mobileLink']
         return row['link']
 
+    def get_sale_price(row):
+        output = None
+        if str(row.get('salePrice.amount', "nan")).lower() != "nan":
+            output = row['salePrice.amount']
+        else:
+            output = row['price.amount']
+        return float(output)
+
     ## Create final df to upload
     final_df = pd.DataFrame()
     final_df['advertiser_name'] = cj_df['advertiserName']
@@ -140,15 +148,22 @@ def _build_products_df(cj_df, drop_kwargs):
     final_df['product_description'] = cj_df.description
     final_df['product_tag'] = cj_df.product_tag
     final_df['product_price'] = cj_df['price.amount'].astype('float')
-    final_df['product_sale_price'] = cj_df.get('salePrice.amount', cj_df.get("price.amount", pd.np.nan)).astype('float')
+    final_df['product_sale_price'] = cj_df.apply(get_sale_price, axis=1)
     final_df['product_currency'] = cj_df['price.currency']
     final_df['product_purchase_url'] = cj_df.apply(lambda x: get_correct_link(x), axis=1)
     final_df['product_image_url'] = cj_df['imageLink']
     final_df['product_additional_image_urls'] = cj_df.additionalImageLink.apply(lambda x: ",_,".join(x))
     final_df['product_last_update'] = cj_df.lastUpdated.apply(lambda x: dateutil.parser.parse(x).date())
+
+    
+
+    ## Drop invalid rows
     inds = final_df.apply(lambda x: _drop_row(x, drop_kwargs), axis=1)
     final_df = final_df.loc[~inds].reset_index(drop=True)
 
+    ## Replace nan with None for bigquery and reset index
+    final_df = final_df.where(pd.notnull(final_df), None)
+    final_df = final_df.replace(to_replace={"nan": None})
     return final_df
 
 def _insert_fleek_columns(df: pd.DataFrame, kwargs: dict) -> pd.DataFrame:
@@ -169,9 +184,10 @@ def download_cj_data(query_data: dict, drop_kwargs: dict,
     for query_params in query_params_list:
         query_data['query_params'] = query_params
         cj_df = _get_cj_df(**query_data)
+        print(f"Total Products: {len(cj_df)}")
         df = _build_products_df(cj_df, drop_kwargs)
+        print(f"Products after filter: {len(df)}")
         dataframes.append(df)
     final_df = pd.concat(dataframes).reset_index(drop=True)
     final_df = _insert_fleek_columns(final_df, kwargs)
-    print(final_df.columns)
     _upload_to_bigquery(final_df, bq_output_table) 

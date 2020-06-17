@@ -81,7 +81,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "output_path": TRANSFORM_OUTPUT_PATH,
             "job_name": job_name,
             "instance_type": "ml.p2.xlarge",
-            "max_payload": 100,
+            "max_payload": 20,
             "max_concurrent_transforms": 5
     }
     embedding_transform = PythonOperator(

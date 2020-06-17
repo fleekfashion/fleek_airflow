@@ -32,35 +32,27 @@ def get_operators(dag: DAG):
     TABLE_NAME = pdefs.FULL_NAMES[pdefs.ACTIVE_PRODUCTS_TABLE] 
     DEST = "fleek-prod.gcs_exports.postgre_product_info"
 
-    cols = ["product_id",
-            "advertiser_name",
-            "product_purchase_url",
-            "product_description",
-            "product_name",
-            "product_brand",
-            "product_price",
-            "product_sale_price",
-            "product_image_url",
-            "product_additional_image_urls",
-            "product_tag",
-            "n_views",
-            "n_likes",
-            "n_add_to_cart",
-            "n_conversions"
-            ]
+    COLUMNS = postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE)
 
-    last_col = cols[-1]
+    last_col = COLUMNS[-1]
     parameters = {
         "prod_table": TABLE_NAME,
-        "cols": cols[:-1],
+        "cols": COLUMNS[:-1],
         "last_col": last_col
     }
 
     SQL = """
+    WITH table AS (
+        SELECT 
+            *,
+            true as is_active
+        FROM {{params.prod_table}}
+    )
+
     SELECT {% for col in params.cols %} 
         {{col}}, {% endfor %}
         {{ params.last_col }}
-    FROM {{ params.prod_table }}
+    FROM table
     """
 
     prod_info_bq_export = BigQueryOperator(
@@ -86,29 +78,6 @@ def get_operators(dag: DAG):
 
     )
 
-    col_info = []
-    for c in pdefs.SCHEMAS[pdefs.ACTIVE_PRODUCTS_TABLE]:
-        if c["name"] in cols:
-            col_info.append ( { 
-                "name": c["name"], 
-                "type": postutils.BQ_TO_PG[c["type"]], 
-                "mode": postutils.BQ_TO_PG[c["mode"]]
-            }
-            )
-    tail = f";\nCREATE INDEX ON {POSTGRE_PTABLE} (product_id)"
-
-    postgre_build_product_table = CloudSqlQueryOperator(
-        dag=dag,
-        gcp_cloudsql_conn_id=postdefs.CONN_ID,
-        task_id="build_postgres_product_info_table",
-        sql=pquery.create_table_query(
-            table_name=POSTGRE_PTABLE,
-            columns=col_info,
-            tail=tail,
-            drop=True,
-        )
-    )
-
     staging_name = POSTGRE_PTABLE + "_staging"
     postgre_build_product_staging_table = CloudSqlQueryOperator(
         dag=dag,
@@ -127,9 +96,9 @@ def get_operators(dag: DAG):
         database="ktest",
         table=staging_name,
         instance=postdefs.INSTANCE,
-        columns=cols,
+        columns=COLUMNS,
     )
-
+    
     product_info_staging_to_prod = CloudSqlQueryOperator(
         dag=dag,
         gcp_cloudsql_conn_id=postdefs.CONN_ID,
@@ -137,15 +106,13 @@ def get_operators(dag: DAG):
         sql=pquery.staging_to_live_query(
             table_name=POSTGRE_PTABLE,
             staging_name=staging_name,
-            mode="UPDATE_APPEND",
+            mode="UPSERT",
             key="product_id",
+            columns=COLUMNS
         )
     )
 
-    head >> prod_info_bq_export >> prods_bq_to_gcs >> postgre_build_product_table 
-    postgre_build_product_table >> postgre_build_product_staging_table >> product_data_import >> product_info_staging_to_prod
+    head >> prod_info_bq_export >> prods_bq_to_gcs >> postgre_build_product_staging_table 
+    postgre_build_product_staging_table >> product_data_import >> product_info_staging_to_prod
     product_info_staging_to_prod >> dag_tail
-
     return {"head": head, "tail": dag_tail}
-    
-

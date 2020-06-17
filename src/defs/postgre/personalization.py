@@ -16,7 +16,7 @@ USER_EVENTS_TABLE = "user_events"
 USER_RECOMMENDATIONS_TABLE = "user_product_recommendations"
 
 def get_columns(table_name):
-    schema = SCHEMAS.get(table_name)
+    schema = SCHEMAS.get(table_name)['schema']
     return [ c['name'] for c in schema ]
 
 SCHEMAS = {
@@ -56,7 +56,7 @@ SCHEMAS = {
             {
                 "name": "product_image_url",
                 "type": "TEXT",
-                "mode": "NOT NULL UNIQUE"
+                "mode": "NOT NULL"
             },
             {
                 "name": "product_additional_image_urls",
@@ -99,6 +99,11 @@ SCHEMAS = {
                 "mode": "NOT NULL"
             },
             {
+                "name": "is_active",
+                "type": "BOOLEAN",
+                "mode": "NOT NULL"
+            },
+            {
                 "name": "execution_date",
                 "type": "DATE",
                 "mode": "NOT NULL"
@@ -132,6 +137,11 @@ SCHEMAS = {
             {
                 "name": "product_id",
                 "type": "bigint",
+                "mode": ""
+            },
+            {
+                "name": "tags",
+                "type": "TEXT",
                 "mode": ""
             },
         ],
