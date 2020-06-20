@@ -2,7 +2,7 @@ import os
 import tarfile
 import argparse
 import shutil
-import pickle 
+import pickle
 
 from google.cloud import bigquery as bq
 import numpy as np
@@ -27,6 +27,7 @@ c = bq.Client(PROJECT)
 query1 = f"""
 SELECT product_id, product_embedding
 FROM `{PROJECT}.personalization.active_products` 
+LIMIT 100
 """
 active_data = c.query(query1).result()
 a_df = active_data.to_dataframe()
@@ -56,6 +57,7 @@ while cntr < len(df):
         pass
     else:
         pid_to_ind[pid] = ind
+        print(emb)
         embeddings[ind] = emb
         ind+=1
     cntr+=1
@@ -66,19 +68,6 @@ for pid, ind in pid_to_ind.items():
 
 
 tf.keras.backend.clear_session()
-class Embedder(tf.keras.layers.Layer):
-    def __init__(self, depth):
-        super(Embedder, self).__init__()
-        self.depth = depth
-        
-    def call(self, inputs):
-        inputs = tf.cast(inputs, tf.int32)
-        one_hot = tf.one_hot(inputs, on_value=1.0, 
-                             off_value=0.0, depth=self.depth, 
-                            dtype=tf.float32, axis=-1)
-        encoding = tf.reduce_sum(one_hot, axis=1)
-        return encoding
-
 class Recommender(tf.keras.layers.Layer):
     def __init__(self, encoder, decoder, n_active):
         super(Recommender, self).__init__()
@@ -90,7 +79,10 @@ class Recommender(tf.keras.layers.Layer):
         user_emb = tf.matmul(inputs, self.V)
         normalized_emb = tf.math.l2_normalize(user_emb, axis=1)
         scores = tf.matmul(normalized_emb, self.Vt)
+
+        ## Set scores of seen products to an extremely negative value
         filtered_scores = tf.multiply(scores, tf.cast(inputs == 0, tf.float32) )
+        filtered_scores -= tf.cast(inputs != 0, tf.float32)*100000000
         filtered_scores = filtered_scores[:, :self.n_active]
         return filtered_scores
 
@@ -112,28 +104,16 @@ class TopN(tf.keras.layers.Layer):
 encoder = embeddings
 decoder = embeddings.T
 
-inputs = tf.keras.layers.Input(shape=(None,), dtype=tf.int32)
-embedded = Embedder(depth=len(pid_to_ind))(inputs)
-scores = Recommender(encoder=encoder, decoder=decoder, n_active=n_active)(embedded)
+inputs = tf.keras.layers.Input(shape=(len(pid_to_ind),), dtype=tf.float32)
+scores = Recommender(encoder=encoder, decoder=decoder, n_active=n_active)(inputs)
 top_n_scores = TopN(TOP_N, argsort=False)(scores)
 top_n_args = TopN(TOP_N, argsort=True)(scores)
 model = tf.keras.models.Model(inputs=inputs, 
                               outputs={
-                                  "top_scores": top_n_scores, 
+                                  "top_scores": top_n_scores,
                                   "top_inds": top_n_args,
                               }
                              )
-                 
-# TF function for serving
-@tf.function()
-def serve_predict(user_product_interactions):
-    prediction = model(user_product_interactions)
-    return prediction
-serve_predict = serve_predict.get_concrete_function(user_product_interactions=tf.TensorSpec( 
-    shape=model.inputs[0].shape, 
-    dtype=model.inputs[0].dtype, 
-    name="user_product_interactions") 
-)
 ## Save functions
 with open(PROC_OUTPUT_PATH, "wb") as handle:
     pickle.dump({
@@ -141,16 +121,14 @@ with open(PROC_OUTPUT_PATH, "wb") as handle:
         "pid_to_ind": pid_to_ind
     }, handle)
 
-    MODEL_BASE_PATH = os.path.dirname(MODEL_OUTPUT_PATH) 
-    MODEL_FOLDER_PATH = MODEL_BASE_PATH + "/model"
-    os.mkdir(MODEL_FOLDER_PATH)
+MODEL_BASE_PATH = os.path.dirname(MODEL_OUTPUT_PATH) 
+MODEL_FOLDER_PATH = MODEL_BASE_PATH + "/model"
+if os.path.exists(MODEL_FOLDER_PATH) and os.path.isdir(MODEL_FOLDER_PATH):
+    shutil.rmtree(MODEL_FOLDER_PATH)
 
-model.save(MODEL_FOLDER_PATH+"/1", save_format="tf", signatures={
-            tf.saved_model.DEFAULT_SERVING_SIGNATURE_DEF_KEY : serve_predict
-    } 
-)
-
+os.mkdir(MODEL_FOLDER_PATH)
+model.save(MODEL_FOLDER_PATH+"/1", save_format="tf")
 with tarfile.open(f"{MODEL_OUTPUT_PATH}", "w:gz") as tar:
     tar.add(MODEL_FOLDER_PATH,
             arcname=os.path.basename(MODEL_FOLDER_PATH))
-shutil.rmtree(MODEL_FOLDER_PATH)
+#shutil.rmtree(MODEL_FOLDER_PATH)
