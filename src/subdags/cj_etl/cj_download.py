@@ -15,7 +15,6 @@ from airflow.contrib.operators.bigquery_operator import BigQueryOperator
 from src.defs.bq import personalization as pdefs
 from src.callable.download_cj_graphql import download_cj_data
 from src.airflow_tools.airflow_variables import DAG_CONFIG, DAG_TYPE
-from src.airflow_tools.operators.bq_safe_truncate_operator import get_safe_truncate_operator
 
 def get_operators(dag: DAG_TYPE) -> dict:
     f"{__doc__}"

@@ -16,6 +16,9 @@ from sagemaker.processing import ProcessingInput, ProcessingOutput
 from src.defs.bq import personalization as pdefs, gcs_exports, gcs_imports
 from src.defs.gcs import buckets
 from src.airflow_tools.airflow_variables import SRC_DIR, DAG_CONFIG, DAG_TYPE
+from src.airflow_tools.utils import get_task_sensor 
+from src.airflow_tools.dag_defs import USER_EVENTS
+from src.airflow_tools.operators.bq_safe_truncate_operator import get_safe_truncate_operator
 from src.callable.push_docker_image import build_repo_uri
 from src.callable.sagemaker_processing import run_processing
 from src.callable.sagemaker_transform import run_transform
@@ -60,6 +63,29 @@ def get_operators(dag: DAG_TYPE) -> dict:
         python_callable=run_processing,
         op_kwargs=build_model_kwargs,
         provide_context=False
+    )
+    
+    truncate_user_events_agg = get_safe_truncate_operator(
+        dag,
+        pdefs.AGGREGATED_USER_DATA_TABLE
+    )
+
+    user_data_update_sensor = get_task_sensor(
+        dag=dag,
+        external_dag_id=USER_EVENTS,
+        external_task_id="append_user_events"
+    )
+    user_data_update_sensor >> truncate_user_events_agg
+
+    user_events_aggregation = BigQueryOperator(
+        sql="template/user_events_aggregation.sql",
+        dag=dag,
+        task_id="build_user_rec_events",
+        write_disposition="WRITE_APPEND",
+        use_legacy_sql=False,
+        destination_dataset_table=pdefs.get_full_name(
+            pdefs.AGGREGATED_USER_DATA_TABLE
+        )
     )
 
 
@@ -170,7 +196,8 @@ def get_operators(dag: DAG_TYPE) -> dict:
     )
 
     
-    head >> build_model >> preprocessing
+    head >> build_model >> truncate_user_events_agg >> user_events_aggregation
+    user_events_aggregation >> preprocessing
     preprocessing >> recommender_transform >> delete_rec_table
     delete_rec_table >> postprocessing >> tail
 

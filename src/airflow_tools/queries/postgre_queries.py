@@ -23,11 +23,13 @@ def create_table_query(table_name: str, columns: list,
 def create_staging_table_query(table_name: str,
                                denomer=utils.DENOMER):
     staging_name = table_name+denomer
-    query1 = "BEGIN TRANSACTION;\n"
-    query1 += f"DROP TABLE IF EXISTS {staging_name};\n"
-    query1 += f"CREATE TABLE {staging_name} ( LIKE {table_name} );\n"
-    query1 += f"END TRANSACTION;"
-    return query1
+    query = f"""
+    BEGIN TRANSACTION;
+    DROP TABLE IF EXISTS {staging_name};
+    CREATE TABLE {staging_name} ( LIKE {table_name} );
+    END TRANSACTION;
+    """
+    return query
 
 def staging_to_live_query(table_name: str,
                           staging_name: str, mode: str,

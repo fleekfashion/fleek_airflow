@@ -4,11 +4,13 @@ definitions for bigquery
 tables.
 """
 import os
+from . import utils
 
 PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "fleek-staging")
 INSTANCE = "fleek-app-prod1"
 DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
+BQ_EXTERNAL_CONN_ID = "fleek-prod.us.cloudsql_ktest"
 
 PRODUCT_INFO_TABLE = "product_info"
 USER_BATCH_TABLE = "user_batch"

@@ -1,47 +1,47 @@
 import os
 import argparse
+import pickle
 import jsonlines
 import numpy as np
-from google.cloud import bigquery
+from google.cloud import bigquery as bq
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--project", type=str, required=True)
 parser.add_argument("--main_out", type=str, required=True)
 parser.add_argument("--uid_out", type=str, required=True)
+parser.add_argument("--processor_path", type=str, required=True)
 args = parser.parse_args()
 print(args)
 
 PROJECT = args.project
 MAIN_OUT = args.main_out
 USER_IDS_OUT = args.uid_out
+PROCESSOR_PATH = args.processor_path
 
-c = bigquery.Client(PROJECT)
+c = bq.Client(project=PROJECT)
 
-sql = f"SELECT DISTINCT(product_id) FROM `{PROJECT}.personalization.active_products`"
-df = c.query(sql).result().to_dataframe()
-pids = df.product_id.tolist()
+df = c.query(
+f"""
+    SELECT 
+        user_id,
+        product_ids,
+        weights
+    FROM `fleek-prod.personalization.aggregated_user_data`
+"""
 
-uids = [1, 2, 3]
-user_data = [
-    [pids[0], pids[1] ],
-    [pids[2], pids[3], pids[4] ],
-    [pids[5] ]
-]
+).result().to_dataframe()
 
-max_len = 0
-for row in user_data:
-    max_len = max(max_len, len(row) )
+with open(PROCESSOR_PATH, 'rb') as handle:
+    proc = pickle.load(handle)
+    kv = proc['pid_to_ind']
 
-user_data = [
-    [1, 2],
-    [3, 4, 5],
-    [6]
-]
+user_ids = df.user_id.tolist()
+inds = df.product_ids.apply(lambda pids: [kv.get(pid, 0) for pid in pids]).tolist()
+weights = df.weights.tolist()
 
-data = np.zeros([len(user_data), max_len ], dtype=np.int32)
-for i, row in enumerate(user_data):
-    for j, d in enumerate(row):
-        data[i, j] = d
+data = np.zeros([len(user_ids), len(kv) ])
+for i, (ind, ws) in enumerate(zip(inds, weights)):
+    data[i, ind] = ws
 data = data.tolist()
 
 with open(MAIN_OUT, "w+") as handle:
@@ -51,6 +51,5 @@ with open(MAIN_OUT, "w+") as handle:
                 
 with open(USER_IDS_OUT, "w+") as handle:
     w = jsonlines.Writer(handle)
-    w.write_all(uids)
+    w.write_all(user_ids)
     w.close()
-

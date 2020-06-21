@@ -1,6 +1,5 @@
 from airflow.models import DAG
-
-from airflow.contrib.operators.gcp_sql_operator import CloudSqlQueryOperator, CloudSqlInstanceImportOperator
+from airflow.contrib.operators.gcp_sql_operator import CloudSqlQueryOperator, CloudSqlInstanceImportOperator, CloudSqlInstanceExportOperator
 
 def get_import_operator(dag: DAG,
                         task_id: str,
@@ -32,4 +31,28 @@ def get_import_operator(dag: DAG,
     )
     return op
 
+def get_export_operator(dag: DAG,
+                        task_id: str,
+                        uri: str,
+                        database: str,
+                        instance: str,
+                        query: str,
+                        filetype: str = "CSV"):
+    export_body = {
+        "exportContext": {
+            "csvExportOptions": {
+                "selectQuery": query
+            },
+            "databases": [database],
+            "fileType": filetype,
+            "uri": uri
+        }
+    }
 
+    op = CloudSqlInstanceExportOperator(
+        dag=dag,
+        task_id=task_id,
+        body=export_body,
+        instance=instance,
+    )
+    return op

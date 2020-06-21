@@ -31,17 +31,20 @@ p_tables = table_setup.personalization.get_operators(dag)
 g_exp_tables = table_setup.gcs_exports.get_operators(dag)
 g_imp_tables = table_setup.gcs_imports.get_operators(dag)
 postgre_tables = table_setup.postgre_personalization.get_operators(dag)
+user_data_tables = table_setup.user_data.get_operators(dag)
 
 head >> [ 
     p_tables['head'], 
     g_exp_tables['head'], 
     g_imp_tables['head'],
-    postgre_tables['head']
+    postgre_tables['head'],
+    user_data_tables['head']
 ]
 
 [ 
     p_tables['tail'], 
     g_exp_tables['tail'], 
     g_imp_tables['tail'],
-    postgre_tables['tail']
+    postgre_tables['tail'],
+    user_data_tables['head']
 ] >> tail

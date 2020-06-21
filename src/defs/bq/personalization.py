@@ -9,10 +9,10 @@ PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "fleek-staging")
 DATASET = "personalization"
 
 ACTIVE_PRODUCTS_TABLE = "active_products"
+AGGREGATED_USER_DATA_TABLE = "aggregated_user_data"
 DAILY_CJ_DOWNLOAD_TABLE = "daily_cj_download"
 DAILY_NEW_PRODUCT_INFO_TABLE = "daily_new_product_info"
 HISTORIC_PRODUCTS_TABLE = "historic_products"
-
 TABLE_PARTITIONS = {
         HISTORIC_PRODUCTS_TABLE : {
             "type" : "DAY",
@@ -140,6 +140,29 @@ SCHEMAS = {
         {
             "name": "n_conversions",
             "type": "INTEGER",
+            "mode": "REQUIRED"
+        },
+    ],
+
+    AGGREGATED_USER_DATA_TABLE: [
+        {
+            "name": "user_id",
+            "type": "INTEGER",
+            "mode": "REQUIRED"
+        },
+        {
+            "name": "events",
+            "type": "ARRAY[STRING]",
+            "mode": "REQUIRED"
+        },
+        {
+            "name": "weights",
+            "type": "ARRAY[FLOAT]",
+            "mode": "REQUIRED"
+        },
+        {
+            "name": "event_timestamps",
+            "type": "ARRAY[INTEGER]",
             "mode": "REQUIRED"
         },
     ],
