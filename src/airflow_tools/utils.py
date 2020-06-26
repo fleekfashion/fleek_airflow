@@ -1,5 +1,4 @@
 from airflow.sensors.external_task_sensor import ExternalTaskSensor
-from src import table_setup
 
 def get_dag_sensor(dag, external_dag_id):
     sensor = ExternalTaskSensor(

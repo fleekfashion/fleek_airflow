@@ -31,7 +31,8 @@ def get_operators(dag: DAG):
     head = DummyOperator(task_id="postgre_export_head", dag=dag)
     dag_tail = DummyOperator(task_id="postgre_export_tail", dag=dag)
 
-    batch_size = 3
+    ## TODO Convert this to a single SQL query via unions
+    batch_size = TOP_N // 20
     batches = [b for b in range(0, TOP_N, batch_size)]
     SQL = """
     SELECT 

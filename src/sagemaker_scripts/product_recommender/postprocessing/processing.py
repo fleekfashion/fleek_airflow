@@ -40,6 +40,7 @@ def get_sagemaker_line(fp):
    
 def get_df(top_product_ids, top_product_scores, ids):
     top_n = top_product_ids.shape[1]
+    top_n = 4000
     out_data = {"user_id": ids}
     for i in range(top_n):
         out_data[f"top_product_ids_{i}"] = top_product_ids[:, i]
@@ -63,8 +64,11 @@ def get_batch_rec(main_input_path, id_input_path):
         top_product_ids = []
         batch_ids = []
         for b in batch["predictions"]:
-            top_pscores = b["top_scores"]
-            top_pids = IND_TO_PID[b["top_inds"]]
+            #top_pscores = b["top_scores"]
+            #top_pids = IND_TO_PID[b["top_inds"]]
+
+            top_pscores = b["top_n"]
+            top_pids = IND_TO_PID[b["top_n_1"]]
 
             top_product_scores.append(top_pscores)
             top_product_ids.append(top_pids)

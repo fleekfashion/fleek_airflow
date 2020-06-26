@@ -27,14 +27,13 @@ c = bq.Client(PROJECT)
 query1 = f"""
 SELECT product_id, product_embedding
 FROM `{PROJECT}.personalization.active_products` 
-LIMIT 100
 """
 active_data = c.query(query1).result()
 a_df = active_data.to_dataframe()
 
-query2 = """
+query2 = f"""
 SELECT product_id, product_embedding
-FROM `fleek-prod.personalization.historic_products`
+FROM `{PROJECT}.personalization.historic_products`
 WHERE execution_date > DATE_ADD( CURRENT_DATE(), INTERVAL -90 DAY ) 
 """
 historic_data = c.query(query2).result()
@@ -57,7 +56,6 @@ while cntr < len(df):
         pass
     else:
         pid_to_ind[pid] = ind
-        print(emb)
         embeddings[ind] = emb
         ind+=1
     cntr+=1
