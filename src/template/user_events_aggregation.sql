@@ -6,7 +6,7 @@ SELECT
     CASE
       WHEN event="faved_item" THEN 1.0
       WHEN event="trashed_item" THEN -.00001
-      WHEN event="bagged_item" THEN 5.0
+      WHEN event="bagged_item" THEN 3.0
     END * 1 / ( 2 + 
       LOG(
         ( {{ execution_date.int_timestamp }} - event_timestamp )/60*60*24)

@@ -29,16 +29,23 @@ def get_operators(dag: DAG_TYPE) -> dict:
 
     c = storage.Client(pdefs.PROJECT)
     prefix = DAG_CONFIG["cj_queries_uri_path"]
-    prefix = "personalization/airflow/defs/final_cj_queries.json"
     blobs = c.list_blobs(bucket_or_name=pdefs.PROJECT,
             prefix=prefix)
     blob = list(blobs)[0]
     parameters = json.loads(blob.download_as_string().decode())
     
+    c = storage.Client(pdefs.PROJECT)
+    prefix = DAG_CONFIG["cj_queries_uri_path"]
+    prefix = "personalization/airflow/defs/cj_drop_kwargs.json"
+    blobs = c.list_blobs(bucket_or_name=pdefs.PROJECT,
+            prefix=prefix)
+    blob = list(blobs)[0]
+    DROP_KWARGS = json.loads(blob.download_as_string().decode())
+
     # TODO Read from GCS JSON
     DROP_KWARGS = {
         "product_brand": ["21 MEN", "RILEY ROSE", "FOREVER21 girls"],
-        "product_name": ["men", "kid", "belt ", "lipstick", "shoe"]
+        "product_name": ["kid", "belt ", "lipstick", "shoe"]
     }
 
     advertiser_ids = parameters.pop("advertiser_ids")

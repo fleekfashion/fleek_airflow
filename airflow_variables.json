@@ -1,6 +1,6 @@
 {
     "variables": {
-        "cj_queries_uri_path" : "personalization/airflow/defs/cj_queries.json",
+        "cj_queries_uri_path" : "personalization/airflow/defs/final_cj_queries.json",
         "ecr_images": {
             "emb_preproc": "testpreproc",
             "emb_postproc": "embedding-postprocessing",

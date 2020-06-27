@@ -5,6 +5,7 @@ import os
 import json
 import requests
 import dateutil
+import copy
 
 import numpy as np
 import pandas as pd
@@ -102,17 +103,24 @@ def _drop_row(row, drop_kwargs):
     cases.append(row.get("product_image_url", "nan").lower() == "nan")
     cases.append(row.get("product_purchase_url", "nan").lower() == "nan")
     cases.append(row.get("product_name", "nan").lower() == "nan")
+    
+    def drop_men_kwargs(row):
+        for w in ["woman", "women"]:
+            if w in row.get("product_name").lower():
+                return False
+        if "men" in row.get("product_name").lower():
+            return True
+        return False
 
     ## Drop row based on value
     def drop_row_kwargs(row, drop_kwargs):
         cases = []
-        for w in ["woman", "women"]:
-            if w in row.get("product_name").lower():
-                return False
         for key, values in drop_kwargs.items():
             for value in values:
                 cases.append( (value.lower() in row.get(key, "").lower()) )
         return sum(cases) > 0 
+
+    cases.append(drop_men_kwargs(row))
     cases.append(drop_row_kwargs(row, drop_kwargs))
     return sum(cases) > 0
 
@@ -182,10 +190,14 @@ def download_cj_data(query_data: dict, drop_kwargs: dict,
     query_params_list = query_data.pop("query_params")
     dataframes = []
     for query_params in query_params_list:
+        local_drop_kwargs = copy.deepcopy(drop_kwargs)
+        param_drop_kwargs = query_params.get("drop_kwargs", {})
+        for key, value in param_drop_kwargs.items():
+            local_drop_kwargs[key] = local_drop_kwargs.get(key, []) + value
         query_data['query_params'] = query_params
         cj_df = _get_cj_df(**query_data)
         print(f"Total Products: {len(cj_df)}")
-        df = _build_products_df(cj_df, drop_kwargs)
+        df = _build_products_df(cj_df, local_drop_kwargs)
         print(f"Products after filter: {len(df)}")
         dataframes.append(df)
     final_df = pd.concat(dataframes).reset_index(drop=True)
