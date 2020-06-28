@@ -51,7 +51,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             python_callable=download_cj_data,
             op_kwargs={
                 "query_data": query_data,
-                "bq_output_table": pdefs.FULL_NAMES[pdefs.DAILY_CJ_DOWNLOAD_TABLE],
+                "bq_output_table": pdefs.get_full_name(pdefs.DAILY_CJ_DOWNLOAD_TABLE),
                 "drop_kwargs": DROP_KWARGS,
             },
             provide_context=True
@@ -64,7 +64,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
         task_id="deduplicate_cj_downloads",
         dag=dag,
         params={
-            "table": pdefs.FULL_NAMES[pdefs.DAILY_CJ_DOWNLOAD_TABLE],
+            "table": pdefs.get_full_name(pdefs.DAILY_CJ_DOWNLOAD_TABLE),
             "columns": ["product_id", "product_name", "execution_timestamp"]
         },
         sql="template/deduplicate_table.sql",
@@ -74,11 +74,11 @@ def get_operators(dag: DAG_TYPE) -> dict:
     update_daily_new_product_info_table = BigQueryOperator(
         task_id="update_daily_new_product_info_table",
         dag=dag,
-        destination_dataset_table=pdefs.FULL_NAMES[pdefs.DAILY_NEW_PRODUCT_INFO_TABLE],
+        destination_dataset_table=pdefs.get_full_name(pdefs.DAILY_NEW_PRODUCT_INFO_TABLE),
         write_disposition="WRITE_APPEND",
         params={
-            "cj_table": pdefs.FULL_NAMES[pdefs.DAILY_CJ_DOWNLOAD_TABLE],
-            "active_table": pdefs.FULL_NAMES[pdefs.ACTIVE_PRODUCTS_TABLE],
+            "cj_table": pdefs.get_full_name(pdefs.DAILY_CJ_DOWNLOAD_TABLE),
+            "active_table": pdefs.get_full_name(pdefs.ACTIVE_PRODUCTS_TABLE),
             },
         sql="template/update_daily_new_product_info_table.sql",
         use_legacy_sql=False,
@@ -87,11 +87,10 @@ def get_operators(dag: DAG_TYPE) -> dict:
     migrate_active_to_historic_products = BigQueryOperator(
         task_id="migrate_active_to_historic_products",
         dag=dag,
-        destination_dataset_table=pdefs.FULL_NAMES[pdefs.HISTORIC_PRODUCTS_TABLE],
-        write_disposition="WRITE_APPEND",
         params={
-            "cj_table": pdefs.FULL_NAMES[pdefs.DAILY_CJ_DOWNLOAD_TABLE],
-            "active_table": pdefs.FULL_NAMES[pdefs.ACTIVE_PRODUCTS_TABLE]
+            "active_table": pdefs.get_full_name(pdefs.ACTIVE_PRODUCTS_TABLE),
+            "columns": ", ".join(pdefs.get_columns(pdefs.ACTIVE_PRODUCTS_TABLE)),
+            "historic_table": pdefs.get_full_name(pdefs.HISTORIC_PRODUCTS_TABLE)
             },
         sql="template/migrate_active_to_historic_products.sql",
         use_legacy_sql=False,
@@ -101,8 +100,8 @@ def get_operators(dag: DAG_TYPE) -> dict:
         task_id="update_active_products",
         dag=dag,
         params={
-            "cj_table": pdefs.FULL_NAMES[pdefs.DAILY_CJ_DOWNLOAD_TABLE],
-            "active_table": pdefs.FULL_NAMES[pdefs.ACTIVE_PRODUCTS_TABLE],
+            "cj_table": pdefs.get_full_name(pdefs.DAILY_CJ_DOWNLOAD_TABLE),
+            "active_table": pdefs.get_full_name(pdefs.ACTIVE_PRODUCTS_TABLE),
             "cj_columns": pdefs.get_columns(pdefs.DAILY_CJ_DOWNLOAD_TABLE) 
             },
         sql="template/update_active_products.sql",

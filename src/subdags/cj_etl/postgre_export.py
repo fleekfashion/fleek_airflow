@@ -37,28 +37,12 @@ def get_operators(dag: DAG):
     last_col = COLUMNS[-1]
     parameters = {
         "prod_table": TABLE_NAME,
-        "cols": COLUMNS[:-1],
-        "last_col": last_col
+        "columns": ", ".join(COLUMNS),
     }
-
-    SQL = """
-    WITH table AS (
-        SELECT 
-            *,
-            true as is_active
-        FROM {{params.prod_table}}
-    )
-
-    SELECT {% for col in params.cols %} 
-        {{col}}, {% endfor %}
-        {{ params.last_col }}
-    FROM table
-    """
-
     prod_info_bq_export = BigQueryOperator(
         dag=dag,
         task_id=f"prod_info_to_gcs_exports",
-        sql=SQL,
+        sql="template/product_info_to_gcs_export.sql",
         params=parameters,
         destination_dataset_table=DEST,
         write_disposition="WRITE_TRUNCATE",
@@ -98,7 +82,14 @@ def get_operators(dag: DAG):
         instance=postdefs.INSTANCE,
         columns=COLUMNS,
     )
-    
+
+    tail = f""";
+    UPDATE {POSTGRE_PTABLE} SET 
+        is_active = false
+    WHERE product_id NOT IN (
+        SELECT product_id FROM {staging_name}
+    );
+    """
     product_info_staging_to_prod = CloudSqlQueryOperator(
         dag=dag,
         gcp_cloudsql_conn_id=postdefs.CONN_ID,
@@ -108,7 +99,8 @@ def get_operators(dag: DAG):
             staging_name=staging_name,
             mode="UPSERT",
             key="product_id",
-            columns=COLUMNS
+            columns=COLUMNS,
+            tail=tail
         )
     )
 

@@ -9,5 +9,5 @@ USING (
     TARGET.{{col}} = SOURCE.{{col}}, 
     {% endfor %}
     TARGET.{{params.cj_columns[-1]}} = SOURCE.{{params.cj_columns[-1]}}
-  WHEN NOT MATCHED BY SOURCE AND TARGET.execution_date < DATE_ADD(DATE("{{ ds }}"), INTERVAL -10 DAY) THEN
+  WHEN NOT MATCHED BY SOURCE AND TARGET.execution_date < DATE_ADD(DATE("{{ ds }}"), INTERVAL -2 DAY) THEN
     DELETE
