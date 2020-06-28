@@ -143,7 +143,7 @@ SCHEMAS = {
             },
             {
                 "name": "tags",
-                "type": "TEXT",
+                "type": "TEXT[]",
                 "mode": ""
             },
         ],

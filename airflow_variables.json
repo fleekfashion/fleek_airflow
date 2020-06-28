@@ -1,6 +1,7 @@
 {
     "variables": {
         "cj_queries_uri_path" : "personalization/airflow/defs/final_cj_queries.json",
+        "cj_drop_kwargs_uri_path": "personalization/airflow/defs/cj_drop_kwargs.json",
         "ecr_images": {
             "emb_preproc": "testpreproc",
             "emb_postproc": "embedding-postprocessing",
@@ -12,7 +13,7 @@
         },
         "model_parameters": {
             "product_recommender": {
-                "top_n": 5000
+                "top_n": 4000
             }
         }
     }

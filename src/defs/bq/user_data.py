@@ -61,7 +61,7 @@ SCHEMAS = {
         {
             "name": "tags",
             "type": "STRING",
-            "mode": ""
+            "mode": "REPEATED"
         },
         {
             "name": "execution_date",
