@@ -13,6 +13,7 @@ CONN_ID = f'google_cloud_sql_{DATABASE}'
 BQ_EXTERNAL_CONN_ID = "fleek-prod.us.cloudsql_ktest"
 
 PRODUCT_INFO_TABLE = "product_info"
+TOP_PRODUCT_INFO_TABLE = "top_product_info"
 USER_BATCH_TABLE = "user_batch"
 USER_EVENTS_TABLE = "user_events"
 USER_RECOMMENDATIONS_TABLE = "user_product_recommendations"
@@ -171,4 +172,6 @@ SCHEMAS = {
         "tail" : f";\nCREATE INDEX ON {USER_BATCH_TABLE} (user_id)"
         }
 }
-            
+
+## Similar Schemas
+SCHEMAS[TOP_PRODUCT_INFO_TABLE] = SCHEMAS[PRODUCT_INFO_TABLE]

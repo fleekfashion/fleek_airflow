@@ -38,9 +38,9 @@ def staging_to_live_query(table_name: str,
                           columns: list = []):
     query = "BEGIN TRANSACTION;\n"
     if mode == "WRITE_TRUNCATE":
-        query += _write_truncate(table_name, staging_name)
-    if mode == "OVERWRITE":
-        query += _overwrite_query(table_name, staging_name)
+        query += write_truncate(table_name, staging_name, columns)
+    if mode == "REPLACE_TABLE":
+        query += replace_table(table_name, staging_name)
     if mode == "UPSERT":
         query += upsert(table_name, staging_name, key, columns)
     query += tail
@@ -48,13 +48,26 @@ def staging_to_live_query(table_name: str,
     query += "END TRANSACTION;"
     return query
 
-def _write_truncate(table_name, staging_name):
+def write_truncate(table_name,
+                   staging_name,
+                   columns,
+                   FILTER="",
+                   transaction_block=False,
+                   distinct_columns=[]):
+    column_list = ", ".join(columns)
+    distinct_filter = _build_distinct_filter(distinct_columns)
     query = ""
+    query += "BEGIN TRANSACTION;\n" if transaction_block else ""
     query += f"TRUNCATE {table_name};\n"
-    query += f"INSERT INTO {table_name} SELECT * FROM {staging_name};\n"
+    query += f"""
+    INSERT INTO {table_name}({column_list})
+    SELECT {distinct_filter} {column_list}
+    FROM {staging_name}
+    {FILTER};\n"""
+    query += "END TRANSACTION;\n" if transaction_block else ""
     return query
 
-def _overwrite_query(table_name, staging_name):
+def replace_table(table_name, staging_name):
     query = ""
     query += f"DROP TABLE IF EXISTS {table_name};\n"
     query += f"ALTER TABLE {staging_name} RENAME TO {table_name};\n"
@@ -90,3 +103,11 @@ def export_rows(table_name,
         END TRANSACTION;
         """
     return SQL 
+
+def _build_distinct_filter(columns):
+    if len(columns) == 0:
+        return ""
+    else:
+        dcols = ", ".join(columns)
+        return f"DISTINCT ON ({dcols})"
+        

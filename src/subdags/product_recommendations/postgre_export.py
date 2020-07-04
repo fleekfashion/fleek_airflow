@@ -128,8 +128,8 @@ def get_operators(dag: DAG):
         sql=pquery.staging_to_live_query(
             staging_name=STAGING_TABLE,
             table_name=TABLE,
-            mode="OVERWRITE",
-            tail=tail
+            tail=tail,
+            mode="REPLACE_TABLE"
         ),
     )
 

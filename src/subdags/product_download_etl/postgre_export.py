@@ -104,7 +104,25 @@ def get_operators(dag: DAG):
         )
     )
 
+    postgres_build_top_products_table = CloudSqlQueryOperator(
+        dag=dag,
+        gcp_cloudsql_conn_id=postdefs.CONN_ID,
+        task_id="postgres_build_top_products_table",
+        sql=pquery.write_truncate(
+            table_name=postdefs.TOP_PRODUCT_INFO_TABLE,
+            staging_name=postdefs.PRODUCT_INFO_TABLE,
+            columns=postdefs.get_columns(
+                postdefs.TOP_PRODUCT_INFO_TABLE
+            ),
+            FILTER="""
+            WHERE n_views > 1
+                AND is_active=true
+            ORDER BY (n_likes + n_add_to_cart)/n_views DESC
+            LIMIT 1000
+            """
+        )
+    )
     head >> prod_info_bq_export >> prods_bq_to_gcs >> postgre_build_product_staging_table 
     postgre_build_product_staging_table >> product_data_import >> product_info_staging_to_prod
-    product_info_staging_to_prod >> dag_tail
+    product_info_staging_to_prod >> postgres_build_top_products_table >> dag_tail
     return {"head": head, "tail": dag_tail}
