@@ -19,8 +19,7 @@ BQ_OUTPUT_TABLE = args.bq_output_table
 c = bq.Client(PROJECT)
 
 # Get active products
-query1 = f"""
-SELECT product_id, product_embedding
+query1 = f""" SELECT product_id, product_embedding
 FROM `{PROJECT}.personalization.active_products` 
 """
 active_data = c.query(query1).result()
@@ -87,6 +86,9 @@ user_emb = np.matmul(data, embeddings)
 normalized_user_emb = user_emb / np.linalg.norm(user_emb, axis=1)[:, None]
 emb_inv = np.linalg.pinv(embeddings)
 scores = np.matmul(normalized_user_emb, embeddings.T)
+
+# Filter out historical product
+scores = scores[:, :n_active]
 
 # Add a little randomness to scores
 probablistic_scores = np.random.normal(scores, scale=.05)
