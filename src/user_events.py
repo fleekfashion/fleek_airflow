@@ -7,6 +7,7 @@ Overview
 """
 
 from datetime import timedelta
+import copy
 
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
@@ -23,12 +24,15 @@ from src.defs.postgre import personalization as postdefs
 from src.defs.postgre import utils as postutils
 
 DAG_ID = dag_defs.USER_EVENTS
+DAG_ARGS = copy.copy(DEFAULT_DAG_ARGS)
+DAG_ARGS["depends_on_past"] = True
+
 dag = DAG(
         DAG_ID,
         catchup=False,
         schedule_interval=timedelta(days=1),
         default_args=DEFAULT_DAG_ARGS,
-        description=__doc__
+        description=__doc__,
     )
 
 head = DummyOperator(task_id=f"{DAG_ID}_dag_head", dag=dag)
@@ -46,28 +50,19 @@ postgre_build_user_events_export_table = CloudSqlQueryOperator(
     )
 )
 
-
-FILTER = "WHERE event_timestamp < {{ execution_date.int_timestamp }}"
-SQL = f"""
-BEGIN TRANSACTION;
-
-INSERT INTO {EXPORT_TABLE}
-SELECT * FROM {postdefs.USER_EVENTS_TABLE}
-{FILTER};
-
-DELETE FROM {postdefs.USER_EVENTS_TABLE}
-{FILTER};
-
-END TRANSACTION;
-"""
-
+FILTER = "WHERE event_timestamp < {{ execution_date.int_timestamp }};"
 postgre_migrate_to_user_events_export_table = CloudSqlQueryOperator(
     dag=dag,
     gcp_cloudsql_conn_id=postdefs.CONN_ID,
     task_id="postgre_export_user_events_to_staging",
-    sql=SQL
+    sql=pquery.export_rows(
+        table_name=user_data.USER_EVENTS_TABLE,
+        export_table_name=EXPORT_TABLE,
+        columns="*",
+        delete=True,
+        FILTER=FILTER,
+    )
 )
-
 
 append_user_events = BigQueryOperator(
     sql="template/append_user_events.sql",
@@ -88,8 +83,24 @@ append_user_events = BigQueryOperator(
     }
 )
 
+update_product_stats = BigQueryOperator(
+    sql="template/update_product_stats.sql",
+    dag=dag,
+    task_id="update_product_stats",
+    use_legacy_sql=False,
+    params={
+        "user_events_table": user_data.get_full_name(
+            user_data.USER_EVENTS_TABLE
+        ),
+        "active_products_table": pdefs.get_full_name(
+            pdefs.ACTIVE_PRODUCTS_TABLE
+        )
+    }
+)
+
 head >> postgre_build_user_events_export_table >> postgre_migrate_to_user_events_export_table
-postgre_migrate_to_user_events_export_table >> append_user_events >> tail
+postgre_migrate_to_user_events_export_table >> append_user_events
+append_user_events >> update_product_stats >> tail
 
 def _test():
     print("Sucess")

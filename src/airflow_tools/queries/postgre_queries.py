@@ -70,3 +70,23 @@ def upsert(table_name, staging_name, key, columns):
     ON CONFLICT ({key}) DO UPDATE SET {upsert_columns};
     """
     return query
+
+def export_rows(table_name,
+    export_table_name,
+    columns="*",
+    FILTER="",
+    delete=False):
+
+    SQL = f"""
+    BEGIN TRANSACTION;
+    INSERT INTO {export_table_name}
+    SELECT * FROM {table_name}
+    {FILTER};
+    """
+    if delete:
+        SQL += """
+        DELETE FROM {table_name} 
+        {FILTER};
+        END TRANSACTION;
+        """
+    return SQL 
