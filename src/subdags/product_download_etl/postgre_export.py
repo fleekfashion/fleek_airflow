@@ -117,7 +117,7 @@ def get_operators(dag: DAG):
             FILTER="""
             WHERE n_views > 1
                 AND is_active=true
-            ORDER BY (n_likes + n_add_to_cart)/n_views DESC
+            ORDER BY CAST( (n_likes + n_add_to_cart) as decimal)/n_views DESC
             LIMIT 1000
             """
         )

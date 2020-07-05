@@ -94,7 +94,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             },
         sql="template/migrate_active_to_historic_products.sql",
         use_legacy_sql=False,
-        )
+    )
                 
     update_active_products = BigQueryOperator(
         task_id="update_active_products",
@@ -106,15 +106,23 @@ def get_operators(dag: DAG_TYPE) -> dict:
             },
         sql="template/update_active_products.sql",
         use_legacy_sql=False,
-        )
+    )
+
+    remove_newly_inactive_products = BigQueryOperator(
+        task_id="remove_newly_inactive_products",
+        dag=dag,
+        params={
+            "active_table": pdefs.get_full_name(pdefs.ACTIVE_PRODUCTS_TABLE),
+            },
+        sql="template/remove_newly_inactive_products.sql",
+        use_legacy_sql=False,
+    )
 
     head >> truncations >> downloads[0] 
     downloads[-1] >> deduplicate_cj_downloads
     deduplicate_cj_downloads >> update_daily_new_product_info_table
-    deduplicate_cj_downloads >> migrate_active_to_historic_products
-
-
     update_daily_new_product_info_table >> update_active_products
-    migrate_active_to_historic_products >> update_active_products
-    update_active_products >> tail
+    update_active_products >> migrate_active_to_historic_products
+    migrate_active_to_historic_products >> remove_newly_inactive_products
+    remove_newly_inactive_products >> tail
     return {"head": head, "tail": tail}
