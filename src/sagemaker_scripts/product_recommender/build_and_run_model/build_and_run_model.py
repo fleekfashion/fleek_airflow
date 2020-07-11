@@ -62,12 +62,14 @@ df = c.query(
 f"""
     SELECT 
         user_id,
-        product_ids,
-        weights
-    FROM `fleek-prod.personalization.aggregated_user_data`
+        events
+    FROM `{PROJECT}.personalization.user_product_recommender_data`
+    WHERE ARRAY_LENGTH(events) > 50
 """
 
 ).result().to_dataframe()
+df["product_ids"] = df.events.apply(lambda events: [e["product_id"] for e in events])
+df["weights"] = df.events.apply(lambda events: [e["weight"] for e in events])
 
 ## Parse user data into matrix
 user_ids = df.user_id.tolist()
