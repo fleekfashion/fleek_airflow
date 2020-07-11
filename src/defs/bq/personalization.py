@@ -152,16 +152,24 @@ SCHEMAS = {
             "mode": "REQUIRED"
         },
         {
-            "name": "product_ids",
-            "type": "INTEGER",
-            "mode": "REPEATED"
-        },
-        {
-            "name": "weights",
-            "type": "FLOAT",
-            "mode": "REPEATED"
+            "name": "events",
+            "type": "RECORD",
+            "mode": "REPEATED",
+            "fields": [
+                {
+                    "name": "product_id",
+                    "type": "INTEGER",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "weight",
+                    "type": "FLOAT",
+                    "mode": "REQUIRED"
+                },
+            ]
         },
     ],
+
 
     DAILY_CJ_DOWNLOAD_TABLE : [
         {

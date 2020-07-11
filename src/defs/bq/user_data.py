@@ -40,25 +40,33 @@ SCHEMAS = {
             "mode": "REQUIRED"
         },
         {
-            "name": "product_ids",
-            "type": "INTEGER",
-            "mode": "REPEATED"
-        },
-        {
             "name": "events",
-            "type": "STRING",
-            "mode": "REPEATED"
+            "type": "RECORD",
+            "mode": "REPEATED",
+            "fields": [
+                {
+                    "name": "product_id",
+                    "type": "INTEGER",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "event",
+                    "type": "STRING",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "method",
+                    "type": "STRING",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "event_timestamp",
+                    "type": "INTEGER",
+                    "mode": "REQUIRED"
+                },
+            ]
         },
-        {
-            "name": "methods",
-            "type": "STRING",
-            "mode": "REPEATED"
-        },
-        {
-            "name": "event_timestamps",
-            "type": "INTEGER",
-            "mode": "REPEATED"
-        },
+
     ],
 
     USER_EVENTS_TABLE: [

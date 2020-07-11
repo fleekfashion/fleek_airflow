@@ -13,7 +13,7 @@ from airflow.contrib.operators.bigquery_operator import BigQueryOperator
 from airflow.contrib.operators.bigquery_table_delete_operator import BigQueryTableDeleteOperator
 from sagemaker.processing import ProcessingInput, ProcessingOutput
 
-from src.defs.bq import personalization as pdefs, gcs_exports, gcs_imports
+from src.defs.bq import personalization as pdefs, gcs_exports, gcs_imports, user_data
 from src.defs.gcs import buckets
 from src.airflow_tools.airflow_variables import SRC_DIR, DAG_CONFIG, DAG_TYPE
 from src.airflow_tools.utils import get_task_sensor
@@ -51,14 +51,21 @@ def get_operators(dag: DAG_TYPE) -> dict:
     )
 
     user_events_aggregation = BigQueryOperator(
-        sql="template/user_events_aggregation.sql",
+        sql="template/build_recommender_dataset.sql",
         dag=dag,
         task_id="build_recommender_dataset",
         write_disposition="WRITE_APPEND",
         use_legacy_sql=False,
         destination_dataset_table=pdefs.get_full_name(
             pdefs.USER_PRODUCT_RECOMMENDER_DATA
-            )
+        ),
+        params={
+            "table": user_data.get_full_name(
+                user_data.AGGREGATED_USER_EVENTS_TABLE
+            ),
+            "fave_weight": 1.0,
+            "bag_weight": 3.0
+        }
     )
 
     delete_rec_table = BigQueryTableDeleteOperator(

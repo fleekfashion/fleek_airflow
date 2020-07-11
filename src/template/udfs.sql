@@ -1,0 +1,3 @@
+CREATE OR REPLACE FUNCTION _get_count(arr ANY TYPE, val ANY TYPE) AS (
+  (SELECT COUNT(*) FROM UNNEST(arr) a WHERE a=val)
+);
