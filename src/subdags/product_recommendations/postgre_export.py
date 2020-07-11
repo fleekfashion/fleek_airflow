@@ -111,7 +111,6 @@ def get_operators(dag: DAG):
     tail = ""
     for b in range(len(batches)):
         tail += f"ALTER TABLE {STAGING_TABLE}_{b} RENAME TO {TABLE}_{b};\n"
-
     postgre_rec_table_staging_to_prod = CloudSqlQueryOperator(
         dag=dag,
         gcp_cloudsql_conn_id=postdefs.CONN_ID,

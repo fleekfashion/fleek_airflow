@@ -111,7 +111,7 @@ aggregate_user_events = BigQueryOperator(
 update_product_stats = BigQueryOperator(
     sql="template/update_product_stats.sql",
     dag=dag,
-    task_id="update_product_stats",
+    task_id="update_product_statistics",
     use_legacy_sql=False,
     params={
         "user_events_table": user_data.get_full_name(

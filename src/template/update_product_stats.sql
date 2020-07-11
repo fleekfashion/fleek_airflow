@@ -10,6 +10,11 @@ USING (
     AND 
       {{ prev_execution_date_success.int_timestamp or 1}} < event_timestamp
     AND event_timestamp <= {{ execution_date.int_timestamp }}
+    AND user_id NOT IN (
+      1338143769388061356,
+      1596069326878625953,
+      182814591431031699
+    )
   GROUP BY product_id
 ) AS SOURCE
 ON TARGET.product_id = SOURCE.product_id
