@@ -97,7 +97,7 @@ def export_rows(table_name,
     {FILTER};
     """
     if delete:
-        SQL += """
+        SQL += f"""
         DELETE FROM {table_name} 
         {FILTER};
         END TRANSACTION;

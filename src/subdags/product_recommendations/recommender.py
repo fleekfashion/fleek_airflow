@@ -47,17 +47,17 @@ def get_operators(dag: DAG_TYPE) -> dict:
 
     truncate_user_events_agg = get_safe_truncate_operator(
         dag,
-        pdefs.get_full_name(pdefs.AGGREGATED_USER_DATA_TABLE)
+        pdefs.get_full_name(pdefs.USER_PRODUCT_RECOMMENDER_DATA)
     )
 
     user_events_aggregation = BigQueryOperator(
         sql="template/user_events_aggregation.sql",
         dag=dag,
-        task_id="build_user_rec_events",
+        task_id="build_recommender_dataset",
         write_disposition="WRITE_APPEND",
         use_legacy_sql=False,
         destination_dataset_table=pdefs.get_full_name(
-            pdefs.AGGREGATED_USER_DATA_TABLE
+            pdefs.USER_PRODUCT_RECOMMENDER_DATA
             )
     )
 

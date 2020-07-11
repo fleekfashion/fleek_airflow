@@ -18,6 +18,7 @@ from airflow.contrib.operators.gcs_to_bq import GoogleCloudStorageToBigQueryOper
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
 from src.airflow_tools import dag_defs
 from src.airflow_tools.operators import cloudql_operators as csql
+from src.airflow_tools.operators.bq_safe_truncate_operator import get_safe_truncate_operator
 from src.airflow_tools.queries import postgre_queries as pquery
 from src.defs.bq import gcs_imports, gcs_exports, user_data, personalization as pdefs
 from src.defs.postgre import personalization as postdefs
@@ -83,6 +84,30 @@ append_user_events = BigQueryOperator(
     }
 )
 
+truncate_user_events_agg = get_safe_truncate_operator(
+    dag,
+    user_data.get_full_name(
+        user_data.AGGREGATED_USER_EVENTS_TABLE
+    )
+)
+
+aggregate_user_events = BigQueryOperator(
+    sql="template/aggregate_user_events.sql",
+    dag=dag,
+    task_id="aggregate_user_events",
+    write_disposition="WRITE_APPEND",
+    use_legacy_sql=False,
+    params={
+        "user_events_table": user_data.get_full_name(
+            user_data.USER_EVENTS_TABLE
+        )
+    },
+    destination_dataset_table=user_data.get_full_name(
+        user_data.AGGREGATED_USER_EVENTS_TABLE
+        )
+)
+
+
 update_product_stats = BigQueryOperator(
     sql="template/update_product_stats.sql",
     dag=dag,
@@ -100,8 +125,9 @@ update_product_stats = BigQueryOperator(
 
 head >> postgre_build_user_events_export_table >> postgre_migrate_to_user_events_export_table
 postgre_migrate_to_user_events_export_table >> append_user_events
-append_user_events >> update_product_stats >> tail
 
+append_user_events >> update_product_stats >> tail
+append_user_events >> truncate_user_events_agg >> aggregate_user_events >> tail
 def _test():
     print("Sucess")
 from airflow.operators.python_operator import PythonOperator

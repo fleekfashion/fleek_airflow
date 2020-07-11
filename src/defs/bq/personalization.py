@@ -9,10 +9,11 @@ PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "fleek-staging")
 DATASET = "personalization"
 
 ACTIVE_PRODUCTS_TABLE = "active_products"
-AGGREGATED_USER_DATA_TABLE = "aggregated_user_data"
 DAILY_CJ_DOWNLOAD_TABLE = "daily_cj_download"
 DAILY_NEW_PRODUCT_INFO_TABLE = "daily_new_product_info"
 HISTORIC_PRODUCTS_TABLE = "historic_products"
+USER_PRODUCT_RECOMMENDER_DATA = "user_product_recommender_data"
+
 TABLE_PARTITIONS = {
         HISTORIC_PRODUCTS_TABLE : {
             "type" : "DAY",
@@ -32,7 +33,7 @@ def get_full_name(table_name):
 
 def get_columns(table_name):
     schema = SCHEMAS.get(table_name)
-    return [ c['name'] for c in schema ]
+    return [c['name'] for c in schema]
 
 SCHEMAS = {
 
@@ -144,26 +145,21 @@ SCHEMAS = {
         },
     ],
 
-    AGGREGATED_USER_DATA_TABLE: [
+    USER_PRODUCT_RECOMMENDER_DATA: [
         {
             "name": "user_id",
             "type": "INTEGER",
             "mode": "REQUIRED"
         },
         {
-            "name": "events",
-            "type": "ARRAY[STRING]",
-            "mode": "REQUIRED"
+            "name": "product_ids",
+            "type": "INTEGER",
+            "mode": "REPEATED"
         },
         {
             "name": "weights",
-            "type": "ARRAY[FLOAT]",
-            "mode": "REQUIRED"
-        },
-        {
-            "name": "event_timestamps",
-            "type": "ARRAY[INTEGER]",
-            "mode": "REQUIRED"
+            "type": "FLOAT",
+            "mode": "REPEATED"
         },
     ],
 
