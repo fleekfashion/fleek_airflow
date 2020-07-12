@@ -84,27 +84,19 @@ append_user_events = BigQueryOperator(
     }
 )
 
-truncate_user_events_agg = get_safe_truncate_operator(
-    dag,
-    user_data.get_full_name(
-        user_data.AGGREGATED_USER_EVENTS_TABLE
-    )
-)
-
 aggregate_user_events = BigQueryOperator(
     sql="template/aggregate_user_events.sql",
     dag=dag,
     task_id="aggregate_user_events",
-    write_disposition="WRITE_APPEND",
     use_legacy_sql=False,
     params={
         "user_events_table": user_data.get_full_name(
             user_data.USER_EVENTS_TABLE
+        ),
+        "aggregated_events_table": user_data.get_full_name(
+            user_data.AGGREGATED_USER_EVENTS_TABLE
         )
-    },
-    destination_dataset_table=user_data.get_full_name(
-        user_data.AGGREGATED_USER_EVENTS_TABLE
-        )
+    }
 )
 
 
@@ -127,7 +119,7 @@ head >> postgre_build_user_events_export_table >> postgre_migrate_to_user_events
 postgre_migrate_to_user_events_export_table >> append_user_events
 
 append_user_events >> update_product_stats >> tail
-append_user_events >> truncate_user_events_agg >> aggregate_user_events >> tail
+append_user_events >> aggregate_user_events >> tail
 def _test():
     print("Sucess")
 from airflow.operators.python_operator import PythonOperator

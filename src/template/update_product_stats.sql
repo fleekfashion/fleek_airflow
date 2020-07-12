@@ -8,7 +8,7 @@ USING (
   FROM `{{ params.user_events_table }}` 
   WHERE product_id IS NOT NULL
     AND 
-      {{ prev_execution_date_success.int_timestamp or 1}} < event_timestamp
+      {{ prev_execution_date.int_timestamp or 1}} < event_timestamp
     AND event_timestamp <= {{ execution_date.int_timestamp }}
     AND user_id NOT IN (
       1338143769388061356,
