@@ -6,7 +6,7 @@ Overview
 2. Run transformations
 """
 
-from datetime import timedelta
+from datetime import timedelta, date
 import copy
 
 from airflow.models import DAG
@@ -30,8 +30,9 @@ DAG_ARGS["depends_on_past"] = True
 
 dag = DAG(
         DAG_ID,
-        catchup=False,
-        schedule_interval=timedelta(days=1),
+        catchup=True,
+        max_active_runs=1,
+        schedule_interval=timedelta(hours=1),
         default_args=DEFAULT_DAG_ARGS,
         description=__doc__,
     )

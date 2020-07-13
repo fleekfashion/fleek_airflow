@@ -17,7 +17,7 @@ DAG_ID = dag_defs.PRODUCT_RECOMMENDATIONS
 dag = DAG(
         DAG_ID,
         catchup=False,
-        schedule_interval=timedelta(days=1),
+        schedule_interval=timedelta(hours=1),
         default_args=DEFAULT_DAG_ARGS,
         description=__doc__
     )
