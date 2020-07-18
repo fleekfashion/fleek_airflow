@@ -42,7 +42,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
     user_data_update_sensor = get_task_sensor(
         dag=dag,
         external_dag_id=USER_EVENTS,
-        external_task_id="append_user_events"
+        external_task_id="aggregate_user_events"
     )
 
     truncate_user_events_agg = get_safe_truncate_operator(

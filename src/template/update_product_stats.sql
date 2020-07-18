@@ -7,9 +7,8 @@ USING (
     SUM(CASE WHEN event="bagged_item" THEN 1 ELSE 0 END) as n_add_to_cart
   FROM `{{ params.user_events_table }}` 
   WHERE product_id IS NOT NULL
-    AND {{ prev_execution_date.int_timestamp or 1}} < event_timestamp
-    AND event_timestamp <= {{ execution_date.int_timestamp }}
-    AND DATE("{{ prev_ds }}") <= execution_date 
+    AND airflow_execution_timestamp = {{ execution_date.int_timestamp }}
+    AND DATE_SUB(DATE("{{ ds }}"), INTERVAL 3 DAY) <= execution_date 
     AND execution_date <= DATE("{{ ds }}")
     AND user_id NOT IN (
       1338143769388061356,

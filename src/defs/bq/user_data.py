@@ -105,5 +105,10 @@ SCHEMAS = {
             "type": "DATE",
             "mode": "REQUIRED"
         },
+        {
+            "name": "airflow_execution_timestamp",
+            "type": "INTEGER",
+            "mode": "REQUIRED"
+        },
     ]
 }

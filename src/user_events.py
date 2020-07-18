@@ -30,7 +30,7 @@ DAG_ARGS["depends_on_past"] = True
 
 dag = DAG(
         DAG_ID,
-        catchup=True,
+        catchup=False,
         max_active_runs=1,
         schedule_interval=timedelta(hours=1),
         default_args=DEFAULT_DAG_ARGS,

@@ -58,7 +58,7 @@ def write_truncate(table_name,
     distinct_filter = _build_distinct_filter(distinct_columns)
     query = ""
     query += "BEGIN TRANSACTION;\n" if transaction_block else ""
-    query += f"TRUNCATE {table_name};\n"
+    query += f"DELETE FROM {table_name};\n"
     query += f"""
     INSERT INTO {table_name}({column_list})
     SELECT {distinct_filter} {column_list}
