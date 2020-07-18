@@ -14,6 +14,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.bigquery_operator import BigQueryOperator
 from airflow.contrib.operators.gcp_sql_operator import CloudSqlQueryOperator
 from airflow.contrib.operators.gcs_to_bq import GoogleCloudStorageToBigQueryOperator
+from airflow.utils.dates import days_ago
 
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
 from src.airflow_tools import dag_defs
@@ -32,7 +33,8 @@ dag = DAG(
         DAG_ID,
         catchup=False,
         max_active_runs=1,
-        schedule_interval=timedelta(hours=1),
+        start_date=days_ago(0),
+        schedule_interval="@hourly",
         default_args=DEFAULT_DAG_ARGS,
         description=__doc__,
     )

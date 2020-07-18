@@ -16,7 +16,7 @@ from sagemaker.processing import ProcessingInput, ProcessingOutput
 from src.defs.bq import personalization as pdefs, gcs_exports, gcs_imports, user_data
 from src.defs.gcs import buckets
 from src.airflow_tools.airflow_variables import SRC_DIR, DAG_CONFIG, DAG_TYPE
-from src.airflow_tools.utils import get_task_sensor
+from src.airflow_tools.utils import get_task_sensor, nearest_hour
 from src.airflow_tools.dag_defs import USER_EVENTS
 from src.airflow_tools.operators.bq_safe_truncate_operator import get_safe_truncate_operator
 from src.callable.push_docker_image import build_repo_uri
@@ -42,7 +42,8 @@ def get_operators(dag: DAG_TYPE) -> dict:
     user_data_update_sensor = get_task_sensor(
         dag=dag,
         external_dag_id=USER_EVENTS,
-        external_task_id="aggregate_user_events"
+        external_task_id="aggregate_user_events",
+        execution_date_fn=nearest_hour
     )
 
     truncate_user_events_agg = get_safe_truncate_operator(

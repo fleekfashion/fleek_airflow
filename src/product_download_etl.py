@@ -12,6 +12,7 @@ from datetime import timedelta
 
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
+from airflow.utils.dates import days_ago
 
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
 from src.airflow_tools import dag_defs
@@ -21,8 +22,9 @@ from src.subdags import product_download_etl
 DAG_ID = dag_defs.DATA_DOWNLOAD_ETL
 dag = DAG(
         DAG_ID,
-        catchup=False,
-        schedule_interval=timedelta(days=1),
+        catchup=True,
+        start_date=days_ago(1),
+        schedule_interval="@daily",
         default_args=DEFAULT_DAG_ARGS,
         description=__doc__
     )

@@ -116,7 +116,7 @@ def get_operators(dag: DAG):
             ),
             transaction_block=True,
             FILTER="""
-            WHERE n_views >= 1
+            WHERE n_likes > 1
                 AND is_active=true
             ORDER BY CAST( (n_likes + n_add_to_cart) as decimal)/n_views DESC
             LIMIT 130

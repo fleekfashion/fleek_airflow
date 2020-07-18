@@ -8,6 +8,7 @@ from datetime import timedelta
 
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
+from airflow.utils.dates import days_ago
 
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
 from src.airflow_tools import dag_defs
@@ -17,7 +18,9 @@ DAG_ID = dag_defs.PRODUCT_RECOMMENDATIONS
 dag = DAG(
         DAG_ID,
         catchup=False,
-        schedule_interval=timedelta(hours=1),
+        max_active_runs=1,
+        start_date=days_ago(0),
+        schedule_interval="@hourly",
         default_args=DEFAULT_DAG_ARGS,
         description=__doc__
     )
