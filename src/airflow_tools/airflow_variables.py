@@ -17,5 +17,5 @@ DEFAULT_DAG_ARGS = {
         'template_searchpath': ["/usr/local/airflow/dags/src/template/"],
         }
 
-AIRFLOW_HOME = os.environ.get("AIRFLOW_HOME")
-SRC_DIR = f"{AIRFLOW_HOME}/dags/src"
+DAGS_FOLDER = os.environ.get("DAGS_FOLDER")
+SRC_DIR = f"{DAGS_FOLDER}/src"

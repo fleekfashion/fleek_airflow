@@ -8,7 +8,7 @@ def nearest_hour(execution_date: Pendulum) -> Pendulum:
     return execution_date.hour_(execution_date.hour)
 
 def get_dag_sensor(dag, external_dag_id,
-        execution_date_fn=nearest_day):
+        execution_date_fn=None):
     sensor = ExternalTaskSensor(
         dag=dag,
         task_id=f"{external_dag_id}_sensor",
@@ -20,7 +20,7 @@ def get_dag_sensor(dag, external_dag_id,
     return sensor
 
 def get_task_sensor(dag, external_dag_id, external_task_id,
-        execution_date_fn=nearest_day):
+        execution_date_fn=None):
     sensor = ExternalTaskSensor(
         dag=dag,
         task_id=f"{external_task_id}_sensor",
