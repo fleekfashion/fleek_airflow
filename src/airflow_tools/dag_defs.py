@@ -1,4 +1,4 @@
-DATA_DOWNLOAD_ETL = "product_download_etl"
+DATA_DOWNLOAD_ETL = "daily_product_download_etl"
 PRODUCT_RECOMMENDATIONS = "product_recommender_stream"
 STAGING_MIGRATION = "daily_staging_migrations"
 TABLE_SETUP = "table_setup"
