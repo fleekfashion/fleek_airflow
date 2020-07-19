@@ -1,24 +1,25 @@
 [[source]]
 name = "pypi"
 url = "https://pypi.org/simple"
-verify_ssl = true 
+verify_ssl = true
 
 [dev-packages]
-apache-airflow = {extras = ["gcp", "postgres"],version = "*"}
 jedi = "*"
 mysqlclient = "*"
+apache-airflow = {extras = ["gcp", "postgres"],version = "*"}
 
 [packages]
-awscli = "*"
-boto3 = "*"
-botocore = "*"
-sagemaker = "*"
 dill = "*"
-pyarrow = "*"
-pyhash = "*"
-scipy = "*"
-numpy = "*"
-pandas = "*"
+pyhash = "==0.9.3"
+awscli = {"version>" = "1.18.100"}
+boto3 = {"version>" = "1.14.23"}
+botocore = {"version>" = "1.17.23"}
+google-cloud-storage = {"version>" = "1.29.0"}
+numpy = {"version>" = "1.19.0"}
+pandas = "==0.25.3"
+pyarrow = {"version>" = "0.17.1"}
+sagemaker = {"version>" = "1.69.0"}
+scipy = {"version>" = "1.5.1"}
 
 [requires]
 python_version = "3.7"

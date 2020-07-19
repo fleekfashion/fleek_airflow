@@ -172,6 +172,7 @@ def _build_products_df(cj_df, drop_kwargs):
     ## Replace nan with None for bigquery and reset index
     final_df = final_df.where(pd.notnull(final_df), None)
     final_df = final_df.replace(to_replace={"nan": None})
+    final_df = final_df.replace(to_replace={np.nan: None})
     return final_df
 
 def _insert_fleek_columns(df: pd.DataFrame, kwargs: dict) -> pd.DataFrame:
