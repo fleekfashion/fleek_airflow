@@ -99,11 +99,11 @@ def _get_cj_df(company_id, website_id, limit, advertiser_id, query_params):
 
 def _drop_row(row, drop_kwargs):
     cases = []
-    cases.append(row.get("product_price", np.nan) is np.nan)
-    cases.append(row.get("product_image_url", "nan").lower() == "nan")
-    cases.append(row.get("product_purchase_url", "nan").lower() == "nan")
-    cases.append(row.get("product_name", "nan").lower() == "nan")
-    
+    cases.append(row.get("product_price", None) is None)
+    cases.append(row.get("product_image_url", None) is None)
+    cases.append(row.get("product_purchase_url", None) is None)
+    cases.append(row.get("product_name", None) is None)
+
     def drop_men_kwargs(row):
         for w in ["woman", "women"]:
             if w in row.get("product_name").lower():
@@ -118,30 +118,35 @@ def _drop_row(row, drop_kwargs):
         for key, values in drop_kwargs.items():
             for value in values:
                 cases.append( (value.lower() in row.get(key, "").lower()) )
-        return sum(cases) > 0 
+        return sum(cases) > 0
 
     cases.append(drop_men_kwargs(row))
     cases.append(drop_row_kwargs(row, drop_kwargs))
     return sum(cases) > 0
 
 def _build_products_df(cj_df, drop_kwargs):
-    ## CJ filters. 
+    ## CJ filters.
     if "targetCountry" in cj_df.columns:
         cj_df = cj_df.loc[cj_df.targetCountry.apply(lambda x: x.lower() != "ca")]
     cj_df = cj_df.reset_index(drop=True)
     if len(cj_df) == 0:
         return pd.DataFrame()
 
+    ## Replace nan with None for bigquery 
+    cj_df = cj_df.where(pd.notnull(cj_df), None)
+    cj_df = cj_df.replace(to_replace={"nan": None})
+    cj_df = cj_df.replace(to_replace={np.nan: None})
+
     def get_correct_link(row):
-        if str(row.get('linkCode.clickUrl', "nan")).lower() != "nan":
+        if row.get('linkCode.clickUrl', None) is not None:
             return row['linkCode.clickUrl']
-        if str(row.get('mobileLink', "nan")).lower() != "nan": 
+        if row.get('mobileLink', None) is not  None: 
             return row['mobileLink']
         return row['link']
 
     def get_sale_price(row):
         output = None
-        if str(row.get('salePrice.amount', "nan")).lower() != "nan":
+        if row.get('salePrice.amount', None) is not None:
             output = row['salePrice.amount']
         else:
             output = row['price.amount']
@@ -150,7 +155,8 @@ def _build_products_df(cj_df, drop_kwargs):
     ## Create final df to upload
     final_df = pd.DataFrame()
     final_df['advertiser_name'] = cj_df['advertiserName']
-    final_df['advertiser_country'] = cj_df['advertiserCountry'].astype("str")
+    final_df['advertiser_country'] = cj_df['advertiserCountry'].astype("str"
+            ).replace(to_replace={"None":None})
     final_df['product_brand'] = cj_df['brand']
     final_df['product_name'] = cj_df.title
     final_df['product_description'] = cj_df.description
@@ -164,15 +170,10 @@ def _build_products_df(cj_df, drop_kwargs):
     final_df['product_last_update'] = cj_df.lastUpdated.apply(lambda x: dateutil.parser.parse(x).date())
 
     
-
     ## Drop invalid rows
     inds = final_df.apply(lambda x: _drop_row(x, drop_kwargs), axis=1)
     final_df = final_df.loc[~inds].reset_index(drop=True)
 
-    ## Replace nan with None for bigquery and reset index
-    final_df = final_df.where(pd.notnull(final_df), None)
-    final_df = final_df.replace(to_replace={"nan": None})
-    final_df = final_df.replace(to_replace={np.nan: None})
     return final_df
 
 def _insert_fleek_columns(df: pd.DataFrame, kwargs: dict) -> pd.DataFrame:
