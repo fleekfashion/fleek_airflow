@@ -12,12 +12,13 @@ from datetime import timedelta, datetime
 
 from airflow.models import DAG
 from airflow.operators.bash_operator import BashOperator
-from airflow.contrib.operators.databricks_operator import DatabricksSubmitRunOperator 
+from airflow.contrib.operators.databricks_operator import DatabricksSubmitRunOperator
 from airflow.utils.dates import days_ago
 
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS, SRC_DIR
 from src.airflow_tools.dag_defs import DATABRICKS_SETUP as DAG_ID
 from src.defs.delta.utils import DBFS_SCRIPT_DIR, GENERAL_CLUSTER_ID
+from src.airflow_tools.databricks.databricks_operators import run_custom_spark_job, DatabricksSQLOperator
 
 
 dag = DAG(
@@ -45,10 +46,21 @@ j = {
     "existing_cluster_id": GENERAL_CLUSTER_ID
 }
 
-op2 = DatabricksSubmitRunOperator(
+op2 = run_custom_spark_job(
     task_id="dbrun",
     dag=dag,
-    json=j
+    script="run_sql.py",
+    parameters=["--sql=SELECT * FROM test.wow"],
+    cluster_id=GENERAL_CLUSTER_ID,
+    min_workers=2,
+    max_workers=3
+)
+
+op3 = DatabricksSQLOperator(
+    dag=dag,
+    task_id="op_test",
+    sql="SELECT * FROM test.wow",
+    cluster_id=GENERAL_CLUSTER_ID
 )
 
 op1 >> op2
