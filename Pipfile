@@ -22,6 +22,7 @@ pyarrow = {"version>" = "0.17.1"}
 sagemaker = "==1.69.0"
 scipy = {"version>" = "1.5.1"}
 databricks-cli = "*"
+pyspark = {"version>" = "3.0.0"}
 
 [requires]
 python_version = "3.7"

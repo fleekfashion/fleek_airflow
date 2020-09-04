@@ -63,4 +63,25 @@ op3 = DatabricksSQLOperator(
     cluster_id=GENERAL_CLUSTER_ID
 )
 
+from pyspark.sql.types import *
+schema1= StructType([
+  StructField(name="a", dataType=IntegerType(), nullable=False, metadata={"comment": "comment", "default": 0})
+]
+)
+
+schema2 = StructType([
+  StructField(name="a", dataType=IntegerType(), nullable=False, metadata={"comment": "comment", "default": 0}),
+  StructField(name="b", dataType=IntegerType(), nullable=False, metadata={"comment": "comment", "default":0}),
+   StructField(name="c", dataType=IntegerType(), nullable=True, metadata={"comment": "comment"})
+]
+).json()
+
+create_table = run_custom_spark_job(
+    task_id="create_table",
+    dag=dag,
+    script="create_table.py",
+    parameters=["--table=test.airflow", f"--schema={schema2}"],
+    cluster_id=GENERAL_CLUSTER_ID,
+)
+
 op1 >> op2
