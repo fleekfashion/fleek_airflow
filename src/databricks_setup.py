@@ -18,7 +18,7 @@ from airflow.utils.dates import days_ago
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS, SRC_DIR
 from src.airflow_tools.dag_defs import DATABRICKS_SETUP as DAG_ID
 from src.defs.delta.utils import DBFS_SCRIPT_DIR, GENERAL_CLUSTER_ID
-from src.airflow_tools.databricks.databricks_operators import run_custom_spark_job, DatabricksSQLOperator
+from src.airflow_tools.databricks.databricks_operators import run_custom_spark_job, SparkScriptOperator 
 
 
 dag = DAG(
@@ -46,42 +46,40 @@ j = {
     "existing_cluster_id": GENERAL_CLUSTER_ID
 }
 
-op2 = run_custom_spark_job(
-    task_id="dbrun",
-    dag=dag,
-    script="run_sql.py",
-    parameters=["--sql=SELECT * FROM test.wow"],
-    cluster_id=GENERAL_CLUSTER_ID,
-    min_workers=2,
-    max_workers=3
-)
-
-op3 = DatabricksSQLOperator(
+op3 = SparkScriptOperator(
     dag=dag,
     task_id="op_test",
     sql="SELECT * FROM test.wow",
-    cluster_id=GENERAL_CLUSTER_ID
+    script="run_sql.py",
+    cluster_id=GENERAL_CLUSTER_ID,
+    polling_period_seconds=5,
 )
 
 from pyspark.sql.types import *
-schema1= StructType([
-  StructField(name="a", dataType=IntegerType(), nullable=False, metadata={"comment": "comment", "default": 0})
-]
-)
 
 schema2 = StructType([
   StructField(name="a", dataType=IntegerType(), nullable=False, metadata={"comment": "comment", "default": 0}),
   StructField(name="b", dataType=IntegerType(), nullable=False, metadata={"comment": "comment", "default":0}),
    StructField(name="c", dataType=IntegerType(), nullable=True, metadata={"comment": "comment"})
 ]
-).json()
+)
 
-create_table = run_custom_spark_job(
+for i in range(100):
+    schema2 = schema2.add(
+        StructField(name=f"c{i}", dataType=IntegerType(), nullable=True, metadata={"comment": "comment"})
+    )
+
+create_table = SparkScriptOperator(
     task_id="create_table",
     dag=dag,
     script="create_table.py",
-    parameters=["--table=test.airflow", f"--schema={schema2}"],
+    json_args={
+        "table":"test.airflow",
+        "schema": schema2.jsonValue(),
+    },
     cluster_id=GENERAL_CLUSTER_ID,
+    polling_period_seconds=5,
 )
 
-op1 >> op2
+op1 >> op3
+op1 >> create_table

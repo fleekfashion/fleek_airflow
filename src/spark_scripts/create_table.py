@@ -12,18 +12,18 @@ except:
     pass
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--table", type=str, required=True)
-parser.add_argument("--schema", type=str, required=True)
-parser.add_argument("--partition", type=str, required=False)
-parser.add_argument("--comment", type=str, required=False)
+parser.add_argument("--json", type=str, required=True)
 args = parser.parse_args()
+with open(args.json, "rb") as handle:
+    json_args = json.load(handle)
 
-print(args.schema)
+## Required args
+TABLE = json_args["table"]
+SCHEMA = StructType.fromJson(json_args["schema"])
 
-TABLE = args.table
-SCHEMA = StructType.fromJson(json.loads(args.schema))
-PARTITION = args.partition 
-COMMENT = args.comment 
+## Optional Args
+PARTITION = json_args.get("partition")
+COMMENT = json_args.get("comment")
 
 def build_fields(schema):
     def _build_field(field):

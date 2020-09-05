@@ -8,6 +8,9 @@ Overview
 """
 
 import subprocess
+import random
+import json
+import copy
 
 from airflow.models import DAG
 from airflow.models.baseoperator import BaseOperator, BaseOperatorLink
@@ -16,12 +19,16 @@ from airflow.contrib.operators.databricks_operator import DatabricksSubmitRunOpe
 from airflow.contrib.hooks.databricks_hook import DatabricksHook
 
 from src.airflow_tools.airflow_variables import SRC_DIR
-from src.defs.delta.utils import DBFS_SCRIPT_DIR, GENERAL_CLUSTER_ID, SHARED_POOL_ID
+from src.defs.delta.utils import DBFS_SCRIPT_DIR, GENERAL_CLUSTER_ID, SHARED_POOL_ID, DBFS_TMP_DIR
 
 def _copy_to_dbfs(local_path: str, dbfs_path: str,
         overwrite: bool = False) -> None:
     flags = "-r --overwrite" if overwrite else "-r"
     cmd = f"dbfs cp {flags} {local_path} {dbfs_path}" 
+    process = subprocess.run(cmd.split())
+
+def _rm_dbfs(dbfs_path: str) -> None:
+    cmd = f"dbfs rm  {dbfs_path}" 
     process = subprocess.run(cmd.split())
 
 def _build_spark_job_json(
@@ -64,7 +71,7 @@ def run_custom_spark_job(
     dag: DAG,
     task_id: str,
     script: str,
-    parameters: list,
+    parameters: dict,
     cluster_id: str = None,
     pool: str = SHARED_POOL_ID,
     min_workers: int = None,
@@ -72,6 +79,7 @@ def run_custom_spark_job(
     machine_type: str = None
     ):
 
+    json_filename = f"{task_id}_{random.randint(0, 10**9)}.json"
     job = _build_spark_job_json(script=script, parameters=parameters,
             cluster_id=cluster_id, pool=pool, min_workers=min_workers,
             max_workers=max_workers, machine_type=machine_type)
@@ -82,14 +90,24 @@ def run_custom_spark_job(
         json=job,
     )
 
+def upload_json_to_dbfs(json_dict: dict):
+    json_filename = f"{random.randint(0, 2**48)}.json"
+    dbfs_path = f"{DBFS_TMP_DIR}/{json_filename}"
+    with open(json_filename, 'w') as handle:
+        json.dump(json_dict, handle)
+    _copy_to_dbfs(json_filename, dbfs_path, overwrite=True)
+    subprocess.run(f"rm {json_filename}".split())
+    return dbfs_path
 
-class DatabricksSQLOperator(BaseOperator):
-    template_fields = ('sql',)
+class SparkScriptOperator(BaseOperator):
+    template_fields = ('sql', 'json_args',)
     template_ext = ('.sql',)
     ui_color = '#e4f0e8'
 
     @apply_defaults
     def __init__(self,
+            script: str = None,
+            json_args: dict = {},
             sql: str = None,
             cluster_id: str = None,
             mode: str = None,
@@ -105,7 +123,9 @@ class DatabricksSQLOperator(BaseOperator):
             **kwargs
             ):
 
-        super(DatabricksSQLOperator, self).__init__(**kwargs)
+        super(SparkScriptOperator, self).__init__(**kwargs)
+        self.script = script
+        self.json_args = json_args
         self.sql = sql
         self.cluster_id= cluster_id
         self.mode = mode
@@ -120,17 +140,18 @@ class DatabricksSQLOperator(BaseOperator):
         self.databricks_retry_limit = databricks_retry_limit
         self.databricks_retry_delay = databricks_retry_delay
         self.run_id = None
+        self.dbfs_json_path = None
     
     def _build_json(self):
+        args = copy.copy(self.json_args)
+        args["sql"] = self.sql
+        self.dbfs_json_path = upload_json_to_dbfs(args).replace("dbfs:/", "/dbfs/")
+
         ## Build parameters list
-        parameters = [f"--sql={self.sql}" ]
-        if self.mode is not None:
-            parameters.append(f"--mode={self.mode}")
-        if self.output_table is not None:
-            parameters.append(f"--output_table={self.output_table}")
+        parameters = [f"--json={self.dbfs_json_path}" ]
 
         json = _build_spark_job_json(
-            script="run_sql.py",
+            script=self.script,
             parameters=parameters,
             cluster_id=self.cluster_id,
             min_workers=self.min_workers,
@@ -146,13 +167,19 @@ class DatabricksSQLOperator(BaseOperator):
             retry_delay=self.databricks_retry_delay)
 
     def execute(self, context):
+        job_json = self._build_json()
+        print(self.sql)
+        print(job_json)
+
         hook = self.get_hook()
-        self.run_id = hook.submit_run(self._build_json())
+        self.run_id = hook.submit_run(job_json)
         _handle_databricks_operator_execution(self, hook, self.log, context)
+        _rm_dbfs(self.dbfs_json_path)
 
     def on_kill(self):
         hook = self.get_hook()
         hook.cancel_run(self.run_id)
+        _rm_dbfs(self.dbfs_json_path)
         self.log.info(
             f"Task: {self.task_id} with run_id: {self.run_id} was requested to be cancelled."
         )

@@ -1,18 +1,30 @@
 import argparse
+import json
+
+from pyspark.sql import SQLContext
+
+## Hack for linter
+try:
+    sqlContext = SQLContext(1)
+except:
+    pass
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--sql", type=str, required=True)
-parser.add_argument("--mode", type=str, required=False)
-parser.add_argument("--output_table", type=str, required=False)
+parser.add_argument("--json", type=str, required=True)
 args = parser.parse_args()
 
-SQL = args.sql
-MODE = args.mode
-OUTPUT_TABLE = args.output_table
-print(SQL)
+with open(args.json, "rb") as handle:
+    json_args = json.load(handle)
+
+## Required args
+SQL = json_args["sql"]
+
+## Optional args
+MODE = json_args.get("mode")
+OUTPUT_TABLE = json_args.get("output_table")
 
 # Run SQL
-df = spark.sql(SQL)
+df = sqlContext.sql(SQL)
 
 if MODE == "WRITE_APPEND":
   df.write.insertInto(OUTPUT_TABLE, overwrite=False)
