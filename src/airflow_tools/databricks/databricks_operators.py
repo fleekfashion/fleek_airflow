@@ -17,6 +17,7 @@ from airflow.models.baseoperator import BaseOperator, BaseOperatorLink
 from airflow.utils.decorators import apply_defaults
 from airflow.contrib.operators.databricks_operator import DatabricksSubmitRunOperator, _handle_databricks_operator_execution, _deep_string_coerce
 from airflow.contrib.hooks.databricks_hook import DatabricksHook
+from pyspark.sql.types import StructType
 
 from src.airflow_tools.airflow_variables import SRC_DIR
 from src.defs.delta.utils import DBFS_SCRIPT_DIR, GENERAL_CLUSTER_ID, SHARED_POOL_ID, DBFS_TMP_DIR
@@ -31,73 +32,6 @@ def _rm_dbfs(dbfs_path: str) -> None:
     cmd = f"dbfs rm  {dbfs_path}" 
     process = subprocess.run(cmd.split())
 
-def _build_spark_job_json(
-    script: str,
-    parameters: list,
-    cluster_id: str = None,
-    pool: str = SHARED_POOL_ID,
-    min_workers: int = None,
-    max_workers: int = None,
-    machine_type: str = None
-    ):
-    dbfs_path = f"{DBFS_SCRIPT_DIR}/{script}"
-    _copy_to_dbfs(f"{SRC_DIR}/spark_scripts/{script}", dbfs_path, overwrite=True)
-    job = {
-        "spark_python_task": {
-            "python_file": dbfs_path,
-            "parameters": parameters
-        }
-    }
-
-    if cluster_id is None:
-        job["new_cluster"] = {
-            "instance_pool_id": SHARED_POOL_ID,
-            "autoscale": {
-                "min_workers": min_workers,
-                "max_workers": max_workers
-            },
-            "spark_version": "7.2.x-scala2.12",
-            }
-
-        if machine_type is not None:
-            job["node_type_id"] = machine_type,
-            job["enable_elastic_disk"] = True,
-            job.pop("instance_pool_id")
-    else:
-        job["existing_cluster_id"] = cluster_id
-    return job
-
-def run_custom_spark_job(
-    dag: DAG,
-    task_id: str,
-    script: str,
-    parameters: dict,
-    cluster_id: str = None,
-    pool: str = SHARED_POOL_ID,
-    min_workers: int = None,
-    max_workers: int = None,
-    machine_type: str = None
-    ):
-
-    json_filename = f"{task_id}_{random.randint(0, 10**9)}.json"
-    job = _build_spark_job_json(script=script, parameters=parameters,
-            cluster_id=cluster_id, pool=pool, min_workers=min_workers,
-            max_workers=max_workers, machine_type=machine_type)
-
-    return DatabricksSubmitRunOperator(
-        task_id=task_id,
-        dag=dag,
-        json=job,
-    )
-
-def upload_json_to_dbfs(json_dict: dict):
-    json_filename = f"{random.randint(0, 2**48)}.json"
-    dbfs_path = f"{DBFS_TMP_DIR}/{json_filename}"
-    with open(json_filename, 'w') as handle:
-        json.dump(json_dict, handle)
-    _copy_to_dbfs(json_filename, dbfs_path, overwrite=True)
-    subprocess.run(f"rm {json_filename}".split())
-    return dbfs_path
 
 class SparkScriptOperator(BaseOperator):
     template_fields = ('sql', 'json_args',)
@@ -110,8 +44,7 @@ class SparkScriptOperator(BaseOperator):
             json_args: dict = {},
             sql: str = None,
             cluster_id: str = None,
-            mode: str = None,
-            output_table: str = None,
+            pool_id: str = SHARED_POOL_ID,
             params: dict = {},
             databricks_conn_id: str ='databricks_default',
             min_workers: int = None,
@@ -128,9 +61,8 @@ class SparkScriptOperator(BaseOperator):
         self.json_args = json_args
         self.sql = sql
         self.cluster_id= cluster_id
-        self.mode = mode
+        self.pool_id = pool_id 
         self.params = params
-        self.output_table = output_table
         self.min_workers= min_workers
         self.max_workers= max_workers
         self.machine_type= machine_type
@@ -142,23 +74,52 @@ class SparkScriptOperator(BaseOperator):
         self.run_id = None
         self.dbfs_json_path = None
     
-    def _build_json(self):
+    def _upload_json_to_dbfs(self, json_dict: dict):
+        json_filename = f"{random.randint(0, 2**48)}.json"
+        dbfs_path = f"{DBFS_TMP_DIR}/{json_filename}"
+        with open(json_filename, 'w') as handle:
+            json.dump(json_dict, handle)
+        _copy_to_dbfs(json_filename, dbfs_path, overwrite=True)
+        subprocess.run(f"rm {json_filename}".split())
+        return dbfs_path
+
+    def _build_json_job(self):
+
+        ## Build and upload json args
         args = copy.copy(self.json_args)
         args["sql"] = self.sql
-        self.dbfs_json_path = upload_json_to_dbfs(args).replace("dbfs:/", "/dbfs/")
+        self.dbfs_json_path = self._upload_json_to_dbfs(args).replace("dbfs:/", "/dbfs/")
 
-        ## Build parameters list
-        parameters = [f"--json={self.dbfs_json_path}" ]
+        ## Upload script
+        dbfs_path = f"{DBFS_SCRIPT_DIR}/{self.script}"
+        _copy_to_dbfs(f"{SRC_DIR}/spark_scripts/{self.script}", dbfs_path, overwrite=True)
 
-        json = _build_spark_job_json(
-            script=self.script,
-            parameters=parameters,
-            cluster_id=self.cluster_id,
-            min_workers=self.min_workers,
-            max_workers=self.max_workers,
-            machine_type=self.machine_type
-        )
-        return _deep_string_coerce(json)
+        ## Build initial job
+        job = {
+            "spark_python_task": {
+                "python_file": dbfs_path,
+                "parameters": [f"--json={self.dbfs_json_path}" ]
+            }
+        }
+
+        if self.cluster_id is None:
+            job["new_cluster"] = {
+                "instance_pool_id": SHARED_POOL_ID,
+                "autoscale": {
+                    "min_workers": self.min_workers,
+                    "max_workers": self.max_workers
+                },
+                "spark_version": "7.2.x-scala2.12",
+                }
+
+            if self.machine_type is not None:
+                job["node_type_id"] = self.machine_type,
+                job["enable_elastic_disk"] = True,
+                job.pop("instance_pool_id")
+        else:
+            job["existing_cluster_id"] = self.cluster_id
+        return _deep_string_coerce(job)
+
 
     def get_hook(self):
         return DatabricksHook(
@@ -167,7 +128,7 @@ class SparkScriptOperator(BaseOperator):
             retry_delay=self.databricks_retry_delay)
 
     def execute(self, context):
-        job_json = self._build_json()
+        job_json = self._build_json_job()
         print(self.sql)
         print(job_json)
 
@@ -184,3 +145,60 @@ class SparkScriptOperator(BaseOperator):
             f"Task: {self.task_id} with run_id: {self.run_id} was requested to be cancelled."
         )
 
+def spark_sql_operator(
+        sql: str,
+        task_id: str,
+        dag: DAG,
+        params: dict = {},
+        cluster_id: str = None,
+        pool_id: str = SHARED_POOL_ID,
+        min_workers: int = None,
+        max_workers: int = None,
+        machine_type: str = None,
+        polling_period_seconds: int = 30,
+        ):
+    return SparkScriptOperator(
+            script="run_sql.py",
+            sql=sql,
+            task_id=task_id,
+            dag=dag,
+            params=params,
+            cluster_id=cluster_id,
+            pool_id=pool_id,
+            min_workers=min_workers,
+            max_workers=max_workers,
+            machine_type=machine_type,
+            polling_period_seconds=polling_period_seconds,
+        )
+
+def create_table_operator(
+        task_id: str,
+        dag: DAG,
+        table: str,
+        schema: StructType,
+        partition: list = None,
+        comment: str = None,
+        cluster_id: str = None,
+        pool_id: str = SHARED_POOL_ID,
+        min_workers: int = None,
+        max_workers: int = None,
+        machine_type: str = None,
+        polling_period_seconds: int = 30,
+        ):
+    return SparkScriptOperator(
+            script="create_table.py",
+            json_args={
+                "table": table,
+                "schema": schema.jsonValue(),
+                "partition": partition,
+                "comment": comment
+            },
+            task_id=task_id,
+            dag=dag,
+            cluster_id=cluster_id,
+            pool_id=pool_id,
+            min_workers=min_workers,
+            max_workers=max_workers,
+            machine_type=machine_type,
+            polling_period_seconds=polling_period_seconds,
+        )

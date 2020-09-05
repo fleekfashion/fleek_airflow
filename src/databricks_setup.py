@@ -18,7 +18,7 @@ from airflow.utils.dates import days_ago
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS, SRC_DIR
 from src.airflow_tools.dag_defs import DATABRICKS_SETUP as DAG_ID
 from src.defs.delta.utils import DBFS_SCRIPT_DIR, GENERAL_CLUSTER_ID
-from src.airflow_tools.databricks.databricks_operators import run_custom_spark_job, SparkScriptOperator 
+from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator, create_table_operator
 
 
 dag = DAG(
@@ -69,17 +69,15 @@ for i in range(100):
         StructField(name=f"c{i}", dataType=IntegerType(), nullable=True, metadata={"comment": "comment"})
     )
 
-create_table = SparkScriptOperator(
+create_table = create_table_operator(
     task_id="create_table",
     dag=dag,
-    script="create_table.py",
-    json_args={
-        "table":"test.airflow",
-        "schema": schema2.jsonValue(),
-    },
+    table="test.airflow",
+    schema=schema2,
     cluster_id=GENERAL_CLUSTER_ID,
     polling_period_seconds=5,
 )
+
 
 op1 >> op3
 op1 >> create_table
