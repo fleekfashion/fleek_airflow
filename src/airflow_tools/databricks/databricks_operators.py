@@ -190,7 +190,7 @@ def create_table_operator(
             json_args={
                 "table": table,
                 "schema": schema.jsonValue(),
-                "partition": partition,
+                "partition": " ".join(partition) if partition else None,
                 "comment": comment
             },
             task_id=task_id,

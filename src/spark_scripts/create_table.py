@@ -31,21 +31,21 @@ def build_fields(schema):
         c = field.metadata.get("comment")
         comment = f"COMMENT '{c}'" if c else ""
         if type(field.dataType) != StructType:
-            return f"{field.name} {field.dataType.typeName()} {nullable} {comment}"
+            return f"{field.name} {field.dataType.simpleString()} {nullable} {comment}"
         else:
             internal_fields = []
             for f in field.dataType.fields:
                 local_nullable = "" if f.nullable else "NOT NULL"
                 internal_fields.append(
-                    f"{field.name}: {field.dataType.typeName()} {local_nullable} {comment}"
+                    f"{field.name}: {field.dataType.simpleString()} {local_nullable} {comment}"
                 )
-            internal = ",".join
+            internal = ", ".join
             return f"{field.name} {field.dataType.typeName()}<{internal}> {nullable}"
     return ",\n".join([ _build_field(field) for field in schema.fields ])
 
 def create_table(schema, table, replace=False): 
     table_statement= "CREATE OR REPLACE TABLE" if replace else "CREATE TABLE IF NOT EXISTS"
-    partition = f"PARTITION BY ({PARTITION})" if PARTITION else ""
+    partition = f"PARTITIONED BY ({PARTITION})" if PARTITION else ""
     comment = f"COMMENT '{COMMENT}'" if COMMENT else ""
     fields = build_fields(schema)
 
@@ -76,4 +76,9 @@ if old_schema.fieldNames() != SCHEMA.fieldNames():
 
     sqlContext.sql(f"DROP TABLE IF EXISTS {TABLE}")
     create_table(SCHEMA, TABLE, replace=True)
-    sqlContext.sql(f"INSERT INTO {TABLE} SELECT * FROM {temp_table}")
+    df = sqlContext.table(temp_table)
+    df.write.saveAsTable(
+        name=TABLE,
+        format="delta",
+        mode="append"
+    )
