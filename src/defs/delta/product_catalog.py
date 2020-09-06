@@ -355,7 +355,7 @@ TABLES = {
 
 TABLES[DAILY_PRODUCT_DUMP_TABLE] = {
     "schema": StructType(
-        [ StructField(x.name, x.dataType, nullable=False, metadata=x.metadata)
+        [ StructField(x.name, x.dataType, nullable=True, metadata=x.metadata)
             for x in TABLES[PRODUCT_INFO_TABLE]["schema"].fields
         ]
     ),
