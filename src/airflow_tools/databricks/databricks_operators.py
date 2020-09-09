@@ -22,15 +22,25 @@ from pyspark.sql.types import StructType
 from src.airflow_tools.airflow_variables import SRC_DIR
 from src.defs.delta.utils import DBFS_SCRIPT_DIR, GENERAL_CLUSTER_ID, SHARED_POOL_ID, DBFS_TMP_DIR
 
-def _copy_to_dbfs(local_path: str, dbfs_path: str,
+def _cp_dbfs(src: str, dest: str,
         overwrite: bool = False) -> None:
     flags = "-r --overwrite" if overwrite else "-r"
-    cmd = f"dbfs cp {flags} {local_path} {dbfs_path}" 
+    cmd = f"dbfs cp {flags} {src} {dest}" 
     process = subprocess.run(cmd.split())
 
 def _rm_dbfs(dbfs_path: str) -> None:
     cmd = f"dbfs rm  {dbfs_path}" 
     process = subprocess.run(cmd.split())
+
+def dbfs_read_json(dbfs_path: str):
+    json_filename = f"{random.randint(0, 2**48)}.json"
+    _cp_dbfs(src=dbfs_path, dest=json_filename)
+
+    with open(json_filename, 'r') as handle:
+        data = json.load(handle)
+    subprocess.run(f"rm {json_filename}".split())
+    return data
+
 
 
 class SparkScriptOperator(BaseOperator):
@@ -79,20 +89,21 @@ class SparkScriptOperator(BaseOperator):
         dbfs_path = f"{DBFS_TMP_DIR}/{json_filename}"
         with open(json_filename, 'w') as handle:
             json.dump(json_dict, handle)
-        _copy_to_dbfs(json_filename, dbfs_path, overwrite=True)
+        _cp_dbfs(json_filename, dbfs_path, overwrite=True)
         subprocess.run(f"rm {json_filename}".split())
         return dbfs_path
 
     def _build_json_job(self):
 
         ## Build and upload json args
+        print(self.json_args)
         args = copy.copy(self.json_args)
         args["sql"] = self.sql
         self.dbfs_json_path = self._upload_json_to_dbfs(args).replace("dbfs:/", "/dbfs/")
 
         ## Upload script
         dbfs_path = f"{DBFS_SCRIPT_DIR}/{self.script}"
-        _copy_to_dbfs(f"{SRC_DIR}/spark_scripts/{self.script}", dbfs_path, overwrite=True)
+        _cp_dbfs(f"{SRC_DIR}/spark_scripts/{self.script}", dbfs_path, overwrite=True)
 
         ## Build initial job
         job = {
