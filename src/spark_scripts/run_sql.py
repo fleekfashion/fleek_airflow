@@ -27,6 +27,6 @@ OUTPUT_TABLE = json_args.get("output_table")
 df = sqlContext.sql(SQL)
 
 if MODE == "WRITE_APPEND":
-  df.write.insertInto(OUTPUT_TABLE, overwrite=False)
+  df.write.saveAsTable(OUTPUT_TABLE, format="delta", mode="append")
 elif MODE == "WRITE_TRUNCATE":
-  df.write.insertInto(OUTPUT_TABLE, overwrite=True)
+  df.write.saveAsTable(OUTPUT_TABLE, format="delta", mode="overwrite")

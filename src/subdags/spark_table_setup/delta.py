@@ -35,7 +35,8 @@ def get_operators(dag: DAG):
                 schema=info["schema"],
                 partition=info.get("partition"),
                 comment=info.get("comment"),
-                cluster_id=GENERAL_CLUSTER_ID
+                min_workers=1,
+                max_workers=4
             )
             head >> op >> tail
     return {"head": head, "tail": tail}

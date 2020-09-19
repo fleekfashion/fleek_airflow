@@ -26,7 +26,8 @@ def get_operators(dag: DAG_TYPE) -> dict:
         dag=dag,
         task_id=f"truncate_{pcdefs.DAILY_PRODUCT_DUMP_TABLE}",
         sql=f"DELETE FROM {pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE)}",
-        cluster_id=GENERAL_CLUSTER_ID
+        min_workers=1,
+        max_workers=2
     )
 
     parameters = dbfs_read_json(f"{DBFS_DEFS_DIR}/product_download/cj/final_cj_queries.json")
@@ -35,7 +36,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
     for advertiser_id in advertiser_ids:
         query_data = copy.deepcopy(parameters)
         query_data['advertiser_id'] = advertiser_id
-        cj_data_to_bq = SparkScriptOperator(
+        cj_to_delta  = SparkScriptOperator(
             task_id=f"daily_cj_download_{advertiser_id}",
             dag=dag,
             json_args={
@@ -43,27 +44,12 @@ def get_operators(dag: DAG_TYPE) -> dict:
                 "output_table": pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE),
             },
             script="cj_download.py",
-            cluster_id=GENERAL_CLUSTER_ID
+            local=True
         )
-        downloads.append(cj_data_to_bq)
+        downloads.append(cj_to_delta )
     for i in range(1, len(downloads)):
         downloads[i-1] >> downloads[i]
 
-    product_info_processing = SparkScriptOperator(
-        dag=dag,
-        task_id="product_info_processing",
-        json_args={
-            "src_table": pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE),
-            "output_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
-            "ds": "{{ds}}",
-            "timestamp": "{{ execution_date.int_timestamp }}",
-            "drop_kwargs_path": f"{DBFS_DEFS_DIR}/product_download/global/drop_keywords.json".replace("dbfs:", "/dbfs")
-        },
-        script="product_info_processing.py",
-        cluster_id=GENERAL_CLUSTER_ID
-    )
-
-
     head >> truncation >> downloads[0] 
-    downloads[-1] >> product_info_processing >> tail 
+    downloads[-1] >> tail 
     return {"head": head, "tail": tail}

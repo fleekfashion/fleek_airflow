@@ -30,54 +30,10 @@ dag = DAG(
         doc_md=__doc__
     )
 
-op1 = BashOperator(
-    task_id="dbfs",
-    dag=dag,
-    bash_command=f"dbfs cp -r --overwrite {SRC_DIR}/spark_scripts {DBFS_SCRIPT_DIR}"
-)
+notebook_run = DatabricksSubmitRunOperator(
+        notebook_task={"notebook_path": '/Users/ghodoussikian@gmail.com/run_sql'},
+    existing_cluster_id=GENERAL_CLUSTER_ID,
+    task_id="wowdsa",
+    libraries=[{"package": "opencv-python"}],
+    dag=dag)
 
-j = {
-    "spark_python_task": {
-        "python_file": f"{DBFS_SCRIPT_DIR}/run_sql.py",
-        "parameters": [
-            "--sql=SELECT * FROM test.wow"
-            ]
-    },
-    "existing_cluster_id": GENERAL_CLUSTER_ID
-}
-
-op3 = SparkScriptOperator(
-    dag=dag,
-    task_id="op_test",
-    sql="SELECT * FROM test.wow",
-    script="run_sql.py",
-    cluster_id=GENERAL_CLUSTER_ID,
-    polling_period_seconds=5,
-)
-
-from pyspark.sql.types import *
-
-schema2 = StructType([
-  StructField(name="a", dataType=IntegerType(), nullable=False, metadata={"comment": "comment", "default": 0}),
-  StructField(name="b", dataType=IntegerType(), nullable=False, metadata={"comment": "comment", "default":0}),
-   StructField(name="c", dataType=IntegerType(), nullable=True, metadata={"comment": "comment"})
-]
-)
-
-for i in range(100):
-    schema2 = schema2.add(
-        StructField(name=f"c{i}", dataType=IntegerType(), nullable=True, metadata={"comment": "comment"})
-    )
-
-create_table = create_table_operator(
-    task_id="create_table",
-    dag=dag,
-    table="test.airflow",
-    schema=schema2,
-    cluster_id=GENERAL_CLUSTER_ID,
-    polling_period_seconds=5,
-)
-
-
-op1 >> op3
-op1 >> create_table

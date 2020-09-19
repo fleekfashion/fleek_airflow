@@ -8,6 +8,7 @@ DATASET = f"{PROJECT}_product_catalog"
 ACTIVE_PRODUCTS_TABLE = "active_products"
 DAILY_PRODUCT_DUMP_TABLE = "daily_product_dump"
 HISTORIC_PRODUCTS_TABLE = "historic_products"
+NEW_PRODUCT_FEATURES_TABLE = "daily_new_product_ml_features"
 PRODUCT_INFO_TABLE  = "product_info"
 
 def get_full_name(table_name):
@@ -203,8 +204,32 @@ TABLES = {
         "comment": (
             "Current product available in catalog"
         )
-    }
-,
+    },
+
+    NEW_PRODUCT_FEATURES_TABLE: {
+        "schema": StructType([
+            StructField(name="product_id",
+                dataType=LongType(),
+                nullable=False,
+                metadata={
+                    "comment": (
+                        "Unique identifier for each product."
+                        "Hash of advertiser_name + image_url"
+                    )
+                }
+            ),
+            StructField(name="product_image_embedding",
+                dataType=ArrayType(FloatType(), False),
+                nullable=False,
+                metadata={
+                    "comment": (
+                        "Image embedding of product"
+                    )
+                }
+            ),
+        ]),
+        "comment": "Daily ML Features table"
+    },
 
     PRODUCT_INFO_TABLE: {
         "schema": StructType([
@@ -345,7 +370,8 @@ TABLES = {
         "comment": (
             "Storing each days post filter product info"
         )
-    }
+    },
+
 }
 
 

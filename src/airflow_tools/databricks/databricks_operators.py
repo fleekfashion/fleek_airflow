@@ -20,7 +20,7 @@ from airflow.contrib.hooks.databricks_hook import DatabricksHook
 from pyspark.sql.types import StructType
 
 from src.airflow_tools.airflow_variables import SRC_DIR
-from src.defs.delta.utils import DBFS_SCRIPT_DIR, GENERAL_CLUSTER_ID, SHARED_POOL_ID, DBFS_TMP_DIR
+from src.defs.delta.utils import DBFS_SCRIPT_DIR, GENERAL_CLUSTER_ID, SHARED_POOL_ID, DBFS_TMP_DIR, PROJECT
 
 def _cp_dbfs(src: str, dest: str,
         overwrite: bool = False) -> None:
@@ -50,17 +50,21 @@ class SparkScriptOperator(BaseOperator):
 
     @apply_defaults
     def __init__(self,
-            script: str = None,
+            script: str,
             json_args: dict = {},
             sql: str = None,
             cluster_id: str = None,
-            pool_id: str = SHARED_POOL_ID,
             params: dict = {},
             databricks_conn_id: str ='databricks_default',
             min_workers: int = None,
             max_workers: int = None,
             machine_type: str = None,
-            polling_period_seconds=30,
+            local: bool = False,
+            pool_id: str = SHARED_POOL_ID,
+            spark_version: str = "7.2.x-cpu-ml-scala2.12",
+            libraries: list = [],
+            init_scripts: list = [],
+            polling_period_seconds=15,
             databricks_retry_limit: int=3,
             databricks_retry_delay: int=1,
             **kwargs
@@ -70,12 +74,16 @@ class SparkScriptOperator(BaseOperator):
         self.script = script
         self.json_args = json_args
         self.sql = sql
-        self.cluster_id= cluster_id
+        self.cluster_id = cluster_id
+        self.local = local
         self.pool_id = pool_id 
         self.params = params
         self.min_workers= min_workers
         self.max_workers= max_workers
         self.machine_type= machine_type
+        self.spark_version = spark_version
+        self.libraries = libraries
+        self.init_scripts = init_scripts
 
         self.databricks_conn_id = databricks_conn_id
         self.polling_period_seconds = polling_period_seconds
@@ -93,6 +101,62 @@ class SparkScriptOperator(BaseOperator):
         subprocess.run(f"rm {json_filename}".split())
         return dbfs_path
 
+    def _build_spark_conf(self):
+        conf = {}
+        if self.local:
+            conf.update({
+                "spark.master": "local[*]"
+            })
+
+        return {"spark_conf":conf}
+
+    def _build_machine_type_param(self):
+        params = {}
+        if self.pool_id is not None:
+            params.update({"instance_pool_id": self.pool_id})
+        else:
+            params.update({"enable_elastic_disk": True})
+            params.update({"node_type_id": self.machine_type})
+        return params
+
+
+    def _build_spark_version_param(self):
+        if self.cluster_id is None:
+            return {"spark_version": self.spark_version}
+        else:
+            return {}
+    
+    
+    def _build_cluster_params(self):
+        if self.cluster_id is not None:
+            return {"existing_cluster_id": self.cluster_id}
+
+        params = {}
+        if self.local:
+                params.update({
+                    "num_workers": 0
+                    }
+                )
+        else:
+            params.update({
+                "autoscale": {
+                    "min_workers": self.min_workers,
+                    "max_workers": self.max_workers
+                }
+            })
+
+        params.update({"spark_version": self.spark_version})
+        params.update(self._build_spark_conf())
+        params.update(self._build_machine_type_param())
+        params["init_scripts"] = [
+            { "dbfs" : { "destination" : script }}
+            for script in self.init_scripts
+        ]
+        return {"new_cluster": params}
+
+
+
+
     def _build_json_job(self):
 
         ## Build and upload json args
@@ -107,28 +171,17 @@ class SparkScriptOperator(BaseOperator):
 
         ## Build initial job
         job = {
+            "run_name": f"{self.task_id}_{PROJECT}",
             "spark_python_task": {
                 "python_file": dbfs_path,
                 "parameters": [f"--json={self.dbfs_json_path}" ]
-            }
+            },
+            "libraries": [
+                {"package": l } for l in self.libraries
+            ]
         }
 
-        if self.cluster_id is None:
-            job["new_cluster"] = {
-                "instance_pool_id": SHARED_POOL_ID,
-                "autoscale": {
-                    "min_workers": self.min_workers,
-                    "max_workers": self.max_workers
-                },
-                "spark_version": "7.2.x-scala2.12",
-                }
-
-            if self.machine_type is not None:
-                job["node_type_id"] = self.machine_type,
-                job["enable_elastic_disk"] = True,
-                job.pop("instance_pool_id")
-        else:
-            job["existing_cluster_id"] = self.cluster_id
+        job.update(self._build_cluster_params())
         return _deep_string_coerce(job)
 
 
@@ -162,11 +215,12 @@ def spark_sql_operator(
         dag: DAG,
         params: dict = {},
         cluster_id: str = None,
+        local: bool = False,
         pool_id: str = SHARED_POOL_ID,
         min_workers: int = None,
         max_workers: int = None,
         machine_type: str = None,
-        polling_period_seconds: int = 30,
+        polling_period_seconds: int = 15,
         ):
     return SparkScriptOperator(
             script="run_sql.py",
@@ -175,6 +229,7 @@ def spark_sql_operator(
             dag=dag,
             params=params,
             cluster_id=cluster_id,
+            local=local,
             pool_id=pool_id,
             min_workers=min_workers,
             max_workers=max_workers,

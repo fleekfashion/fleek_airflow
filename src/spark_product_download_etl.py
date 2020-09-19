@@ -22,7 +22,7 @@ from src.subdags import spark_product_download_etl
 DAG_ID = dag_defs.SPARK_PRODUCT_DOWNLOAD_ETL
 dag = DAG(
         DAG_ID,
-        catchup=True,
+        catchup=False,
         start_date=days_ago(1),
         schedule_interval="@daily",
         default_args=DEFAULT_DAG_ARGS,
@@ -33,6 +33,8 @@ head = DummyOperator(task_id=f"{DAG_ID}_dag_head", dag=dag)
 tail = DummyOperator(task_id=f"{DAG_ID}_dag_tail", dag=dag)
 
 download_operators = spark_product_download_etl.cj_download.get_operators(dag)
+product_proc_operators = spark_product_download_etl.product_processing.get_operators(dag)
 
 head >> download_operators["head"]
-download_operators['tail'] >> tail
+download_operators['tail'] >> product_proc_operators["head"]
+product_proc_operators['tail'] >> tail

@@ -68,7 +68,7 @@ def _build_arg_filter(args):
 df = sqlContext.table(SRC_TABLE )
 df = df.withColumn("execution_date", F.lit(DS).cast("DATE")
          ).withColumn("execution_timestamp", F.lit(TIMESTAMP).cast("BIGINT")
-         ).withColumn("product_id", F.xxhash64(F.col("advertiser_name"), F.col("product_image_url"))
+         ).withColumn("product_id", F.abs(F.xxhash64(F.col("advertiser_name"), F.col("product_image_url")))
          ).withColumn("product_tags", F.coalesce("product_tags", F.array().cast("array<string>")))
 
 ###################################
