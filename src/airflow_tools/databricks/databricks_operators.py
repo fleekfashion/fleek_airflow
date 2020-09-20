@@ -214,6 +214,8 @@ def spark_sql_operator(
         task_id: str,
         dag: DAG,
         params: dict = {},
+        output_table: str = None,
+        mode: str = None,
         cluster_id: str = None,
         local: bool = False,
         pool_id: str = SHARED_POOL_ID,
@@ -222,12 +224,15 @@ def spark_sql_operator(
         machine_type: str = None,
         polling_period_seconds: int = 15,
         ):
+    json_args = { "mode": mode, "output_table": output_table}
+
     return SparkScriptOperator(
             script="run_sql.py",
             sql=sql,
             task_id=task_id,
             dag=dag,
             params=params,
+            json_args=json_args,
             cluster_id=cluster_id,
             local=local,
             pool_id=pool_id,

@@ -34,7 +34,16 @@ tail = DummyOperator(task_id=f"{DAG_ID}_dag_tail", dag=dag)
 
 download_operators = spark_product_download_etl.cj_download.get_operators(dag)
 product_proc_operators = spark_product_download_etl.product_processing.get_operators(dag)
+update_active_prod_operators = spark_product_download_etl.update_active_products \
+        .get_operators(dag)
+active_products_ml = spark_product_download_etl.active_products_ml.get_operators(dag)
 
 head >> download_operators["head"]
+
 download_operators['tail'] >> product_proc_operators["head"]
-product_proc_operators['tail'] >> tail
+download_operators['tail'] >> update_active_prod_operators["head"]
+
+[ product_proc_operators['tail'], update_active_prod_operators['tail'] ] >> \
+        active_products_ml["head"]
+
+active_products_ml["tail"] >> tail

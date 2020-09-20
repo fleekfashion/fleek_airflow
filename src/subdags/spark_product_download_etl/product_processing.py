@@ -61,13 +61,28 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "version": "2",
             "dest_table": pcdefs.get_full_name(pcdefs.NEW_PRODUCT_FEATURES_TABLE)
         },
-        min_workers=1,
-        max_workers=2,
-        machine_type="i3.xlarge",
+        local=True,
+        machine_type="p2.xlarge",
         pool_id=None,
         init_scripts=["dbfs:/shared/init_scripts/install_opencv.sh"]
     )
 
-    head >> product_info_processing >> image_download >> new_product_ml >> tail 
+    append_new_products = spark_sql_operator(
+        task_id="apend_new_products",
+        dag=dag,
+        params={
+            "product_info_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
+            "prod_ml_features_table": pcdefs.get_full_name(pcdefs.NEW_PRODUCT_FEATURES_TABLE),
+            },
+        sql="template/spark_append_new_active_products.sql",
+        output_table=pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
+        mode="WRITE_APPEND",
+        min_workers=1,
+        max_workers=2
+    )
+
+    head >> product_info_processing >> image_download >> new_product_ml
+    new_product_ml >> append_new_products >> tail
+
 
     return {"head": head, "tail": tail}

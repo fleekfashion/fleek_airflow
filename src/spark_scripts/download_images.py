@@ -58,7 +58,6 @@ print(sql)
 
 downloadUDF = F.udf(downloader, BooleanType())
 res_df = sqlContext.sql(sql
-    ).limit(100
     ).filter(downloadUDF(
         F.col("product_image_url"),
         F.abs(F.col("product_id")),

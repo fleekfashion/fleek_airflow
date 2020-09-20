@@ -103,7 +103,7 @@ def get_pid():
     x = F.split(x, "\.")[0].cast("bigint").alias("product_id")
     return x
 
-features_df = images.repartition(1) \
+features_df = images.repartition(48) \
     .withColumn("product_image_embedding", featurize_udf("content")) \
     .withColumn("product_id", get_pid()) \
     .select(["product_image_embedding", "product_id"])

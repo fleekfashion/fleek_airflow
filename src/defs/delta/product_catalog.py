@@ -10,6 +10,7 @@ DAILY_PRODUCT_DUMP_TABLE = "daily_product_dump"
 HISTORIC_PRODUCTS_TABLE = "historic_products"
 NEW_PRODUCT_FEATURES_TABLE = "daily_new_product_ml_features"
 PRODUCT_INFO_TABLE  = "product_info"
+SIMILAR_PRODUCTS_TABLE = "similar_products"
 
 def get_full_name(table_name):
     name = ".".join(
@@ -19,6 +20,10 @@ def get_full_name(table_name):
         ]
     )
     return name
+
+def get_columns(table_name):
+    return TABLES[table_name]["schema"].fieldNames()
+
 
 TABLES = {
     ACTIVE_PRODUCTS_TABLE: {
@@ -372,6 +377,44 @@ TABLES = {
         )
     },
 
+    SIMILAR_PRODUCTS_TABLE: {
+        "schema": StructType([
+            StructField(name="product_id",
+                dataType=LongType(),
+                nullable=False,
+                metadata={
+                    "comment": (
+                        "Unique identifier for each product."
+                        "Hash of advertiser_name + image_url"
+                    )
+                }
+            ),
+            StructField(name="similar_product_ids",
+                dataType=ArrayType(LongType(), False),
+                nullable=False,
+                metadata={
+                    "comment": (
+                        "Array of product_ids "
+                        "Ordered by similarity score"
+                    )
+                }
+            ),
+            StructField(name="similarity_scores",
+                dataType=ArrayType(FloatType(), False),
+                nullable=False,
+                metadata={
+                    "comment": (
+                        "Similarity: range -1 to 1 "
+                        "1 is most similar"
+                    )
+                }
+            ),
+        ]),
+        "comment": (
+            "Daily Similar Products table for "
+            "all products in our catalog"
+        )
+    },
 }
 
 
