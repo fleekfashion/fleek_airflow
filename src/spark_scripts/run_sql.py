@@ -22,11 +22,12 @@ SQL = json_args["sql"]
 ## Optional args
 MODE = json_args.get("mode")
 OUTPUT_TABLE = json_args.get("output_table")
+FORMAT = json_args.get("delta")
 
 # Run SQL
 df = sqlContext.sql(SQL)
 
 if MODE == "WRITE_APPEND":
-  df.write.saveAsTable(OUTPUT_TABLE, format="delta", mode="append")
+  df.write.saveAsTable(OUTPUT_TABLE, format=FORMAT, mode="append")
 elif MODE == "WRITE_TRUNCATE":
-  df.write.saveAsTable(OUTPUT_TABLE, format="delta", mode="overwrite")
+  df.write.saveAsTable(OUTPUT_TABLE, format=FORMAT, mode="overwrite")

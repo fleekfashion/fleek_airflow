@@ -4,7 +4,6 @@ definitions for bigquery
 tables.
 """
 import os
-from . import utils
 
 PROJECT = os.environ.get("PROJECT", "staging")
 INSTANCE = "fleek-app-prod1"
@@ -14,19 +13,18 @@ BQ_EXTERNAL_CONN_ID = "fleek-prod.us.cloudsql_ktest"
 
 PRODUCT_INFO_TABLE = "product_info"
 TOP_PRODUCT_INFO_TABLE = "top_product_info"
-USER_BATCH_TABLE = "user_batch"
-USER_EVENTS_TABLE = "user_events"
-USER_RECOMMENDATIONS_TABLE = "user_product_recommendations"
+SIMILAR_PRODUCTS_TABLE = "similar_products"
 
-def get_full_name(table_name):
-    return table_name 
+def get_full_name(table_name, staging=False):
+    if staging:
+        table_name = "staging_" + table_name
+    return f"{PROJECT}.{table_name}"
 
 def get_columns(table_name):
     schema = SCHEMAS.get(table_name)['schema']
     return [ c['name'] for c in schema ]
 
 SCHEMAS = {
-
     PRODUCT_INFO_TABLE : {
         "schema" : [
             {
@@ -45,8 +43,13 @@ SCHEMAS = {
                 "mode": "NOT NULL"
             },
             {
-                "name": "product_tag",
-                "type": "TEXT",
+                "name": "product_labels",
+                "type": "TEXT []",
+                "mode": "NOT NULL"
+            },
+            {
+                "name": "product_tags",
+                "type": "TEXT []",
                 "mode": "NOT NULL"
             },
             {
@@ -66,7 +69,7 @@ SCHEMAS = {
             },
             {
                 "name": "product_additional_image_urls",
-                "type": "TEXT",
+                "type": "TEXT []",
                 "mode": ""
             },
             {
@@ -115,65 +118,26 @@ SCHEMAS = {
                 "mode": "NOT NULL"
             },
         ],
-        "tail" : f";\nCREATE INDEX ON {PRODUCT_INFO_TABLE} (product_id)"
+        "tail" : f";\nCREATE INDEX ON {get_full_name(PRODUCT_INFO_TABLE)} (product_id)"
     },
 
-    USER_EVENTS_TABLE: {
+    SIMILAR_PRODUCTS_TABLE : {
         "schema" : [
-            {
-                "name": "user_id",
-                "type": "bigint",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "event",
-                "type": "TEXT",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "event_timestamp",
-                "type": "bigint",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "method",
-                "type": "TEXT",
-                "mode": ""
-            },
             {
                 "name": "product_id",
                 "type": "bigint",
-                "mode": ""
+                "mode": "NOT NULL UNIQUE"
             },
-            {
-                "name": "tags",
-                "type": "TEXT[]",
-                "mode": ""
+                        {
+                "name": "similar_product_ids",
+                "type": "BIGINT []",
+                "mode": "NOT NULL"
             },
         ],
-        "tail": ""
+        "tail" : f";\nCREATE INDEX ON {get_full_name(SIMILAR_PRODUCTS_TABLE)} (product_id)"
     },
 
-    USER_BATCH_TABLE: {
-        "schema" : [
-            {
-                "name": "user_id",
-                "type": "bigint",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "batch",
-                "type": "bigint",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "last_filter",
-                "type": "TEXT",
-                "mode": "NOT NULL"
-            },
-        ],
-        "tail" : f";\nCREATE INDEX ON {USER_BATCH_TABLE} (user_id)"
-        }
+
 }
 
 ## Similar Schemas

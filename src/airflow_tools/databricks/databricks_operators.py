@@ -216,6 +216,7 @@ def spark_sql_operator(
         params: dict = {},
         output_table: str = None,
         mode: str = None,
+        format: str = "delta",
         cluster_id: str = None,
         local: bool = False,
         pool_id: str = SHARED_POOL_ID,
@@ -224,7 +225,7 @@ def spark_sql_operator(
         machine_type: str = None,
         polling_period_seconds: int = 15,
         ):
-    json_args = { "mode": mode, "output_table": output_table}
+    json_args = { "mode": mode, "output_table": output_table, "format": format}
 
     return SparkScriptOperator(
             script="run_sql.py",

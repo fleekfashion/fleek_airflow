@@ -30,11 +30,12 @@ head = DummyOperator(task_id=f"{DAG_ID}_dag_head", dag=dag)
 tail = DummyOperator(task_id=f"{DAG_ID}_dag_tail", dag=dag)
 
 delta_operators = spark_table_setup.delta.get_operators(dag)
+postgre_operators = spark_table_setup.postgre.get_operators(dag)
 
 head >> [ 
-    delta_operators['head']
+    delta_operators['head'], postgre_operators["head"]
 ]
 
 [ 
-    delta_operators['tail'], 
+    delta_operators['tail'], postgre_operators["tail"]
 ] >> tail

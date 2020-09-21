@@ -35,7 +35,8 @@ def staging_to_live_query(table_name: str,
                           staging_name: str, mode: str,
                           tail: str = "",
                           key: str = None,
-                          columns: list = []):
+                          columns: list = [],
+                          drop_staging: bool = False):
     query = "BEGIN TRANSACTION;\n"
     if mode == "WRITE_TRUNCATE":
         query += write_truncate(table_name, staging_name, columns)
@@ -44,7 +45,7 @@ def staging_to_live_query(table_name: str,
     if mode == "UPSERT":
         query += upsert(table_name, staging_name, key, columns)
     query += tail
-    query += f"DROP TABLE IF EXISTS {staging_name};\n"
+    query += f"DROP TABLE IF EXISTS {staging_name};\n" if drop_staging else ""
     query += "END TRANSACTION;"
     return query
 

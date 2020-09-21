@@ -6,7 +6,6 @@ verify_ssl = true
 [dev-packages]
 jedi = "*"
 pylint = "*"
-pyspark-stubs = "==3.0.0"
 
 [packages]
 apache-airflow = {extras = ["gcp", "postgres", "databricks"],version = "*"}

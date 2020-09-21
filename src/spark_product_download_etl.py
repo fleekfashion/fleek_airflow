@@ -37,6 +37,7 @@ product_proc_operators = spark_product_download_etl.product_processing.get_opera
 update_active_prod_operators = spark_product_download_etl.update_active_products \
         .get_operators(dag)
 active_products_ml = spark_product_download_etl.active_products_ml.get_operators(dag)
+postgre_export = spark_product_download_etl.postgre_export.get_operators(dag)
 
 head >> download_operators["head"]
 
@@ -46,4 +47,5 @@ download_operators['tail'] >> update_active_prod_operators["head"]
 [ product_proc_operators['tail'], update_active_prod_operators['tail'] ] >> \
         active_products_ml["head"]
 
-active_products_ml["tail"] >> tail
+active_products_ml["tail"] >> postgre_export["head"]
+postgre_export["tail"] >> tail
