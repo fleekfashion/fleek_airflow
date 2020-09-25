@@ -4,6 +4,6 @@ numpy==1.18.1
 jsonlines
 pandas
 google-cloud-bigquery
-tensorflow==2.1.0
+tensorflow==2.1.2
 dill
 pyarrow
