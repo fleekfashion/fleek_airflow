@@ -56,6 +56,7 @@ class SparkScriptOperator(BaseOperator):
             cluster_id: str = None,
             params: dict = {},
             databricks_conn_id: str ='databricks_default',
+            num_workers: int = None,
             min_workers: int = None,
             max_workers: int = None,
             machine_type: str = None,
@@ -78,6 +79,7 @@ class SparkScriptOperator(BaseOperator):
         self.local = local
         self.pool_id = pool_id 
         self.params = params
+        self.num_workers = num_workers
         self.min_workers= min_workers
         self.max_workers= max_workers
         self.machine_type= machine_type
@@ -117,6 +119,13 @@ class SparkScriptOperator(BaseOperator):
         else:
             params.update({"enable_elastic_disk": True})
             params.update({"node_type_id": self.machine_type})
+            params.update({"aws_attributes":{
+                    'ebs_volume_count':1,
+                    'ebs_volume_type': "THROUGHPUT_OPTIMIZED_HDD",
+                    'ebs_volume_size':600,
+                    "first_on_demand": 0
+                }
+            })
         return params
 
 
@@ -137,6 +146,8 @@ class SparkScriptOperator(BaseOperator):
                     "num_workers": 0
                     }
                 )
+        elif self.num_workers is not None:
+            params.update({"num_workers": self.num_workers})
         else:
             params.update({
                 "autoscale": {
@@ -171,7 +182,7 @@ class SparkScriptOperator(BaseOperator):
 
         ## Build initial job
         job = {
-            "run_name": f"{self.task_id}_{PROJECT}",
+            "cluster_name": f"{self.task_id}_{PROJECT}",
             "spark_python_task": {
                 "python_file": dbfs_path,
                 "parameters": [f"--json={self.dbfs_json_path}" ]
@@ -216,16 +227,17 @@ def spark_sql_operator(
         params: dict = {},
         output_table: str = None,
         mode: str = None,
-        format: str = "delta",
+        output_format: str = "delta",
         cluster_id: str = None,
         local: bool = False,
         pool_id: str = SHARED_POOL_ID,
+        num_workers: int = None,
         min_workers: int = None,
         max_workers: int = None,
         machine_type: str = None,
         polling_period_seconds: int = 15,
         ):
-    json_args = { "mode": mode, "output_table": output_table, "format": format}
+    json_args = { "mode": mode, "output_table": output_table, "format": output_format}
 
     return SparkScriptOperator(
             script="run_sql.py",
@@ -237,6 +249,7 @@ def spark_sql_operator(
             cluster_id=cluster_id,
             local=local,
             pool_id=pool_id,
+            num_workers=num_workers,
             min_workers=min_workers,
             max_workers=max_workers,
             machine_type=machine_type,

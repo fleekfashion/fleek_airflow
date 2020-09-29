@@ -31,8 +31,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "output_table": pcdefs.get_full_name(pcdefs.SIMILAR_PRODUCTS_TABLE),
             "TOP_N": 100
         },
-        min_workers=3,
-        max_workers=6
+        num_workers=5,
     )
     
     head >> similar_items >> tail

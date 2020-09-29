@@ -22,7 +22,7 @@ SQL = json_args["sql"]
 ## Optional args
 MODE = json_args.get("mode")
 OUTPUT_TABLE = json_args.get("output_table")
-FORMAT = json_args.get("delta")
+FORMAT = json_args.get("format") or "delta"
 
 # Run SQL
 df = sqlContext.sql(SQL)

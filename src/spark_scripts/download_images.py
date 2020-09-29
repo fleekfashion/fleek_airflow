@@ -6,13 +6,16 @@ import argparse
 import json
 
 from pyspark.sql import functions as F
-from pyspark.sql.types import BooleanType
+from pyspark.sql.types import BinaryType
 
-from pyspark.sql import SQLContext
+from pyspark.sql import SQLContext, SparkSession
+from pyspark import SparkContext
 
 ## Hack for linter
 try:
     sqlContext = SQLContext(1)
+    sc = SparkContext()
+    spark = SparkSession(sc)
 except:
     pass
 
@@ -25,26 +28,17 @@ with open(args.json, "rb") as handle:
 print(json_args)
 
 DS = json_args["ds"]
-OUTPATH = json_args["outpath"]
+OUTPUT_TABLE= json_args["output_table"]
 SRC_TABLE = json_args["src_table"]
 ACTIVE_PRODUCTS_TABLE = json_args["active_products_table"]
 
-try:
-    shutil.rmtree(OUTPATH)
-except:
-    pass
-pathlib.Path(OUTPATH).mkdir(parents=True, exist_ok=True)
-
-def downloader(url, pid, outdir):
-    # From URL construct the destination path and filename.
-    outpath = f"{outdir}/{pid}.jpg"
-    if os.path.exists(outpath):
-        return True
+def downloader(url):
     try:
-        urllib.request.urlretrieve(url, outpath)
+        request = urllib.request.urlopen(url, timeout=40)
+        data = request.read()
     except:
-        return False
-    return True
+        return None
+    return data
 
 sql = f"""
 SELECT product_image_url, product_id 
@@ -56,12 +50,10 @@ AND product_id NOT IN (
 """
 print(sql)
 
-downloadUDF = F.udf(downloader, BooleanType())
-res_df = sqlContext.sql(sql
-    ).filter(downloadUDF(
-        F.col("product_image_url"),
-        F.abs(F.col("product_id")),
-        F.lit(OUTPATH)
-        )
-    )
-res_df.foreach(lambda x: None)
+downloadUDF = F.udf(downloader, BinaryType())
+sqlContext.sql(sql).cache() \
+    .repartition(sc.defaultParallelism() * 3) \
+    .withColumn("image_content", downloadUDF(F.col("product_image_url"))) \
+    .select(["product_id", "image_content"]) \
+    .dropna() \
+    .write.saveAsTable(OUTPUT_TABLE, mode="overwrite", format="delta")

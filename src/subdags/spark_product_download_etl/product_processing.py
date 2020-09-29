@@ -20,7 +20,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
     f"{__doc__}"
     head = DummyOperator(task_id="new_product_processing_head", dag=dag)
     tail = DummyOperator(task_id="new_product_processing_tail", dag=dag)
-    IMG_DIR = f"{DBFS_AIRFLOW_DIR}/data/product_images/{{{{ds}}}}".replace("dbfs:", "/dbfs")
+    IMG_TABLE = f"{pcdefs.PROJECT}_test.daily_image_download" 
 
     product_info_processing = SparkScriptOperator(
         dag=dag,
@@ -34,7 +34,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
                     .replace("dbfs:", "/dbfs")
         },
         script="product_info_processing.py",
-        cluster_id=GENERAL_CLUSTER_ID
+        local=True
     )
 
     image_download = SparkScriptOperator(
@@ -43,12 +43,11 @@ def get_operators(dag: DAG_TYPE) -> dict:
         script="download_images.py",
         json_args={
             "ds": "{{ds}}",
-            "outpath": IMG_DIR,
+            "output_table": IMG_TABLE,
             "src_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
             "active_products_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE)
         },
-        min_workers=1,
-        max_workers=2,
+        num_workers=3
     )
 
     new_product_ml = SparkScriptOperator(
@@ -56,14 +55,16 @@ def get_operators(dag: DAG_TYPE) -> dict:
         task_id="new_product_ml",
         script="product_ml.py",
         json_args={
-            "img_dir": "/staging/airflow/data/product_images/{{ds}}/",
+            "img_table": IMG_TABLE,
             "model_path": "/dbfs/ml/models/product_image_embeddings/inception/",
             "version": "2",
-            "dest_table": pcdefs.get_full_name(pcdefs.NEW_PRODUCT_FEATURES_TABLE)
+            "dest_table": pcdefs.get_full_name(pcdefs.NEW_PRODUCT_FEATURES_TABLE),
+            "num_partitions": 1
         },
-        local=True,
-        machine_type="p2.xlarge",
         pool_id=None,
+        machine_type="p2.xlarge",
+        local=True,
+        spark_version="7.2.x-gpu-ml-scala2.12",
         init_scripts=["dbfs:/shared/init_scripts/install_opencv.sh"]
     )
 
@@ -73,12 +74,11 @@ def get_operators(dag: DAG_TYPE) -> dict:
         params={
             "product_info_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
             "prod_ml_features_table": pcdefs.get_full_name(pcdefs.NEW_PRODUCT_FEATURES_TABLE),
+            "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
+            "columns": ", ".join(pcdefs.get_columns(pcdefs.ACTIVE_PRODUCTS_TABLE)),
             },
         sql="template/spark_append_new_active_products.sql",
-        output_table=pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
-        mode="WRITE_APPEND",
-        min_workers=1,
-        max_workers=2
+        local=True
     )
 
     head >> product_info_processing >> image_download >> new_product_ml

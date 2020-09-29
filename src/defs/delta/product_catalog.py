@@ -8,7 +8,7 @@ DATASET = f"{PROJECT}_product_catalog"
 ACTIVE_PRODUCTS_TABLE = "active_products"
 DAILY_PRODUCT_DUMP_TABLE = "daily_product_dump"
 HISTORIC_PRODUCTS_TABLE = "historic_products"
-NEW_PRODUCT_FEATURES_TABLE = "daily_new_product_ml_features"
+NEW_PRODUCT_FEATURES_TABLE = "daily_product_ml_features"
 PRODUCT_INFO_TABLE  = "product_info"
 SIMILAR_PRODUCTS_TABLE = "similar_products"
 

@@ -102,6 +102,9 @@ def _build_products_df(cj_df):
             output = row['price.amount']
         return float(output)
 
+    if len(cj_df) == 0:
+          return pd.DataFrame()
+
     ## Create final df to upload
     final_df = pd.DataFrame()
     final_df['advertiser_name'] = cj_df['advertiserName']

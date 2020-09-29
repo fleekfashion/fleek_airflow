@@ -70,12 +70,12 @@ def get_operators(dag: DAG):
         )
     )
 
-    write_similar_items = spark_sql_operator(
-        task_id="PROD_write_similar_items",
+    write_similar_items_staging= spark_sql_operator(
+        task_id="STAGING_write_similar_items",
         dag=dag,
         params={
             "src": pcdefs.get_full_name(pcdefs.SIMILAR_PRODUCTS_TABLE),
-            "target": spark_defs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE),
+            "target": spark_defs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE, staging=True),
             "columns": "product_id, similar_product_ids",
             "mode": "OVERWRITE TABLE"
         },
@@ -84,7 +84,19 @@ def get_operators(dag: DAG):
         max_workers=3
     )
 
+    write_similar_items_prod = CloudSqlQueryOperator(
+        dag=dag,
+        gcp_cloudsql_conn_id=postdefs.CONN_ID,
+        task_id="PROD_write_similar_items",
+        sql=pquery.staging_to_live_query(
+            mode="WRITE_TRUNCATE",
+            table_name=postdefs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE),
+            staging_name=postdefs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE, staging=True),
+            columns=postdefs.get_columns(postdefs.SIMILAR_PRODUCTS_TABLE),
+        )
+    )
+
     head >> insert_active_products >> merge_active_products >> tail
-    head >> write_similar_items >> tail
+    head >> write_similar_items_staging >> write_similar_items_prod >> tail
 
     return {"head": head, "tail": tail}

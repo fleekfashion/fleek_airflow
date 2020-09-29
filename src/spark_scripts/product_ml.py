@@ -21,27 +21,23 @@ try:
 except:
     pass
 
-
+spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", str(2**3))
 parser = argparse.ArgumentParser()
 parser.add_argument("--json", type=str, required=True)
 args = parser.parse_args()
 with open(args.json, "rb") as handle:
     json_args = json.load(handle)
 
-spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", "1024")
 
-IMG_DIR = json_args["img_dir"] 
+IMG_TABLE = json_args["img_table"] 
 MODEL_PATH = json_args["model_path"]
 VERSION = json_args["version"] 
 DEST_TABLE = json_args["dest_table"]
+NUM_PARTITIONS = json_args["num_partitions"]
 
-images = spark.read.format("binaryFile") \
- .option("pathGlobFilter", "*.jpg") \
- .load(IMG_DIR)
 
 res = subprocess.run(f"cp -R {MODEL_PATH}/{VERSION} ./".split())
 m = tf.keras.models.load_model(VERSION)
-
 bc_model_json = sc.broadcast(m.to_json())
 bc_model_weights = sc.broadcast(m.get_weights())
 
@@ -98,14 +94,7 @@ def featurize_udf(content_series_iter):
     for content_series in content_series_iter:
         yield featurize_series(model, content_series)
 
-def get_pid():
-    x = F.reverse(F.split(F.col("path"), "/"))[0]
-    x = F.split(x, "\.")[0].cast("bigint").alias("product_id")
-    return x
-
-features_df = images.repartition(48) \
-    .withColumn("product_image_embedding", featurize_udf("content")) \
-    .withColumn("product_id", get_pid()) \
-    .select(["product_image_embedding", "product_id"])
-
-features_df.write.saveAsTable(DEST_TABLE, format="delta", mode="overwrite")
+sqlContext.table(IMG_TABLE) \
+    .repartition(NUM_PARTITIONS) \
+    .select(["product_id", featurize_udf(F.col("image_content")).alias("product_image_embedding") ]) \
+    .write.saveAsTable(DEST_TABLE, format="delta", mode="overwrite")

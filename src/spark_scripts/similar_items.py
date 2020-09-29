@@ -34,7 +34,9 @@ except:
 ######################################################
 # Build Local Active Matrix
 ######################################################
-active_df = sqlContext.table(ACTIVE_TABLE).cache()
+active_df = sqlContext.table(ACTIVE_TABLE) \
+        .select(["product_id", "product_image_embedding"]) \
+
 active_data = active_df.select(["product_id", "product_image_embedding"]).collect()
 ind_to_pid = np.zeros(len(active_data), np.int64)
 embs = []
@@ -51,8 +53,9 @@ active_matrix = Matrices.dense(numCols=N_ACTIVE, numRows=N_DIMS, values=embs.fla
 ######################################################
 # Build Distributed Historic Matrix 
 ######################################################
-historic_df = sqlContext.table(HISTORIC_TABLE)
-df = active_df.union(historic_df)
+historic_df = sqlContext.table(HISTORIC_TABLE) \
+        .select(["product_id", "product_image_embedding"])
+df = active_df.union(historic_df).drop_duplicates(subset=["product_id"])
 indexed_df = df.rdd.map(lambda row: IndexedRow(row.product_id, row.product_image_embedding))
 indexed_matrix = IndexedRowMatrix(rows=indexed_df)
 
@@ -87,5 +90,5 @@ df = res_df.withColumn("index", F.sequence(F.lit(0), F.lit(embs.shape[0]))) \
   .withColumn("topScores", getScoresUDF(F.col("topScores"))) \
   .select("product_id",
           F.col("topProducts").alias("similar_product_ids"),
-          F.col("topScores").alias("similarity_scores")
-  ).write.saveAsTable(OUTPUT_TABLE, format="delta", mode="overwrite")
+          F.col("topScores").alias("similarity_scores")) \
+  .write.saveAsTable(OUTPUT_TABLE, format="delta", mode="overwrite")
