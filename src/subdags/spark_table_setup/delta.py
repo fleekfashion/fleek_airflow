@@ -20,7 +20,7 @@ from src.defs.delta.utils import DBFS_SCRIPT_DIR, GENERAL_CLUSTER_ID
 from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator, create_table_operator
 from src.defs import delta
 
-databases = [delta.product_catalog]
+databases = [delta.product_catalog, delta.user_data]
 
 def get_operators(dag: DAG):
     head = DummyOperator(task_id="delta_table_setup_head", dag=dag)
@@ -35,8 +35,7 @@ def get_operators(dag: DAG):
                 schema=info["schema"],
                 partition=info.get("partition"),
                 comment=info.get("comment"),
-                min_workers=1,
-                max_workers=4
+                local=True
             )
             head >> op >> tail
     return {"head": head, "tail": tail}

@@ -87,14 +87,19 @@ def upsert(table_name, staging_name, key, columns):
 
 def export_rows(table_name,
     export_table_name,
-    columns="*",
+    columns,
     FILTER="",
-    delete=False):
+    delete=False,
+    clear_export_table=False):
 
     SQL = f"""
     BEGIN TRANSACTION;
+    """
+    SQL += f"DELETE FROM {export_table_name};" if clear_export_table else ""
+
+    SQL += f"""
     INSERT INTO {export_table_name}
-    SELECT * FROM {table_name}
+    SELECT {columns} FROM {table_name}
     {FILTER};
     """
     if delete:
@@ -103,7 +108,9 @@ def export_rows(table_name,
         {FILTER};
         END TRANSACTION;
         """
-    return SQL 
+    else:
+        SQL +=" END TRANSACTION;"
+    return SQL
 
 def _build_distinct_filter(columns):
     if len(columns) == 0:

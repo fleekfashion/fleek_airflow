@@ -20,7 +20,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
     f"{__doc__}"
     head = DummyOperator(task_id="new_product_processing_head", dag=dag)
     tail = DummyOperator(task_id="new_product_processing_tail", dag=dag)
-    IMG_TABLE = f"{pcdefs.PROJECT}_test.daily_image_download" 
+    IMG_TABLE = f"{pcdefs.PROJECT}_tmp.daily_image_download" 
 
     product_info_processing = SparkScriptOperator(
         dag=dag,

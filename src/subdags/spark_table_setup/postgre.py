@@ -17,7 +17,7 @@ from src.defs.postgre import utils as postutils
 from src.defs import postgre
 from src.defs.delta import postgres as spark_postgre
 
-POSTDEFS = [postgre.product_catalog ]
+POSTDEFS = [postgre.product_catalog, postgre.user_data]
 
 def get_operators(dag: DAG) -> dict:
     f"""
@@ -27,9 +27,9 @@ def get_operators(dag: DAG) -> dict:
     tail = DummyOperator(task_id="postgre_table_setup_tail", dag=dag)
 
     for postdefs in POSTDEFS:
-        for table_name, table_info in postdefs.SCHEMAS.items():
+        for orig_table_name, table_info in postdefs.SCHEMAS.items():
             for prefix in ["", "staging_"]:
-                table_name = prefix + table_name
+                table_name = prefix + orig_table_name
 
                 op1 = postgre_build_product_table = CloudSqlQueryOperator(
                     dag=dag,
@@ -38,7 +38,7 @@ def get_operators(dag: DAG) -> dict:
                     sql=pquery.create_table_query(
                         table_name=postdefs.get_full_name(table_name),
                         columns=table_info["schema"],
-                        tail=table_info["tail"],
+                        tail=table_info["tail"].replace(orig_table_name, table_name),
                     )
                 )
 
