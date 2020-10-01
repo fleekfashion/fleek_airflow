@@ -30,7 +30,7 @@ SCHEMAS = {
             {
                 "name": "product_id",
                 "type": "bigint",
-                "mode": "NOT NULL UNIQUE"
+                "mode": "PRIMARY KEY"
             },
             {
                 "name": "product_name",
@@ -118,7 +118,7 @@ SCHEMAS = {
                 "mode": "NOT NULL"
             },
         ],
-        "tail" : f";\nCREATE INDEX ON {get_full_name(PRODUCT_INFO_TABLE)} (product_id)"
+        "tail" : f";\nCREATE INDEX IF NOT EXISTS {PROJECT}_product_info_index ON {get_full_name(PRODUCT_INFO_TABLE)} (is_active, product_id)"
     },
 
     SIMILAR_PRODUCTS_TABLE : {
@@ -126,7 +126,7 @@ SCHEMAS = {
             {
                 "name": "product_id",
                 "type": "bigint",
-                "mode": "NOT NULL UNIQUE"
+                "mode": "PRIMARY KEY"
             },
                         {
                 "name": "similar_product_ids",
@@ -134,7 +134,7 @@ SCHEMAS = {
                 "mode": "NOT NULL"
             },
         ],
-        "tail" : f";\nCREATE INDEX ON {get_full_name(SIMILAR_PRODUCTS_TABLE)} (product_id)"
+        "tail" : f";\nCREATE INDEX IF NOT EXISTS {PROJECT}_similar_items_index ON {get_full_name(SIMILAR_PRODUCTS_TABLE)} (product_id)"
     },
 
 

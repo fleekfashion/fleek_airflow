@@ -115,7 +115,7 @@ SCHEMAS = {
                 "mode": "NOT NULL"
             },
         ],
-        "tail" : f";\nCREATE INDEX ON {PRODUCT_INFO_TABLE} (product_id)"
+        "tail" : f";\nCREATE INDEX IF NOT EXISTS product_info_index ON {PRODUCT_INFO_TABLE} (product_id)"
     },
 
     USER_EVENTS_TABLE: {
