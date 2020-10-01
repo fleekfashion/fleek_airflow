@@ -156,6 +156,7 @@ class SparkScriptOperator(BaseOperator):
                 }
             })
 
+
         params.update({"spark_version": self.spark_version})
         params.update(self._build_spark_conf())
         params.update(self._build_machine_type_param())
@@ -182,7 +183,7 @@ class SparkScriptOperator(BaseOperator):
 
         ## Build initial job
         job = {
-            "cluster_name": f"{self.task_id}_{PROJECT}",
+            "run_name": f"{self.task_id}_{PROJECT}",
             "spark_python_task": {
                 "python_file": dbfs_path,
                 "parameters": [f"--json={self.dbfs_json_path}" ]
@@ -209,6 +210,8 @@ class SparkScriptOperator(BaseOperator):
 
         hook = self.get_hook()
         self.run_id = hook.submit_run(job_json)
+        print(f"\n\n{'*'*10} RUN ID: {self.run_id} {'*'*10}\n\n")
+
         _handle_databricks_operator_execution(self, hook, self.log, context)
         _rm_dbfs(self.dbfs_json_path)
 

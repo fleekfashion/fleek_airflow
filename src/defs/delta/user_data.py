@@ -83,7 +83,7 @@ TABLES = {
                 }
             ),
             StructField(name="airflow_execution_timestamp",
-                dataType=IntegerType(),
+                dataType=LongType(),
                 nullable=False,
                 metadata={
                     "comment": (
