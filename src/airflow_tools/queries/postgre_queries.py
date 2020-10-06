@@ -1,6 +1,6 @@
 from src.defs.postgre import utils
 
-def create_table_query(table_name: str, columns: list,
+def create_table_query(table_name: str, columns: list, is_prod: bool = False,
                        tail: str="", drop: bool=False):
     query = "BEGIN TRANSACTION;\n"
     if drop == True:
@@ -12,10 +12,13 @@ def create_table_query(table_name: str, columns: list,
             query += col
         else:
             query += f"\t{col['name']} {col['type']} {col['mode']}"
+            if is_prod:
+                query += " " + col.get("prod", "")
         if i != len(columns) - 1:
             query += ","
         query += "\n"
 
+    tail = tail if is_prod else ""
     query += f") {tail};\n"
     query += "END TRANSACTION;"
     return query

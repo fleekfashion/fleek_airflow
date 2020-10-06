@@ -1,12 +1,23 @@
-"""
-File containing schema
-definitions for delta 
-tables.
-"""
 import os
+from pyspark.sql.types import *
 
-ACTIVE_PRODUCTS_TABLE = "active_products"
-DAILY_CJ_DOWNLOAD_TABLE = "daily_cj_download"
-DAILY_NEW_PRODUCT_INFO_TABLE = "daily_new_product_info"
-HISTORIC_PRODUCTS_TABLE = "historic_products"
-USER_PRODUCT_RECOMMENDER_DATA = "user_product_recommender_data"
+PROJECT = os.environ.get("PROJECT", "staging")
+PROJECT = PROJECT if PROJECT == "prod" else "staging"
+DATASET = f"{PROJECT}_personalization"
+
+USER_PRODUCT_RECS_TABLE = "user_product_recommendations"
+
+def get_full_name(table_name):
+    name = ".".join(
+        [
+            DATASET,
+            table_name
+        ]
+    )
+    return name
+
+def get_columns(table_name):
+    return TABLES[table_name]["schema"].fieldNames()
+
+TABLES = {
+}

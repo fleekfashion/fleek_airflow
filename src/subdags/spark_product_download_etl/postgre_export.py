@@ -14,7 +14,6 @@ from airflow.contrib.operators.bigquery_operator import BigQueryOperator
 from airflow.contrib.operators.gcp_sql_operator import CloudSqlQueryOperator
 from airflow.contrib.operators.bigquery_to_gcs import BigQueryToCloudStorageOperator
 
-from src.airflow_tools.operators import cloudql_operators as csql
 from src.airflow_tools.databricks.databricks_operators import spark_sql_operator
 from src.airflow_tools.queries import postgre_queries as pquery
 from src.defs.postgre import product_catalog as postdefs
@@ -47,8 +46,7 @@ def get_operators(dag: DAG):
             "src": f"(SELECT *, true as is_active FROM {pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE)})",
             "columns": ", ".join([ c for c in postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE)]),
         },
-        min_workers=2,
-        max_workers=3
+        num_workers=2
     )
 
     merge_active_products = CloudSqlQueryOperator(
@@ -80,8 +78,7 @@ def get_operators(dag: DAG):
             "mode": "OVERWRITE TABLE"
         },
         sql="template/std_insert.sql",
-        min_workers=2,
-        max_workers=3
+        num_workers=2
     )
 
     write_similar_items_prod = CloudSqlQueryOperator(
