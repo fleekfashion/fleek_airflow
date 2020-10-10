@@ -36,7 +36,6 @@ RUN mkdir ${AIRFLOW_HOME}/dags \
 
 # Grab all dags, configs, and scripts needed
 ADD dev/docker/database_setup.sh ${AIRFLOW_HOME}/database_setup.sh 
-ADD dev/docker/dbfs_configure.sh ${AIRFLOW_HOME}/dbfs_configure.sh 
 ADD dev/docker/entrypoint.sh ${AIRFLOW_HOME}/entrypoint.sh
 ADD dev/docker/airflow.cfg ${AIRFLOW_HOME}/airflow.cfg
 

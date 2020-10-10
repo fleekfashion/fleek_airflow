@@ -1,6 +1,6 @@
 from src.defs.postgre import utils
 
-def create_table_query(table_name: str, columns: list, is_prod: bool = False,
+def create_table_query(table_name: str, columns: list,
                        tail: str="", drop: bool=False):
     query = "BEGIN TRANSACTION;\n"
     if drop == True:
@@ -12,13 +12,10 @@ def create_table_query(table_name: str, columns: list, is_prod: bool = False,
             query += col
         else:
             query += f"\t{col['name']} {col['type']} {col['mode']}"
-            if is_prod:
-                query += " " + col.get("prod", "")
         if i != len(columns) - 1:
             query += ","
         query += "\n"
 
-    tail = tail if is_prod else ""
     query += f") {tail};\n"
     query += "END TRANSACTION;"
     return query
@@ -38,8 +35,7 @@ def staging_to_live_query(table_name: str,
                           staging_name: str, mode: str,
                           tail: str = "",
                           key: str = None,
-                          columns: list = [],
-                          drop_staging: bool = False):
+                          columns: list = []):
     query = "BEGIN TRANSACTION;\n"
     if mode == "WRITE_TRUNCATE":
         query += write_truncate(table_name, staging_name, columns)
@@ -48,7 +44,7 @@ def staging_to_live_query(table_name: str,
     if mode == "UPSERT":
         query += upsert(table_name, staging_name, key, columns)
     query += tail
-    query += f"DROP TABLE IF EXISTS {staging_name};\n" if drop_staging else ""
+    query += f"DROP TABLE IF EXISTS {staging_name};\n"
     query += "END TRANSACTION;"
     return query
 
@@ -90,19 +86,14 @@ def upsert(table_name, staging_name, key, columns):
 
 def export_rows(table_name,
     export_table_name,
-    columns,
+    columns="*",
     FILTER="",
-    delete=False,
-    clear_export_table=False):
+    delete=False):
 
     SQL = f"""
     BEGIN TRANSACTION;
-    """
-    SQL += f"DELETE FROM {export_table_name};" if clear_export_table else ""
-
-    SQL += f"""
     INSERT INTO {export_table_name}
-    SELECT {columns} FROM {table_name}
+    SELECT * FROM {table_name}
     {FILTER};
     """
     if delete:
@@ -111,9 +102,7 @@ def export_rows(table_name,
         {FILTER};
         END TRANSACTION;
         """
-    else:
-        SQL +=" END TRANSACTION;"
-    return SQL
+    return SQL 
 
 def _build_distinct_filter(columns):
     if len(columns) == 0:

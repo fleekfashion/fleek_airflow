@@ -5,11 +5,10 @@ verify_ssl = true
 
 [dev-packages]
 jedi = "*"
-pylint = "*"
+mysqlclient = "*"
+apache-airflow = {extras = ["gcp", "postgres"],version = "*"}
 
 [packages]
-apache-airflow = {extras = ["gcp", "postgres", "databricks"],version = "*"}
-mysqlclient = "*"
 dill = "*"
 pyhash = "==0.9.3"
 awscli = {"version>" = "1.18.100"}
@@ -19,10 +18,8 @@ google-cloud-storage = {"version>" = "1.29.0"}
 numpy = {"version>" = "1.19.0"}
 pandas = "==0.25.3"
 pyarrow = {"version>" = "0.17.1"}
-sagemaker = "==1.69.0"
+sagemaker = {"version>" = "1.69.0"}
 scipy = {"version>" = "1.5.1"}
-databricks-cli = "*"
-pyspark = {"version>" = "3.0.0"}
 
 [requires]
 python_version = "3.7"
