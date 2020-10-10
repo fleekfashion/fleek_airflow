@@ -52,7 +52,7 @@ print(sql)
 
 downloadUDF = F.udf(downloader, BinaryType())
 sqlContext.sql(sql).cache() \
-    .repartition(sc.defaultParallelism() * 3) \
+    .repartition(sc.defaultParallelism * 3) \
     .withColumn("image_content", downloadUDF(F.col("product_image_url"))) \
     .select(["product_id", "image_content"]) \
     .dropna() \
