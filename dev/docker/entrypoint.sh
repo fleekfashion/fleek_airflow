@@ -18,6 +18,12 @@ if [ "$@" = "webserver" ] || [ "$@" = "worker" ] || [ "$@" = "scheduler" ] ; the
     echo "Initialize database..."
     $CMD initdb
     ./database_setup.sh
+    databricks configure <<!
+$DATABRICKS_HOST
+$DATABRICKS_USERNAME
+$DATABRICKS_PASSWORD
+$DATABRICKS_PASSWORD
+!
     sleep 5
 fi
 
