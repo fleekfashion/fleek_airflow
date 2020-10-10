@@ -6,7 +6,7 @@ tables.
 import os
 from . import utils
 
-PROJECT = os.environ.get("PROJECT", "staging")
+PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "fleek-staging")
 INSTANCE = "fleek-app-prod1"
 DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
@@ -17,9 +17,6 @@ TOP_PRODUCT_INFO_TABLE = "top_product_info"
 USER_BATCH_TABLE = "user_batch"
 USER_EVENTS_TABLE = "user_events"
 USER_RECOMMENDATIONS_TABLE = "user_product_recommendations"
-
-def get_full_name(table_name):
-    return table_name 
 
 def get_columns(table_name):
     schema = SCHEMAS.get(table_name)['schema']
@@ -115,7 +112,7 @@ SCHEMAS = {
                 "mode": "NOT NULL"
             },
         ],
-        "tail" : f";\nCREATE INDEX IF NOT EXISTS product_info_index ON {PRODUCT_INFO_TABLE} (product_id)"
+        "tail" : f";\nCREATE INDEX ON {PRODUCT_INFO_TABLE} (product_id)"
     },
 
     USER_EVENTS_TABLE: {
