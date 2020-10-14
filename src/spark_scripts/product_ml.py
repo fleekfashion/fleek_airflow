@@ -100,6 +100,4 @@ def featurize_udf(content_series_iter):
 sqlContext.table(IMG_TABLE) \
     .repartition(NUM_PARTITIONS) \
     .select(["product_id", featurize_udf(F.col("image_content")).alias("product_image_embedding") ]) \
-    .where( (F.array_max("product_image_embedding") != F.lit(0.0)) & 
-            (F.array_min("product_image_embedding") != F.lit(0.0)) ) \
     .write.saveAsTable(DEST_TABLE, format="delta", mode="overwrite")
