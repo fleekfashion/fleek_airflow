@@ -60,12 +60,9 @@ def preprocess(content):
     """
     Preprocesses raw image bytes for prediction.
     """
-    try:
-        b = io.BytesIO(content)
-        file_bytes = np.asarray(bytearray(b.read()), dtype=np.uint8)
-        img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR, )[:, :, ::-1]
-    except:
-        return np.zeros([200, 200, 3]).astype("float32")
+    b = io.BytesIO(content)
+    file_bytes = np.asarray(bytearray(b.read()), dtype=np.uint8)
+    img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR, )[:, :, ::-1]
     arr = cv2.resize(img, (200, 200)).astype("float32")
     arr /= 255
     arr -= .5
@@ -73,7 +70,7 @@ def preprocess(content):
     return arr
 
 def _normalize_matrix_rows(m: np.array) -> np.array:
-    magnitude = np.sum(np.square(m), axis=1) + .00001 #protect 0
+    magnitude = np.sum(np.square(m), axis=1)
     magnitude = np.sqrt(magnitude).reshape([len(m), 1])
     return m/magnitude
 
@@ -100,6 +97,4 @@ def featurize_udf(content_series_iter):
 sqlContext.table(IMG_TABLE) \
     .repartition(NUM_PARTITIONS) \
     .select(["product_id", featurize_udf(F.col("image_content")).alias("product_image_embedding") ]) \
-    .where( (F.array_max("product_image_embedding") != F.lit(0.0)) & 
-            (F.array_min("product_image_embedding") != F.lit(0.0)) ) \
     .write.saveAsTable(DEST_TABLE, format="delta", mode="overwrite")
