@@ -32,10 +32,12 @@ OUTPUT_TABLE= json_args["output_table"]
 SRC_TABLE = json_args["src_table"]
 ACTIVE_PRODUCTS_TABLE = json_args["active_products_table"]
 
+HEADERS = {'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7'} 
 def downloader(url):
     try:
-        request = urllib.request.urlopen(url, timeout=40)
-        data = request.read()
+        request = urllib.request.Request(url, headers=HEADERS)
+        res = urllib.request.urlopen(request, timeout=40)
+        data = res.read()
     except:
         return None
     return data
