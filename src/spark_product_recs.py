@@ -73,10 +73,10 @@ write_product_recs_prod = CloudSqlQueryOperator(
     dag=dag,
     gcp_cloudsql_conn_id=postdefs.CONN_ID,
     task_id="PROD_write_product_recs",
-    sql=pquery.staging_to_live_query(
-        mode="UPSERT",
+    sql=pquery.upsert(
         table_name=postdefs.get_full_name(postdefs.USER_PRODUCT_RECS_TABLE),
         staging_name=postdefs.get_full_name(postdefs.USER_PRODUCT_RECS_TABLE, staging=True),
+        key="user_id, index",
         columns=postdefs.get_columns(postdefs.USER_PRODUCT_RECS_TABLE),
     )
 )
