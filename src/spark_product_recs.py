@@ -74,7 +74,7 @@ write_product_recs_prod = CloudSqlQueryOperator(
     gcp_cloudsql_conn_id=postdefs.CONN_ID,
     task_id="PROD_write_product_recs",
     sql=pquery.staging_to_live_query(
-        mode="WRITE_TRUNCATE",
+        mode="UPSERT",
         table_name=postdefs.get_full_name(postdefs.USER_PRODUCT_RECS_TABLE),
         staging_name=postdefs.get_full_name(postdefs.USER_PRODUCT_RECS_TABLE, staging=True),
         columns=postdefs.get_columns(postdefs.USER_PRODUCT_RECS_TABLE),
