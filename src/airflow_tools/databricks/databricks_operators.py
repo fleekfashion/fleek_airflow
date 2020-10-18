@@ -20,7 +20,7 @@ from airflow.contrib.hooks.databricks_hook import DatabricksHook
 from pyspark.sql.types import StructType
 
 from src.airflow_tools.airflow_variables import SRC_DIR
-from src.defs.delta.utils import DBFS_SCRIPT_DIR, GENERAL_CLUSTER_ID, SHARED_POOL_ID, DBFS_TMP_DIR, PROJECT
+from src.defs.delta.utils import DBFS_SCRIPT_DIR, SHARED_POOL_ID, DBFS_TMP_DIR, PROJECT
 
 def _cp_dbfs(src: str, dest: str,
         overwrite: bool = False) -> None:

@@ -16,7 +16,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.databricks_operator import DatabricksSubmitRunOperator
 from airflow.utils.dates import days_ago
 
-from src.defs.delta.utils import DBFS_SCRIPT_DIR, GENERAL_CLUSTER_ID
+from src.defs.delta.utils import DBFS_SCRIPT_DIR
 from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator, create_table_operator
 from src.defs import delta
 
