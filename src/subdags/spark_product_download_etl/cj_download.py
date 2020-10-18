@@ -14,7 +14,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator, dbfs_read_json
 from src.airflow_tools.airflow_variables import SRC_DIR, DAG_CONFIG, DAG_TYPE
 from src.defs.delta import product_catalog as pcdefs
-from src.defs.delta.utils import GENERAL_CLUSTER_ID, SHARED_POOL_ID, DBFS_DEFS_DIR
+from src.defs.delta.utils import SHARED_POOL_ID, DBFS_DEFS_DIR
 from src.defs.bq import personalization as pdefs
 
 def get_operators(dag: DAG_TYPE) -> dict:

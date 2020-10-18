@@ -14,12 +14,13 @@ from airflow.operators.dummy_operator import DummyOperator
 from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator, dbfs_read_json
 from src.airflow_tools.airflow_variables import SRC_DIR, DAG_CONFIG, DAG_TYPE
 from src.defs.delta import product_catalog as pcdefs
-from src.defs.delta.utils import GENERAL_CLUSTER_ID, SHARED_POOL_ID, DBFS_DEFS_DIR, DBFS_AIRFLOW_DIR
+from src.defs.delta.utils import SHARED_POOL_ID, DBFS_DEFS_DIR, DBFS_AIRFLOW_DIR
 
 def get_operators(dag: DAG_TYPE) -> dict:
     f"{__doc__}"
     head = DummyOperator(task_id="update_active_products_head", dag=dag)
     tail = DummyOperator(task_id="update_active_products_tail", dag=dag)
+
     active_to_historic_products = spark_sql_operator(
         task_id="active_to_historic_products",
         dag=dag,

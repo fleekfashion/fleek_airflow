@@ -160,10 +160,15 @@ df = res_df.join(ratio_df, res_df["user_id"] == ratio_df["user_id"]) \
   .withColumn("indexedScores", F.arrays_zip("score", "index")) \
   .withColumn("processedScores", processScoresUDF(F.col("indexedScores"), F.col("interaction_product_ids"))) \
   .withColumn("topScores", F.slice(F.reverse(F.array_sort("processedScores")), 1, TOP_N)) \
-  .withColumn("top_product_ids", F.expr("TRANSFORM(topScores, x -> x['product_id'])")) \
-  .select("user_id", "top_product_ids", "topScores")
+  .select(F.col("user_id"), F.posexplode(F.col("topScores"))) \
+  .select(
+      F.col("user_id"),
+      F.col("pos").alias("index"),
+      F.col("col.product_id").alias("product_id"),
+      F.col("col.score").alias("score")
+  )
 
 #############################################################
-# Save Recommendations in table 
+# Save Recommendations in table
 #############################################################
 df.write.saveAsTable(OUTPUT_TABLE, format="delta", mode="overwrite")

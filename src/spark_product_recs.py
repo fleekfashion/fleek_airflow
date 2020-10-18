@@ -59,10 +59,9 @@ write_product_recs_staging = spark_sql_operator(
     params={
         "src": pdefs.get_full_name(pdefs.USER_PRODUCT_RECS_TABLE),
         "target": phooks.get_full_name(pdefs.USER_PRODUCT_RECS_TABLE, staging=True),
-        "columns": ", ".join([
-            "product_id",
-            "posexplode(top_product_ids) AS (`index`, product_id)"
-        ]),
+        "columns": ", ".join(
+            postdefs.get_columns(postdefs.USER_PRODUCT_RECS_TABLE)
+        ),
         "mode": "OVERWRITE TABLE"
     },
     sql="template/std_insert.sql",
