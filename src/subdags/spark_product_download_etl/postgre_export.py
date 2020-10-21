@@ -49,7 +49,7 @@ def get_operators(dag: DAG):
             "src": f"(SELECT *, true as is_active FROM {pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE)})",
             "columns": ", ".join([ c for c in postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE)]),
         },
-        num_workers=2
+        local=True
     )
 
     merge_active_products = CloudSqlQueryOperator(
@@ -77,21 +77,21 @@ def get_operators(dag: DAG):
         params={
             "src": pcdefs.get_full_name(pcdefs.SIMILAR_PRODUCTS_TABLE),
             "target": spark_defs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE, staging=True),
-            "columns": "product_id, similar_product_ids",
+            "columns": ", ".join(postdefs.get_columns(postdefs.SIMILAR_PRODUCTS_TABLE)),
             "mode": "OVERWRITE TABLE"
         },
         sql="template/std_insert.sql",
-        num_workers=2
+        local=True
     )
 
     write_similar_items_prod = CloudSqlQueryOperator(
         dag=dag,
         gcp_cloudsql_conn_id=postdefs.CONN_ID,
         task_id="PROD_write_similar_items",
-        sql=pquery.staging_to_live_query(
-            mode="WRITE_TRUNCATE",
+        sql=pquery.upsert(
             table_name=postdefs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE),
             staging_name=postdefs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE, staging=True),
+            key="product_id, index",
             columns=postdefs.get_columns(postdefs.SIMILAR_PRODUCTS_TABLE),
         )
     )

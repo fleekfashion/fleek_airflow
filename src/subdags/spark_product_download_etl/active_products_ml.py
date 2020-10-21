@@ -27,11 +27,16 @@ def get_operators(dag: DAG_TYPE) -> dict:
         task_id="similar_items",
         dag=dag,
         script="similar_items.py",
+        sql="template/similar_items_processing.sql",
         json_args={
+            "active_table": "{{params.active_table}}",
+            "historic_table": "{{params.historic_table}}",
+            "output_table": pcdefs.get_full_name(pcdefs.SIMILAR_PRODUCTS_TABLE),
+            "TOP_N": 100,
+        },
+        params={
             "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
             "historic_table": pcdefs.get_full_name(pcdefs.HISTORIC_PRODUCTS_TABLE),
-            "output_table": pcdefs.get_full_name(pcdefs.SIMILAR_PRODUCTS_TABLE),
-            "TOP_N": 100
         },
         num_workers=5,
     )

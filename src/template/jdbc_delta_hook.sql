@@ -4,5 +4,7 @@ OPTIONS (
   url "{{ params.url }}",
   dbtable "{{ params.dbtable }}",
   user "{{ params.user }}",
-  password "{{ params.password }}" 
+  password "{{ params.password }}",
+  rewriteBatchedStatements true,
+  batchSize 10000
 )
