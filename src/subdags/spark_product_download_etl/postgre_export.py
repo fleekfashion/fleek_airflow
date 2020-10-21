@@ -16,9 +16,12 @@ from airflow.contrib.operators.bigquery_to_gcs import BigQueryToCloudStorageOper
 
 from src.airflow_tools.databricks.databricks_operators import spark_sql_operator
 from src.airflow_tools.queries import postgre_queries as pquery
+from src.defs.delta import personalization as pdefs
 from src.defs.postgre import product_catalog as postdefs
+from src.defs.postgre import spark_personalization as persdefs
 from src.defs.delta import postgres as spark_defs
 from src.defs.delta import product_catalog as pcdefs
+from src.defs.delta import postgres as phooks
 
 ################################
 ## PRODUCT TABLE
@@ -93,7 +96,36 @@ def get_operators(dag: DAG):
         )
     )
 
+
+    write_product_recs_staging = spark_sql_operator(
+        task_id="STAGING_write_product_recs",
+        dag=dag,
+        params={
+            "src": pdefs.get_full_name(pdefs.USER_PRODUCT_RECS_TABLE),
+            "target": phooks.get_full_name(pdefs.USER_PRODUCT_RECS_TABLE, staging=True),
+            "columns": ", ".join(
+                persdefs.get_columns(persdefs.USER_PRODUCT_RECS_TABLE)
+            ),
+            "mode": "OVERWRITE TABLE"
+        },
+        sql="template/std_insert.sql",
+        local=True
+    )
+
+    write_product_recs_prod = CloudSqlQueryOperator(
+        dag=dag,
+        gcp_cloudsql_conn_id=persdefs.CONN_ID,
+        task_id="PROD_write_product_recs",
+        sql=pquery.upsert(
+            table_name=persdefs.get_full_name(persdefs.USER_PRODUCT_RECS_TABLE),
+            staging_name=persdefs.get_full_name(persdefs.USER_PRODUCT_RECS_TABLE, staging=True),
+            key="user_id, index",
+            columns=persdefs.get_columns(persdefs.USER_PRODUCT_RECS_TABLE),
+        )
+    )
+
     head >> insert_active_products >> merge_active_products >> tail
     head >> write_similar_items_staging >> write_similar_items_prod >> tail
+    head >> write_product_recs_staging >> write_product_recs_prod >> tail
 
     return {"head": head, "tail": tail}
