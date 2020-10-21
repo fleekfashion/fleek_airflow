@@ -80,7 +80,7 @@ spark.createDataFrame(ind_pid).createOrReplaceTempView("ind_pid_map")
 #############################################################
 res_df.withColumn("scoreIndex", F.sequence(F.lit(0), F.lit(embs.shape[0]))) \
   .withColumn("indexedScores", F.arrays_zip("score", "scoreIndex")) \
-  .withColumn("topScores", F.slice(F.reverse(F.array_sort("indexedScores")), 2, TOP_N*4)) \
+  .withColumn("topScores", F.slice(F.reverse(F.array_sort("indexedScores")), 2, TOP_N*10)) \
   .select(F.col("product_id"), F.posexplode(F.col("topScores"))) \
   .select(
       F.col("product_id"),
