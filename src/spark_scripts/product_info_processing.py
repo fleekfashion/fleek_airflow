@@ -87,10 +87,11 @@ for args in drop_args:
     df = df.filter(f)
     print(f)
 
-###################################
-## Drop duplicate products
-###################################
-df = df.drop_duplicates(subset=["product_id"])
+######################################################################
+## Drop duplicate products and duplicate images
+######################################################################
+df = df.drop_duplicates(subset=["product_id"]) \
+       .withColumn('product_additional_image_urls', F.expr("array_remove(product_additional_image_urls, product_image_url)") )
 
 ###################################
 ## Save table
