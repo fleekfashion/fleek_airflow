@@ -22,6 +22,7 @@ ACTIVE_TABLE = json_args["active_table"]
 HISTORIC_TABLE = json_args["historic_table"]
 OUTPUT_TABLE = json_args["output_table"]
 TOP_N = json_args["TOP_N"]
+SQL = json_args["sql"]
 
 ## Hack for linter
 try:
@@ -35,7 +36,7 @@ except:
 # Build Local Active Matrix
 ######################################################
 active_df = sqlContext.table(ACTIVE_TABLE) \
-        .select(["product_id", "product_image_embedding"]) \
+        .select(["product_id", "product_image_embedding"])
 
 active_data = active_df.select(["product_id", "product_image_embedding"]).collect()
 ind_to_pid = np.zeros(len(active_data), np.int64)
@@ -54,9 +55,10 @@ active_matrix = Matrices.dense(numCols=N_ACTIVE, numRows=N_DIMS, values=embs.fla
 # Build Distributed Historic Matrix 
 ######################################################
 historic_df = sqlContext.table(HISTORIC_TABLE) \
-        .select(["product_id", "product_image_embedding"])
-df = active_df.union(historic_df).drop_duplicates(subset=["product_id"])
-indexed_df = df.rdd.map(lambda row: IndexedRow(row.product_id, row.product_image_embedding))
+    .select(["product_id", "product_image_embedding"])
+product_df = active_df.union(historic_df) \
+    .drop_duplicates(subset=["product_id"])
+indexed_df = product_df.rdd.map(lambda row: IndexedRow(row.product_id, row.product_image_embedding))
 indexed_matrix = IndexedRowMatrix(rows=indexed_df)
 
 
@@ -70,25 +72,48 @@ res_df = similarity.rows.map(lambda x: Row(x.index, x.vector.toArray().tolist())
 ######################################################
 # UDFS to Convert Index to Product ID 
 ######################################################
-broadcast_map = sc.broadcast(ind_to_pid)
-def getPids(scores_and_inds):
-  inds = [ si[1] for si in scores_and_inds]
-  return broadcast_map.value[inds].tolist()
-def getScores(scores_and_inds):
-  return [ si[0] for si in scores_and_inds]
-getPidsUDF = F.udf(getPids, returnType=ArrayType(LongType()))
-getScoresUDF = F.udf(getScores, returnType=ArrayType(FloatType()))
-
+ind_pid = [ Row(ind=ind, pid=pid) for ind, pid in enumerate(ind_to_pid.tolist())]
+spark.createDataFrame(ind_pid).createOrReplaceTempView("ind_pid_map")
 
 #############################################################
-# Transformations: Go from scores matrix to top product ids
+# Transformations: Sort products by scores 
 #############################################################
-df = res_df.withColumn("index", F.sequence(F.lit(0), F.lit(embs.shape[0]))) \
-  .withColumn("indexedScores", F.arrays_zip("score", "index")) \
-  .withColumn("topScores", F.slice(F.reverse(F.array_sort("indexedScores")), 2, TOP_N))  \
-  .withColumn("topProducts", getPidsUDF(F.col("topScores"))) \
-  .withColumn("topScores", getScoresUDF(F.col("topScores"))) \
-  .select("product_id",
-          F.col("topProducts").alias("similar_product_ids"),
-          F.col("topScores").alias("similarity_scores")) \
+res_df.withColumn("scoreIndex", F.sequence(F.lit(0), F.lit(embs.shape[0]))) \
+  .withColumn("indexedScores", F.arrays_zip("score", "scoreIndex")) \
+  .withColumn("topScores", F.slice(F.reverse(F.array_sort("indexedScores")), 2, TOP_N*10)) \
+  .select(F.col("product_id"), F.posexplode(F.col("topScores"))) \
+  .select(
+      F.col("product_id"),
+      F.col("col.score").alias("similarity_score"),
+      F.col("col.scoreIndex").alias("scoreIndex")
+  ).createOrReplaceTempView("preindexed_similar_products")
+
+#############################################################
+# Transformations: Replace score index with product_id
+#############################################################
+sqlContext.sql("""
+SELECT si.product_id, si.similarity_score, ipm.pid as similar_product_id 
+FROM ind_pid_map ipm
+INNER JOIN preindexed_similar_products si 
+ON si.scoreIndex=ipm.ind
+""").createOrReplaceTempView("prefiltered_similar_products")
+
+#############################################################
+# Processing: Filter out products whose labels dont match
+#############################################################
+sqlContext.sql(SQL) \
+    .groupBy("product_id") \
+    .agg(F.collect_list("similar_product_id").alias("similar_product_ids"),
+         F.collect_list("similarity_score").alias("similarity_scores")) \
+    .select("product_id", F.posexplode(
+        F.reverse(F.array_sort(F.arrays_zip("similarity_scores", "similar_product_ids"))),
+        )
+    ) \
+    .select(
+      F.col("product_id"),
+      F.col("pos").alias("index"),
+      F.col("col.similar_product_ids").alias("similar_product_id"),
+      F.col("col.similarity_scores").alias("similarity_score")
+  ) \
+  .where(F.col("index") < TOP_N) \
   .write.saveAsTable(OUTPUT_TABLE, format="delta", mode="overwrite")
