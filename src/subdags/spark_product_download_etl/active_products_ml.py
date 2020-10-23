@@ -32,7 +32,6 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "historic_table": "{{params.historic_table}}",
             "output_table": pcdefs.get_full_name(pcdefs.PRODUCT_SIMILARITY_SCORES),
             "TOP_N": 1000,
-            "limit": 1000,
         },
         params={
             "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
