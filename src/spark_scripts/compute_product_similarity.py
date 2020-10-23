@@ -24,6 +24,8 @@ OUTPUT_TABLE = json_args["output_table"]
 TOP_N = json_args["TOP_N"]
 SQL = json_args["sql"]
 
+LIMIT = json_args.get('limit')
+
 ## Hack for linter
 try:
     sqlContext = SQLContext(1)
@@ -58,6 +60,11 @@ historic_df = sqlContext.table(HISTORIC_TABLE) \
     .select(["product_id", "product_image_embedding"])
 product_df = active_df.union(historic_df) \
     .drop_duplicates(subset=["product_id"])
+
+## Quick testing
+if LIMIT is not None:
+    product_df = product_df.limit(LIMIT)
+
 indexed_df = product_df.rdd.map(lambda row: IndexedRow(row.product_id, row.product_image_embedding))
 indexed_matrix = IndexedRowMatrix(rows=indexed_df)
 
@@ -80,7 +87,7 @@ spark.createDataFrame(ind_pid).createOrReplaceTempView("ind_pid_map")
 #############################################################
 res_df.withColumn("scoreIndex", F.sequence(F.lit(0), F.lit(embs.shape[0]))) \
   .withColumn("indexedScores", F.arrays_zip("score", "scoreIndex")) \
-  .withColumn("topScores", F.slice(F.reverse(F.array_sort("indexedScores")), 2, TOP_N*10)) \
+  .withColumn("topScores", F.slice(F.reverse(F.array_sort("indexedScores")), 2, TOP_N)) \
   .select(F.col("product_id"), F.posexplode(F.col("topScores"))) \
   .select(
       F.col("product_id"),
@@ -96,24 +103,4 @@ SELECT si.product_id, si.similarity_score, ipm.pid as similar_product_id
 FROM ind_pid_map ipm
 INNER JOIN preindexed_similar_products si 
 ON si.scoreIndex=ipm.ind
-""").createOrReplaceTempView("prefiltered_similar_products")
-
-#############################################################
-# Processing: Filter out products whose labels dont match
-#############################################################
-sqlContext.sql(SQL) \
-    .groupBy("product_id") \
-    .agg(F.collect_list("similar_product_id").alias("similar_product_ids"),
-         F.collect_list("similarity_score").alias("similarity_scores")) \
-    .select("product_id", F.posexplode(
-        F.reverse(F.array_sort(F.arrays_zip("similarity_scores", "similar_product_ids"))),
-        )
-    ) \
-    .select(
-      F.col("product_id"),
-      F.col("pos").alias("index"),
-      F.col("col.similar_product_ids").alias("similar_product_id"),
-      F.col("col.similarity_scores").alias("similarity_score")
-  ) \
-  .where(F.col("index") < TOP_N) \
-  .write.saveAsTable(OUTPUT_TABLE, format="delta", mode="overwrite")
+""").write.saveAsTable(OUTPUT_TABLE, format="delta", mode="overwrite")
