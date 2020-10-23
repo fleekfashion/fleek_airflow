@@ -14,7 +14,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator, dbfs_read_json
 from src.airflow_tools.airflow_variables import SRC_DIR, DAG_CONFIG, DAG_TYPE
 from src.defs.delta import product_catalog as pcdefs
-from src.defs.delta.utils import GENERAL_CLUSTER_ID, SHARED_POOL_ID, DBFS_DEFS_DIR, DBFS_AIRFLOW_DIR
+from src.defs.delta.utils import SHARED_POOL_ID, DBFS_DEFS_DIR, DBFS_AIRFLOW_DIR
 
 def get_operators(dag: DAG_TYPE) -> dict:
     f"{__doc__}"
@@ -31,7 +31,8 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "historic_table": pcdefs.get_full_name(pcdefs.HISTORIC_PRODUCTS_TABLE)
             },
         sql="template/spark_active_to_historic.sql",
-        local=True
+        min_workers=1,
+        max_workers=2
     )
 
     del_inactive_products = spark_sql_operator(
@@ -42,7 +43,8 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "product_info_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
             },
         sql="template/spark_delete_inactive_products.sql",
-        local=True
+        min_workers=1,
+        max_workers=2
     )
 
     update_active_product_info = spark_sql_operator(
@@ -54,7 +56,8 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "columns": pcdefs.get_columns(pcdefs.PRODUCT_INFO_TABLE),
             },
         sql="template/spark_update_active_product_info.sql",
-        local=True
+        min_workers=1,
+        max_workers=2
     )
 
     head >> active_to_historic_products >> del_inactive_products >> tail
