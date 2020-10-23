@@ -31,8 +31,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "historic_table": pcdefs.get_full_name(pcdefs.HISTORIC_PRODUCTS_TABLE)
             },
         sql="template/spark_active_to_historic.sql",
-        min_workers=1,
-        max_workers=2
+        local=True
     )
 
     del_inactive_products = spark_sql_operator(
@@ -43,8 +42,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "product_info_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
             },
         sql="template/spark_delete_inactive_products.sql",
-        min_workers=1,
-        max_workers=2
+        local=True
     )
 
     update_active_product_info = spark_sql_operator(
@@ -56,8 +54,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "columns": pcdefs.get_columns(pcdefs.PRODUCT_INFO_TABLE),
             },
         sql="template/spark_update_active_product_info.sql",
-        min_workers=1,
-        max_workers=2
+        local=True
     )
 
     head >> active_to_historic_products >> del_inactive_products >> tail

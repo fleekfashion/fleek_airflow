@@ -10,6 +10,7 @@ DAILY_PRODUCT_DUMP_TABLE = "daily_product_dump"
 HISTORIC_PRODUCTS_TABLE = "historic_products"
 NEW_PRODUCT_FEATURES_TABLE = "daily_product_ml_features"
 PRODUCT_INFO_TABLE  = "product_info"
+PRODUCT_SIMILARITY_SCORES = "product_similarity_scores"
 SIMILAR_PRODUCTS_TABLE = "similar_products_v2"
 
 def get_full_name(table_name):

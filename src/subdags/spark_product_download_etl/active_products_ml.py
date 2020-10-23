@@ -23,22 +23,38 @@ def get_operators(dag: DAG_TYPE) -> dict:
     head = DummyOperator(task_id="active_products_ml_head", dag=dag)
     tail = DummyOperator(task_id="active_products_ml_tail", dag=dag)
 
-    similar_items = SparkScriptOperator(
-        task_id="similar_items",
+    compute_product_similarity = SparkScriptOperator(
+        task_id="compute_product_similarity",
         dag=dag,
-        script="similar_items.py",
-        sql="template/similar_items_processing.sql",
+        script="compute_product_similarity.py",
         json_args={
             "active_table": "{{params.active_table}}",
             "historic_table": "{{params.historic_table}}",
-            "output_table": pcdefs.get_full_name(pcdefs.SIMILAR_PRODUCTS_TABLE),
-            "TOP_N": 100,
+            "output_table": pcdefs.get_full_name(pcdefs.PRODUCT_SIMILARITY_SCORES),
+            "TOP_N": 1000,
         },
         params={
             "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
             "historic_table": pcdefs.get_full_name(pcdefs.HISTORIC_PRODUCTS_TABLE),
         },
         num_workers=5,
+    )
+
+    process_similar_products = SparkScriptOperator(
+        task_id="process_similar_products",
+        dag=dag,
+        script="process_similar_products.py",
+        sql="template/similar_items_processing.sql",
+        json_args={
+            "output_table": pcdefs.get_full_name(pcdefs.SIMILAR_PRODUCTS_TABLE),
+            "TOP_N": 100,
+        },
+        params={
+            "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
+            "historic_table": pcdefs.get_full_name(pcdefs.HISTORIC_PRODUCTS_TABLE),
+            "product_similarity_table": pcdefs.get_full_name(pcdefs.PRODUCT_SIMILARITY_SCORES),
+        },
+        num_workers=4,
     )
 
     product_recs = SparkScriptOperator(
@@ -56,7 +72,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
     )
 
     
-    head >> similar_items >> tail
+    head >> compute_product_similarity >> process_similar_products >> tail
     head >> product_recs >> tail
 
     return {"head": head, "tail": tail}

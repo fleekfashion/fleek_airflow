@@ -11,13 +11,18 @@ pinfo AS (
     sp.*,
     p.product_labels as root_label,
     ap.product_labels as similar_label
-  FROM prefiltered_similar_products sp
+  FROM {{params.product_similarity_table}} sp
   INNER JOIN all_products p 
   ON p.product_id=sp.product_id
   INNER JOIN {{params.active_table}} ap
   ON sp.similar_product_id=ap.product_id
 )
 
-SELECT product_id, similar_product_id, similarity_score
+SELECT 
+  product_id, 
+  similar_product_id,
+  CASE WHEN size(array_intersect(root_label, similar_label)) > 0
+    THEN 1.2*similarity_score
+    ELSE similarity_score
+  END AS similarity_score
 FROM pinfo
-WHERE size(array_intersect(root_label, similar_label)) > 0
