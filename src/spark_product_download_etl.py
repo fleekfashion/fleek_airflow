@@ -32,7 +32,7 @@ dag = DAG(
 head = DummyOperator(task_id=f"{DAG_ID}_dag_head", dag=dag)
 tail = DummyOperator(task_id=f"{DAG_ID}_dag_tail", dag=dag)
 
-download_operators = spark_product_download_etl.cj_download.get_operators(dag)
+download_operators = spark_product_download_etl.product_download.get_operators(dag)
 product_proc_operators = spark_product_download_etl.product_processing.get_operators(dag)
 update_active_prod_operators = spark_product_download_etl.update_active_products \
         .get_operators(dag)
