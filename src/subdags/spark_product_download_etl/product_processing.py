@@ -22,21 +22,6 @@ def get_operators(dag: DAG_TYPE) -> dict:
     tail = DummyOperator(task_id="new_product_processing_tail", dag=dag)
     IMG_TABLE = f"{pcdefs.PROJECT}_tmp.daily_image_download" 
 
-    product_info_processing = SparkScriptOperator(
-        dag=dag,
-        task_id="product_info_processing",
-        json_args={
-            "src_table": pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE),
-            "output_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
-            "ds": "{{ds}}",
-            "timestamp": "{{ execution_date.int_timestamp }}",
-            "drop_kwargs_path": f"{DBFS_DEFS_DIR}/product_download/global/drop_keywords.json" \
-                    .replace("dbfs:", "/dbfs")
-        },
-        script="product_info_processing.py",
-        local=True
-    )
-
     image_download = SparkScriptOperator(
         dag=dag,
         task_id="image_download",
@@ -81,8 +66,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
         local=True
     )
 
-    head >> product_info_processing >> image_download >> new_product_ml
-    new_product_ml >> append_new_products >> tail
+    head >> image_download >> new_product_ml >> append_new_products >> tail
 
 
     return {"head": head, "tail": tail}
