@@ -56,7 +56,6 @@ def _build_query(company_id, website_id, limit, advertiser_id, keyword):
 def _get_cj_df(company_id, website_id, limit, advertiser_id, query_params):
     url = "https://ads.api.cj.com/query"
     headers = {"Authorization": "Bearer 692245ytkcqqyq3k155pgyr53g"}
-    product_label = query_params.get('product_label')
     query = _build_query(company_id=company_id,
                          website_id=website_id,
                          limit=limit,
@@ -79,7 +78,6 @@ def _get_cj_df(company_id, website_id, limit, advertiser_id, query_params):
 
     ## Add Product Tag to DF
     cj_df = json_normalize(batch)
-    cj_df['product_label'] = product_label
     cj_df.fillna(value=np.nan, inplace=True)
     cj_df = cj_df.where(pd.notnull(cj_df), None)
     cj_df = cj_df.replace(to_replace={"nan": None})
@@ -112,7 +110,6 @@ def _build_products_df(cj_df):
     final_df['product_brand'] = cj_df['brand']
     final_df['product_name'] = cj_df.title
     final_df['product_description'] = cj_df.description
-    final_df['product_labels'] = cj_df.product_label.apply(lambda x: [x])
     final_df['product_price'] = cj_df['price.amount'].astype(float)
     final_df['product_sale_price'] = cj_df.apply(get_sale_price, axis=1).astype(float)
     final_df['product_currency'] = cj_df['price.currency']
