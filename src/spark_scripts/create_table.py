@@ -2,7 +2,7 @@ import argparse
 import json
 
 from pyspark.sql.types import *
-from pyspark.sql.functions import lit
+import pyspark.sql.functions as F
 from pyspark.sql import SQLContext
 
 ## Hack for linter
@@ -29,6 +29,8 @@ def build_fields(schema):
     def _build_field(field):
         nullable = "" if field.nullable else "NOT NULL"
         c = field.metadata.get("comment")
+        c = c if c else ""
+        c = c.replace("'", "\\'") #handle internal quotation
         comment = f"COMMENT '{c}'" if c else ""
         if type(field.dataType) != StructType:
             return f"{field.name} {field.dataType.simpleString()} {nullable} {comment}"
@@ -63,7 +65,7 @@ create_table(SCHEMA, TABLE, replace=False)
 
 old_schema = sqlContext.table(TABLE).schema
 if old_schema.fieldNames() != SCHEMA.fieldNames():
-    temp_table = TABLE.split(".")[-1]+"_temp"
+    temp_table = TABLE+"_temp"
     overlapping_fields = StructType(
         filter(lambda x: x.name in SCHEMA.fieldNames(), old_schema.fields)
     )
@@ -71,8 +73,13 @@ if old_schema.fieldNames() != SCHEMA.fieldNames():
 
     transformed_df = sqlContext.table(TABLE).select(overlapping_fields.fieldNames())
     for field in new_fields:
-        transformed_df = transformed_df.withColumn(field.name, lit(field.metadata.get("default")))
-    transformed_df.registerTempTable(temp_table)
+        default_value = field.metadata.get("default")
+        if type(default_value) == list:
+            value = F.array([F.lit(v) for v in default_value]).cast(field.dataType.simpleString())
+        else:
+            value = F.lit(default_value)
+        transformed_df = transformed_df.withColumn(field.name, value)
+    transformed_df.write.saveAsTable(temp_table, format="delta", mode="overwrite")
 
     sqlContext.sql(f"DROP TABLE IF EXISTS {TABLE}")
     create_table(SCHEMA, TABLE, replace=True)
@@ -82,3 +89,4 @@ if old_schema.fieldNames() != SCHEMA.fieldNames():
         format="delta",
         mode="append"
     )
+    sqlContext.sql(f"DROP TABLE IF EXISTS {temp_table}")
