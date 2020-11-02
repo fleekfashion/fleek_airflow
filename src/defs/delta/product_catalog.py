@@ -65,9 +65,35 @@ TABLES = {
                     nullable=False,
                     metadata={
                         "comment": (
-                            "Tags containing info about product."
+                            "Labels containing top level about product. "
+                            "E.g. pants, top, skirt " 
                             "Never changes"
-                        )
+                        ),
+                        "default": []
+                    }
+                ),
+                StructField(name="product_secondary_labels",
+                    dataType=ArrayType(StringType(), False),
+                    nullable=False,
+                    metadata={
+                        "comment": (
+                            "Labels containing second level info about product. "
+                            "E.g. Denim, Maxi, ruffled "
+                            "Never changes"
+                        ),
+                        "default": []
+                    }
+                ),
+                StructField(name="product_external_labels",
+                    dataType=ArrayType(StringType(), False),
+                    nullable=False,
+                    metadata={
+                        "comment": (
+                            "Labels containing external info about product. "
+                            "Ussually data from advertiser "
+                            "No enforcement, just dump it in, and we will try to use it"
+                        ),
+                        "default": []
                     }
                 ),
                 StructField(name="product_tags",
@@ -275,9 +301,35 @@ TABLES = {
                     nullable=False,
                     metadata={
                         "comment": (
-                            "Tags containing info about product."
+                            "Labels containing top level about product. "
+                            "E.g. pants, top, skirt " 
                             "Never changes"
-                        )
+                        ),
+                        "default": []
+                    }
+                ),
+                StructField(name="product_secondary_labels",
+                    dataType=ArrayType(StringType(), False),
+                    nullable=False,
+                    metadata={
+                        "comment": (
+                            "Labels containing second level info about product. "
+                            "E.g. Denim, Maxi, ruffled "
+                            "Never changes"
+                        ),
+                        "default": []
+                    }
+                ),
+                StructField(name="product_external_labels",
+                    dataType=ArrayType(StringType(), False),
+                    nullable=False,
+                    metadata={
+                        "comment": (
+                            "Labels containing external info about product. "
+                            "Ussually data from advertiser "
+                            "No enforcement, just dump it in, and we will try to use it"
+                        ),
+                        "default": []
                     }
                 ),
                 StructField(name="product_tags",

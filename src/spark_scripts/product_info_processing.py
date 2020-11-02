@@ -69,7 +69,10 @@ df = sqlContext.table(SRC_TABLE )
 df = df.withColumn("execution_date", F.lit(DS).cast("DATE")
          ).withColumn("execution_timestamp", F.lit(TIMESTAMP).cast("BIGINT")
          ).withColumn("product_id", F.abs(F.xxhash64(F.col("advertiser_name"), F.col("product_image_url")))
-         ).withColumn("product_tags", F.coalesce("product_tags", F.array().cast("array<string>")))
+         ).withColumn("product_tags", F.coalesce("product_tags", F.array().cast("array<string>"))
+         ).withColumn("product_labels", F.coalesce("product_labels", F.array().cast("array<string>"))
+         ).withColumn("product_secondary_labels", F.coalesce("product_secondary_labels", F.array().cast("array<string>"))
+         ).withColumn("product_external_labels", F.coalesce("product_external_labels", F.array().cast("array<string>")))
 
 ###################################
 ## Filter out invalid columns
