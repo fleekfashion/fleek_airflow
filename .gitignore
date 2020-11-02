@@ -1,2 +1,5 @@
 *.pyc
 *.ipynb
+*.pylintrc
+aws_creds/
+*.env
