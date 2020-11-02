@@ -1,9 +1,0 @@
-# requirements.txt
-setuptools==46.4.0
-numpy==1.18.1
-jsonlines
-pandas
-google-cloud-bigquery
-tensorflow==2.1.0
-dill
-pyarrow
