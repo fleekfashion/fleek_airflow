@@ -57,5 +57,6 @@ def get_operators(dag: DAG_TYPE) -> dict:
         local=True
     )
 
-    head >> update_active_product_info >> active_to_historic_products >> del_inactive_products >> tail
+    head >> update_active_product_info >> tail
+    head >> active_to_historic_products >> del_inactive_products >> tail
     return {"head": head, "tail": tail}

@@ -18,8 +18,8 @@ from src.defs.delta.utils import SHARED_POOL_ID, DBFS_DEFS_DIR
 
 def get_operators(dag: DAG_TYPE) -> dict:
     f"{__doc__}"
-    head = DummyOperator(task_id="cj_download_head", dag=dag)
-    tail = DummyOperator(task_id="cj_download_tail", dag=dag)
+    head = DummyOperator(task_id="product_download_head", dag=dag)
+    tail = DummyOperator(task_id="product_download_tail", dag=dag)
 
     truncation = spark_sql_operator(
         dag=dag,
@@ -49,6 +49,26 @@ def get_operators(dag: DAG_TYPE) -> dict:
     for i in range(1, len(downloads)):
         downloads[i-1] >> downloads[i]
 
-    head >> truncation >> downloads[0] 
-    downloads[-1] >> tail 
+    product_info_processing = SparkScriptOperator(
+        dag=dag,
+        task_id="product_info_processing",
+        json_args={
+            "src_table": pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE),
+            "output_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
+            "ds": "{{ds}}",
+            "timestamp": "{{ execution_date.int_timestamp }}",
+            "drop_kwargs_path": f"{DBFS_DEFS_DIR}/product_download/global/drop_keywords.json" \
+                    .replace("dbfs:", "/dbfs"),
+            "labels_path": f"{DBFS_DEFS_DIR}/product_download/global/product_labels.json" \
+                    .replace("dbfs:", "/dbfs")
+        },
+        script="product_info_processing.py",
+        local=True
+    )
+
+
+    head >> truncation >> downloads[0]
+    downloads[-1] >> product_info_processing
+
+    product_info_processing >> tail
     return {"head": head, "tail": tail}
