@@ -37,7 +37,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
             "historic_table": pcdefs.get_full_name(pcdefs.HISTORIC_PRODUCTS_TABLE),
         },
-        num_workers=5,
+        num_workers=8,
     )
 
     process_similar_products = SparkScriptOperator(

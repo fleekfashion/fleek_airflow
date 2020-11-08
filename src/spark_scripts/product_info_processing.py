@@ -44,8 +44,16 @@ def load_df():
                      F.coalesce("product_secondary_labels", F.array().cast("array<string>"))) \
              .withColumn("product_external_labels",
                      F.coalesce("product_external_labels", F.array().cast("array<string>"))) \
-             .drop_duplicates(subset=["product_id"])
+             .drop_duplicates(subset=["product_id"]) \
+             .repartition(8)
 
+def _process_args(args):
+    new_args = {}
+    for key, value in args.items():
+        if len(value) > 0:
+            new_args[key] = value
+    return new_args
+        
 def _build_arg_filter(args):
     and_filters = []
     for cname, drop_args in args.items():
@@ -54,7 +62,7 @@ def _build_arg_filter(args):
             drop_args = [drop_args]
         for drop_arg in drop_args:
             if cname in ["product_labels", "product_secondary_labels", "product_external_labels"]:
-                cname = f"concat_ws(' | ', {cname})"
+                cname = f"concat_ws(' && ', {cname})"
             drop_arg = drop_arg.lower().replace('\\', '\\\\')
             LOCAL_FILTERS.append(f"lower({cname}) rLIKE '{drop_arg}'")
             
@@ -73,11 +81,15 @@ def _build_label_filter(label_def):
     conditions = []
     for d in label_def:
         EXCLUDE = d.get("EXCLUDE")
+        exclude = ""
         if EXCLUDE:
             d.pop("EXCLUDE")
-            exclude = _build_arg_filter(EXCLUDE)
-        f = _build_arg_filter(d)
-        if EXCLUDE:
+            EXCLUDE = _process_args(EXCLUDE)
+            if len(EXCLUDE) > 0:
+                exclude = _build_arg_filter(EXCLUDE)
+
+        f = _build_arg_filter(_process_args(d))
+        if len(exclude) > 0:
             f = f"({f}) AND NOT ({exclude})"
         f = f"({f})"
         conditions.append(f)
