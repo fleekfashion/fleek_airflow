@@ -54,7 +54,11 @@ def get_operators(dag: DAG_TYPE) -> dict:
         dag=dag,
         task_id="rakuten_download_products_great_success",
         json_args={
-            "valid_advertisers": ['ASOS (USA)', 'NastyGal (US)', 'Princess Polly US'],
+            "valid_advertisers": {
+                "ASOS (USA)": "ASOS",
+                "NastyGal (US)": "NastyGal",
+                "Princess Polly US": "Princess Polly"
+            },
             "output_table": pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE),
         },
         script="rakuten_download.py",

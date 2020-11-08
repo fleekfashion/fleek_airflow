@@ -66,8 +66,9 @@ def get_advertiser_name(file):
 def get_rakuten_df(file):
     # Make sure advertiser is valid
     advertiser_name = get_advertiser_name(file)
-    if advertiser_name not in VALID_ADVERTISERS:
+    if advertiser_name not in VALID_ADVERTISERS.keys():
         return None
+    advertiser_name = VALID_ADVERTISERS[advertiser_name]
 
     # Parse xml, check to see if advertiser name is valid
     with open(file) as handle:
@@ -94,10 +95,13 @@ def build_products_df(rakuten_df):
         product_labels = []
         primary_category = row['category.primary']
         secondary_category = row['category.secondary']
+        gender = row['attributeClass.Gender']
         if primary_category is not None:
             product_labels.append(primary_category)
         if secondary_category is not None:
             product_labels.append(secondary_category)
+        if gender is not None:
+            product_labels.append(gender)
         return product_labels
 
     # Case where only sale price listed
