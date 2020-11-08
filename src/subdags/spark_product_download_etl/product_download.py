@@ -58,6 +58,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "output_table": pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE),
         },
         script="rakuten_download.py",
+        init_scripts=["dbfs:/shared/init_scripts/install_xmltodict.sh"],
         local=True
     )
 
