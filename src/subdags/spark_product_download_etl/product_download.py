@@ -49,6 +49,20 @@ def get_operators(dag: DAG_TYPE) -> dict:
     for i in range(1, len(downloads)):
         downloads[i-1] >> downloads[i]
 
+    ## Add 1 hour timeout for rakuten
+    rakuten_download = SparkScriptOperator(
+        dag=dag,
+        task_id="RAMIS CHOICE",
+        json_args={
+            "valid_advertisers": [],
+            "output_table": "",
+        },
+        script="product_info_processing.py",
+        local=True
+    )
+
+
+
     product_info_processing = SparkScriptOperator(
         dag=dag,
         task_id="product_info_processing",
