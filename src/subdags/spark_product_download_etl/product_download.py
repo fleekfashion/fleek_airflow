@@ -52,12 +52,12 @@ def get_operators(dag: DAG_TYPE) -> dict:
     ## Add 1 hour timeout for rakuten
     rakuten_download = SparkScriptOperator(
         dag=dag,
-        task_id="RAMIS CHOICE",
+        task_id="rakuten_download_products_great_success",
         json_args={
-            "valid_advertisers": [],
-            "output_table": "",
+            "valid_advertisers": ['ASOS (USA)', 'NastyGal (US)', 'Princess Polly US'],
+            "output_table": pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE),
         },
-        script="product_info_processing.py",
+        script="rakuten_download.py",
         local=True
     )
 
@@ -86,8 +86,8 @@ def get_operators(dag: DAG_TYPE) -> dict:
     )
 
 
-    head >> truncation >> downloads[0]
-    downloads[-1] >> product_info_processing
-
+    head >> truncation
+    truncation >> [downloads[0], rakuten_download]
+    [downloads[-1], rakuten_download] >> product_info_processing
     product_info_processing >> tail
     return {"head": head, "tail": tail}
