@@ -53,12 +53,12 @@ def _build_arg_filter(args):
         if type(drop_args) == str:
             drop_args = [drop_args]
         for drop_arg in drop_args:
-            if cname == "product_labels":
-                cname = f"concat_ws(' ', {cname})"
+            if cname in ["product_labels", "product_secondary_labels", "product_external_labels"]:
+                cname = f"concat_ws(' | ', {cname})"
             drop_arg = drop_arg.lower().replace('\\', '\\\\')
             LOCAL_FILTERS.append(f"lower({cname}) rLIKE '{drop_arg}'")
             
-        ## IF any are true in the local args, 
+        ## IF any are true in the local args,
         ## AND the col is not null
         ## the local drop is fulfilled
         local_f = " OR ".join(LOCAL_FILTERS)
@@ -72,13 +72,21 @@ def _build_arg_filter(args):
 def _build_label_filter(label_def):
     conditions = []
     for d in label_def:
-        conditions.append(_build_arg_filter(d))
+        EXCLUDE = d.get("EXCLUDE")
+        if EXCLUDE:
+            d.pop("EXCLUDE")
+            exclude = _build_arg_filter(EXCLUDE)
+        f = _build_arg_filter(d)
+        if EXCLUDE:
+            f = f"({f}) AND NOT ({exclude})"
+        f = f"({f})"
+        conditions.append(f)
     return f"({' OR '.join(conditions)})"
 
 def apply_labels(df):
     for label, values in LABEL_DEFS.items():
         f = _build_label_filter(values)
-        df = df.withColumn("product_labels", 
+        df = df.withColumn("product_labels",
               F.when(F.expr(f), 
                      F.array_union(
                        F.col('product_labels'),
