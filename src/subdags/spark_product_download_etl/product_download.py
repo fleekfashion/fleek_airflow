@@ -63,7 +63,12 @@ def get_operators(dag: DAG_TYPE) -> dict:
                     .replace("dbfs:", "/dbfs")
         },
         script="product_info_processing.py",
-        local=True
+        local=True,
+        machine_type='i3.xlarge',
+        pool_id=None,
+        spark_conf={
+            'spark.sql.shuffle.partitions': '8'
+        }
     )
 
 

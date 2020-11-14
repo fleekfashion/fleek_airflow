@@ -63,6 +63,7 @@ class SparkScriptOperator(BaseOperator):
             local: bool = False,
             pool_id: str = SHARED_POOL_ID,
             spark_version: str = "7.2.x-cpu-ml-scala2.12",
+            spark_conf: dict = {},
             libraries: list = [],
             init_scripts: list = [],
             polling_period_seconds=15,
@@ -77,13 +78,14 @@ class SparkScriptOperator(BaseOperator):
         self.sql = sql
         self.cluster_id = cluster_id
         self.local = local
-        self.pool_id = pool_id 
+        self.pool_id = pool_id
         self.params = params
         self.num_workers = num_workers
         self.min_workers= min_workers
         self.max_workers= max_workers
         self.machine_type= machine_type
         self.spark_version = spark_version
+        self.spark_conf = spark_conf
         self.libraries = libraries
         self.init_scripts = init_scripts
 
@@ -104,13 +106,12 @@ class SparkScriptOperator(BaseOperator):
         return dbfs_path
 
     def _build_spark_conf(self):
-        conf = {}
         if self.local:
-            conf.update({
+            self.spark_conf.update({
                 "spark.master": "local[*]"
             })
 
-        return {"spark_conf":conf}
+        return {"spark_conf": self.spark_conf}
 
     def _build_machine_type_param(self):
         params = {}

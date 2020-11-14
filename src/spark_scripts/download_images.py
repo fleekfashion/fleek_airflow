@@ -32,11 +32,11 @@ OUTPUT_TABLE= json_args["output_table"]
 SRC_TABLE = json_args["src_table"]
 ACTIVE_PRODUCTS_TABLE = json_args["active_products_table"]
 
-HEADERS = {'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7'} 
+HEADERS = {'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7)'}
 def downloader(url):
     try:
         request = urllib.request.Request(url, headers=HEADERS)
-        res = urllib.request.urlopen(request, timeout=40)
+        res = urllib.request.urlopen(request, timeout=5)
         data = res.read()
     except:
         return None
@@ -53,8 +53,9 @@ AND product_id NOT IN (
 print(sql)
 
 downloadUDF = F.udf(downloader, BinaryType())
-sqlContext.sql(sql).cache() \
+sqlContext.sql(sql) \
     .repartition(sc.defaultParallelism * 3) \
+    .cache() \
     .withColumn("image_content", downloadUDF(F.col("product_image_url"))) \
     .select(["product_id", "image_content"]) \
     .dropna() \
