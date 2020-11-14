@@ -5,10 +5,8 @@ Daily CJ Downloads
 
 import json
 import copy
+from datetime import timedelta
 
-from google.cloud import storage
-
-from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 
 from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator, dbfs_read_json
@@ -57,16 +55,17 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "valid_advertisers": {
                 "ASOS (USA)": "ASOS",
                 "NastyGal (US)": "NastyGal",
-                "Princess Polly US": "Princess Polly"
+                "Princess Polly US": "Princess Polly",
+                "Topshop": "Topshop",
+                "Free People": "Free People"
             },
             "output_table": pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE),
         },
         script="rakuten_download.py",
         init_scripts=["dbfs:/shared/init_scripts/install_xmltodict.sh"],
-        local=True
+        local=True,
+        execution_timeout=timedelta(hours=1)
     )
-
-
 
     product_info_processing = SparkScriptOperator(
         dag=dag,
