@@ -5,10 +5,8 @@ Daily CJ Downloads
 
 import json
 import copy
+from datetime import timedelta
 
-from google.cloud import storage
-
-from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 
 from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator, dbfs_read_json
@@ -49,6 +47,26 @@ def get_operators(dag: DAG_TYPE) -> dict:
     for i in range(1, len(downloads)):
         downloads[i-1] >> downloads[i]
 
+    ## Add 1 hour timeout for rakuten
+    rakuten_download = SparkScriptOperator(
+        dag=dag,
+        task_id="rakuten_download_products_great_success",
+        json_args={
+            "valid_advertisers": {
+                "ASOS (USA)": "ASOS",
+                "NastyGal (US)": "NastyGal",
+                "Princess Polly US": "Princess Polly",
+                "Topshop": "Topshop",
+                "Free People": "Free People"
+            },
+            "output_table": pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE),
+        },
+        script="rakuten_download.py",
+        init_scripts=["dbfs:/shared/init_scripts/install_xmltodict.sh"],
+        local=True,
+        execution_timeout=timedelta(hours=1)
+    )
+
     product_info_processing = SparkScriptOperator(
         dag=dag,
         task_id="product_info_processing",
@@ -72,8 +90,8 @@ def get_operators(dag: DAG_TYPE) -> dict:
     )
 
 
-    head >> truncation >> downloads[0]
-    downloads[-1] >> product_info_processing
-
+    head >> truncation
+    truncation >> [downloads[0], rakuten_download]
+    [downloads[-1], rakuten_download] >> product_info_processing
     product_info_processing >> tail
     return {"head": head, "tail": tail}
