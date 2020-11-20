@@ -80,7 +80,7 @@ def get_operators(dag: DAG):
             staging_name=f"""(
             SELECT *
             FROM {pinfo_table_name}
-            WHERE 'top_product'=ANY(product_tags)
+            WHERE 'top_product'=ANY(product_tags) AND is_active
             ) top_p""",
             mode="WRITE_TRUNCATE",
             columns=postdefs.get_columns(postdefs.TOP_PRODUCTS_TABLE),
