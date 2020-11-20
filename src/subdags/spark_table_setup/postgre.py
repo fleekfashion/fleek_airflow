@@ -38,7 +38,7 @@ def get_operators(dag: DAG) -> dict:
                     sql=pquery.create_table_query(
                         table_name=postdefs.get_full_name(table_name),
                         columns=table_info["schema"],
-                        tail=table_info["tail"].replace(orig_table_name, table_name),
+                        tail=table_info.get("tail", "").replace(orig_table_name, table_name),
                         is_prod=len(prefix) == 0,
                     )
                 )

@@ -32,8 +32,8 @@ def get_operators(dag: DAG):
     head = DummyOperator(task_id="postgre_export_head", dag=dag)
     tail = DummyOperator(task_id="postgre_export_tail", dag=dag)
 
-    table_name=postdefs.get_full_name(postdefs.PRODUCT_INFO_TABLE)
-    staging_name=postdefs.get_full_name(postdefs.PRODUCT_INFO_TABLE, staging=True)
+    pinfo_table_name=postdefs.get_full_name(postdefs.PRODUCT_INFO_TABLE)
+    pinfo_staging_name=postdefs.get_full_name(postdefs.PRODUCT_INFO_TABLE, staging=True)
     columns = ", ".join(
             [ c for c in postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE)
             if "is_active" not in c ])
@@ -57,17 +57,33 @@ def get_operators(dag: DAG):
         gcp_cloudsql_conn_id=postdefs.CONN_ID,
         task_id="PROD_merge_active_products",
         sql=pquery.staging_to_live_query(
-            table_name=table_name,
-            staging_name=staging_name,
+            table_name=pinfo_table_name,
+            staging_name=pinfo_staging_name,
             mode="UPSERT",
             key="product_id",
             columns=postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE),
             tail=f""";
-                UPDATE {table_name} SET 
+                UPDATE {pinfo_table_name} SET 
                     is_active = false
                 WHERE product_id NOT IN (
-                    SELECT product_id FROM {staging_name}
+                    SELECT product_id FROM {pinfo_staging_name}
                 );"""
+        )
+    )
+
+    write_top_products = CloudSqlQueryOperator(
+        dag=dag,
+        gcp_cloudsql_conn_id=postdefs.CONN_ID,
+        task_id="PROD_write_top_products",
+        sql=pquery.staging_to_live_query(
+            table_name=postdefs.get_full_name(postdefs.TOP_PRODUCTS_TABLE),
+            staging_name=f"""(
+            SELECT *
+            FROM {pinfo_table_name}
+            WHERE 'top_product'=ANY(product_tags)
+            ) top_p""",
+            mode="WRITE_TRUNCATE",
+            columns=postdefs.get_columns(postdefs.TOP_PRODUCTS_TABLE),
         )
     )
 
@@ -124,7 +140,7 @@ def get_operators(dag: DAG):
         )
     )
 
-    head >> insert_active_products >> merge_active_products >> tail
+    head >> insert_active_products >> merge_active_products >> write_top_products >> tail
     head >> write_similar_items_staging >> write_similar_items_prod >> tail
     head >> write_product_recs_staging >> write_product_recs_prod >> tail
 

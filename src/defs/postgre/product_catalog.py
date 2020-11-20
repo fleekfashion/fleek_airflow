@@ -9,11 +9,10 @@ PROJECT = os.environ.get("PROJECT", "staging")
 INSTANCE = "fleek-app-prod1"
 DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
-BQ_EXTERNAL_CONN_ID = "fleek-prod.us.cloudsql_ktest"
 
 PRODUCT_INFO_TABLE = "product_info"
-TOP_PRODUCT_INFO_TABLE = "top_product_info"
 SIMILAR_PRODUCTS_TABLE = "similar_products_v2"
+TOP_PRODUCTS_TABLE = "top_products"
 
 def get_full_name(table_name, staging=False):
     if staging:
@@ -142,12 +141,21 @@ SCHEMAS = {
                     f"constraint pk_{PROJECT}_{SIMILAR_PRODUCTS_TABLE} primary key (product_id, index)"
                 )
             },
-    ],
+        ],
         "tail": f";\nCREATE INDEX IF NOT EXISTS {PROJECT}_user_product_recs_index ON {get_full_name(SIMILAR_PRODUCTS_TABLE)} (product_id, index)",
+    },
+
+    TOP_PRODUCTS_TABLE: {
+        "schema" : [
+            {
+                "name": "product_id",
+                "type": "bigint",
+                "mode": "PRIMARY KEY",
+                "prod": (
+                    f"REFERENCES {get_full_name(PRODUCT_INFO_TABLE)} (product_id)\n"
+                )
+            }
+        ],
+    "tail": ""
     }
-
-
 }
-
-## Similar Schemas
-SCHEMAS[TOP_PRODUCT_INFO_TABLE] = SCHEMAS[PRODUCT_INFO_TABLE]
