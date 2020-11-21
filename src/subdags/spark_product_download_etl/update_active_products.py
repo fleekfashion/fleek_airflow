@@ -51,7 +51,9 @@ def get_operators(dag: DAG_TYPE) -> dict:
         params={
             "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
             "product_info_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
-            "columns": pcdefs.get_columns(pcdefs.PRODUCT_INFO_TABLE),
+            "columns": list(filter( lambda x: x not in ["execution_date"],
+                pcdefs.get_columns(pcdefs.PRODUCT_INFO_TABLE)
+                ))
             },
         sql="template/spark_update_active_product_info.sql",
         local=True
