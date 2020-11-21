@@ -71,7 +71,11 @@ def get_operators(dag: DAG_TYPE) -> dict:
         num_workers=4,
     )
 
-    top_product_tag = spark_sql_operator(
+    ##############################################
+    ## PRODUCT TAGS
+    ##############################################
+
+    daily_top_product_tag = spark_sql_operator(
         task_id="daily_top_product_tag",
         dag=dag,
         sql="template/daily_top_product_tag.sql",
@@ -83,9 +87,20 @@ def get_operators(dag: DAG_TYPE) -> dict:
         },
         local=True
     )
-    
+
+    daily_new_product_tag = spark_sql_operator(
+        task_id="daily_new_product_tag",
+        dag=dag,
+        sql="template/daily_new_product_tag.sql",
+        params={
+            "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
+            "n_days": 3,
+            "tag": "new_product"
+        },
+        local=True
+    )
+
     head >> compute_product_similarity >> process_similar_products >> tail
     head >> product_recs >> tail
-    head >> top_product_tag >> tail
-
+    head >> daily_top_product_tag >> daily_new_product_tag >> tail
     return {"head": head, "tail": tail}
