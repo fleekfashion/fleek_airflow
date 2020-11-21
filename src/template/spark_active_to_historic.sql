@@ -1,14 +1,15 @@
-MERGE INTO {{params.historic_table}} as TARGET
-USING (
-  SELECT * 
+CREATE OR REPLACE TEMPORARY VIEW t AS (
+  SELECT {{ params.columns.replace("execution_date", "'" + ds + "'" + " as execution_date") }}
   FROM {{params.active_table}} active_table
   WHERE product_id NOT IN (
     SELECT product_id 
     FROM {{params.product_info_table}}
     WHERE execution_date="{{ds}}"
-
   ) 
-) as SOURCE
+);
+
+MERGE INTO {{params.historic_table}} as TARGET
+USING t as SOURCE
   ON TARGET.product_id = SOURCE.product_id
 WHEN MATCHED THEN 
   UPDATE SET
