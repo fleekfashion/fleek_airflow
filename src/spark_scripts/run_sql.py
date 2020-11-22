@@ -25,7 +25,8 @@ OUTPUT_TABLE = json_args.get("output_table")
 FORMAT = json_args.get("format") or "delta"
 
 # Run SQL
-df = sqlContext.sql(SQL)
+for query in SQL.split(";"):
+    df = sqlContext.sql(query)
 
 if MODE == "WRITE_APPEND":
   df.write.saveAsTable(OUTPUT_TABLE, format=FORMAT, mode="append")
