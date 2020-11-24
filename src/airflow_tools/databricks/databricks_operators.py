@@ -226,7 +226,7 @@ class SparkScriptOperator(BaseOperator):
         )
 
 class SparkSQLOperator(SparkScriptOperator):
-    ui_color = "#008080"
+    ui_color = "#97CBEC"
 
     def __init__(self,
         output_table: str = None,
