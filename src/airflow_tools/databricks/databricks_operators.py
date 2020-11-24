@@ -46,7 +46,8 @@ def dbfs_read_json(dbfs_path: str):
 class SparkScriptOperator(BaseOperator):
     template_fields = ('sql', 'json_args',)
     template_ext = ('.sql',)
-    ui_color = '#e4f0e8'
+    ui_color = '#f08080'
+    ui_fgcolor = "white"
 
     @apply_defaults
     def __init__(self,
@@ -224,41 +225,19 @@ class SparkScriptOperator(BaseOperator):
             f"Task: {self.task_id} with run_id: {self.run_id} was requested to be cancelled."
         )
 
-def spark_sql_operator(
-        sql: str,
-        task_id: str,
-        dag: DAG,
-        params: dict = {},
+class SparkSQLOperator(SparkScriptOperator):
+    ui_color = "#008080"
+
+    def __init__(self,
         output_table: str = None,
         mode: str = None,
         output_format: str = "delta",
-        cluster_id: str = None,
-        local: bool = False,
-        pool_id: str = SHARED_POOL_ID,
-        num_workers: int = None,
-        min_workers: int = None,
-        max_workers: int = None,
-        machine_type: str = None,
-        polling_period_seconds: int = 15,
-        ):
-    json_args = { "mode": mode, "output_table": output_table, "format": output_format}
+        **kwargs
+    ):
+        kwargs['script'] = "run_sql.py"
+        super(SparkSQLOperator, self).__init__(**kwargs)
+        self.json_args = { "mode": mode, "output_table": output_table, "format": output_format}
 
-    return SparkScriptOperator(
-            script="run_sql.py",
-            sql=sql,
-            task_id=task_id,
-            dag=dag,
-            params=params,
-            json_args=json_args,
-            cluster_id=cluster_id,
-            local=local,
-            pool_id=pool_id,
-            num_workers=num_workers,
-            min_workers=min_workers,
-            max_workers=max_workers,
-            machine_type=machine_type,
-            polling_period_seconds=polling_period_seconds,
-        )
 
 def create_table_operator(
         task_id: str,
