@@ -18,7 +18,7 @@ from airflow.contrib.operators.gcp_sql_operator import CloudSqlQueryOperator
 from src.airflow_tools.queries import postgre_queries as pquery
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
 from src.airflow_tools import dag_defs
-from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator
+from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, SparkSQLOperator
 from src.airflow_tools.utils import get_dag_sensor
 from src.defs.delta import product_catalog as pcdefs
 from src.defs.delta import user_data as user_delta

@@ -17,7 +17,7 @@ from airflow.contrib.operators.databricks_operator import DatabricksSubmitRunOpe
 from airflow.utils.dates import days_ago
 
 from src.defs.delta.utils import DBFS_SCRIPT_DIR
-from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator, create_table_operator
+from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, SparkSQLOperator, create_table_operator
 from src.defs import delta
 
 databases = [delta.product_catalog, delta.user_data]

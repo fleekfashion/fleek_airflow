@@ -14,7 +14,7 @@ from airflow.contrib.operators.bigquery_operator import BigQueryOperator
 from airflow.contrib.operators.gcp_sql_operator import CloudSqlQueryOperator
 from airflow.contrib.operators.bigquery_to_gcs import BigQueryToCloudStorageOperator
 
-from src.airflow_tools.databricks.databricks_operators import spark_sql_operator
+from src.airflow_tools.databricks.databricks_operators import SparkSQLOperator
 from src.airflow_tools.queries import postgre_queries as pquery
 from src.defs.delta import personalization as pdefs
 from src.defs.postgre import product_catalog as postdefs
@@ -39,7 +39,7 @@ def get_operators(dag: DAG):
             if "is_active" not in c ])
 
 
-    insert_active_products = spark_sql_operator(
+    insert_active_products = SparkSQLOperator(
         task_id="STAGE_active_products",
         dag=dag,
         sql="template/std_insert.sql",
@@ -87,7 +87,7 @@ def get_operators(dag: DAG):
         )
     )
 
-    write_similar_items_staging= spark_sql_operator(
+    write_similar_items_staging= SparkSQLOperator(
         task_id="STAGING_write_similar_items",
         dag=dag,
         params={
@@ -113,7 +113,7 @@ def get_operators(dag: DAG):
     )
 
 
-    write_product_recs_staging = spark_sql_operator(
+    write_product_recs_staging = SparkSQLOperator(
         task_id="STAGING_write_product_recs",
         dag=dag,
         params={

@@ -17,7 +17,7 @@ from airflow.utils.dates import days_ago
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
 from src.airflow_tools import dag_defs
 from src.airflow_tools.operators import cloudql_operators as csql
-from src.airflow_tools.databricks.databricks_operators import spark_sql_operator
+from src.airflow_tools.databricks.databricks_operators import SparkSQLOperator
 from src.airflow_tools.queries import postgre_queries as pquery
 from src.defs.postgre import user_data as postdefs
 from src.defs.delta import user_data as delta_user_data

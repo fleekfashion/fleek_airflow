@@ -12,7 +12,7 @@ from airflow.contrib.operators.gcp_sql_operator import CloudSqlQueryOperator
 
 from src.airflow_tools.operators import cloudql_operators as csql
 from src.airflow_tools.queries import postgre_queries as pquery 
-from src.airflow_tools.databricks.databricks_operators import spark_sql_operator
+from src.airflow_tools.databricks.databricks_operators import SparkSQLOperator
 from src.defs.postgre import utils as postutils
 from src.defs import postgre
 from src.defs.delta import postgres as spark_postgre
@@ -43,7 +43,7 @@ def get_operators(dag: DAG) -> dict:
                     )
                 )
 
-                op2 = spark_sql_operator(
+                op2 = SparkSQLOperator(
                     task_id=f"create_postgres_{table_name}_delta_hook",
                     dag=dag,
                     params={

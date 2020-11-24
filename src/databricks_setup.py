@@ -18,7 +18,7 @@ from airflow.utils.dates import days_ago
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS, SRC_DIR
 from src.airflow_tools.dag_defs import DATABRICKS_SETUP as DAG_ID
 from src.defs.delta.utils import DBFS_SCRIPT_DIR
-from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator, create_table_operator
+from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, SparkSQLOperator, create_table_operator
 
 
 dag = DAG(
