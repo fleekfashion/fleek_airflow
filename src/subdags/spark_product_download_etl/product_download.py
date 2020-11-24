@@ -9,7 +9,7 @@ from datetime import timedelta
 
 from airflow.operators.dummy_operator import DummyOperator
 
-from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator, dbfs_read_json
+from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, SparkSQLOperator, dbfs_read_json
 from src.airflow_tools.airflow_variables import SRC_DIR, DAG_CONFIG, DAG_TYPE
 from src.defs.delta import product_catalog as pcdefs
 from src.defs.delta.utils import SHARED_POOL_ID, DBFS_DEFS_DIR
@@ -19,7 +19,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
     head = DummyOperator(task_id="product_download_head", dag=dag)
     tail = DummyOperator(task_id="product_download_tail", dag=dag)
 
-    truncation = spark_sql_operator(
+    truncation = SparkSQLOperator(
         dag=dag,
         task_id=f"truncate_{pcdefs.DAILY_PRODUCT_DUMP_TABLE}",
         sql=f"DELETE FROM {pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE)}",

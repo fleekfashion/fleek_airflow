@@ -11,7 +11,7 @@ from google.cloud import storage
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 
-from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator, dbfs_read_json
+from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, SparkSQLOperator, dbfs_read_json
 from src.airflow_tools.airflow_variables import SRC_DIR, DAG_CONFIG, DAG_TYPE
 from src.defs.delta import product_catalog as pcdefs
 from src.defs.delta.utils import SHARED_POOL_ID, DBFS_DEFS_DIR, DBFS_AIRFLOW_DIR
@@ -53,7 +53,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
         init_scripts=["dbfs:/shared/init_scripts/install_opencv.sh"]
     )
 
-    append_new_products = spark_sql_operator(
+    append_new_products = SparkSQLOperator(
         task_id="apend_new_products",
         dag=dag,
         params={

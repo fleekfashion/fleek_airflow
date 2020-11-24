@@ -11,7 +11,7 @@ from google.cloud import storage
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 
-from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator, dbfs_read_json
+from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, SparkSQLOperator, dbfs_read_json
 from src.airflow_tools.airflow_variables import SRC_DIR, DAG_CONFIG, DAG_TYPE
 from src.defs.delta import product_catalog as pcdefs
 from src.defs.delta.utils import SHARED_POOL_ID, DBFS_DEFS_DIR, DBFS_AIRFLOW_DIR
@@ -21,7 +21,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
     head = DummyOperator(task_id="update_active_products_head", dag=dag)
     tail = DummyOperator(task_id="update_active_products_tail", dag=dag)
 
-    active_to_historic_products = spark_sql_operator(
+    active_to_historic_products = SparkSQLOperator(
         task_id="active_to_historic_products",
         dag=dag,
         params={
@@ -34,7 +34,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
         local=True
     )
 
-    del_inactive_products = spark_sql_operator(
+    del_inactive_products = SparkSQLOperator(
         task_id="delete_inactive_products",
         dag=dag,
         params={
@@ -45,7 +45,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
         local=True
     )
 
-    update_active_product_info = spark_sql_operator(
+    update_active_product_info = SparkSQLOperator(
         task_id="update_active_product_info",
         dag=dag,
         params={

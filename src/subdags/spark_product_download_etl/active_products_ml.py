@@ -11,7 +11,7 @@ from google.cloud import storage
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 
-from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, spark_sql_operator, dbfs_read_json
+from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, SparkSQLOperator, dbfs_read_json
 from src.airflow_tools.airflow_variables import SRC_DIR, DAG_CONFIG, DAG_TYPE
 from src.defs.delta import personalization as pdefs
 from src.defs.delta import product_catalog as pcdefs
@@ -75,7 +75,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
     ## PRODUCT TAGS
     ##############################################
 
-    daily_top_product_tag = spark_sql_operator(
+    daily_top_product_tag = SparkSQLOperator(
         task_id="daily_top_product_tag",
         dag=dag,
         sql="template/daily_top_product_tag.sql",
@@ -88,7 +88,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
         local=True
     )
 
-    daily_new_product_tag = spark_sql_operator(
+    daily_new_product_tag = SparkSQLOperator(
         task_id="daily_new_product_tag",
         dag=dag,
         sql="template/daily_new_product_tag.sql",
