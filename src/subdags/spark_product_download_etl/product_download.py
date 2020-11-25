@@ -89,9 +89,17 @@ def get_operators(dag: DAG_TYPE) -> dict:
         }
     )
 
+    add_additional_img_urls = SparkSQLOperator(
+        dag=dag,
+        task_id="add_additional_img_urls",
+        params={
+            "product_info_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
+        },
+        sql="template/add_additional_img_urls.sql",
+        local=True,
+    )
 
-    head >> truncation
-    truncation >> [downloads[0], rakuten_download]
-    [downloads[-1], rakuten_download] >> product_info_processing
-    product_info_processing >> tail
+    head >> truncation >> [downloads[0], rakuten_download]
+    [downloads[-1], rakuten_download] >> product_info_processing >> \
+    add_additional_img_urls >> tail
     return {"head": head, "tail": tail}
