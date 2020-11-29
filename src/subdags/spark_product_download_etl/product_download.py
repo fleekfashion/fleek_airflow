@@ -89,17 +89,27 @@ def get_operators(dag: DAG_TYPE) -> dict:
         }
     )
 
+    process_image_url = SparkSQLOperator(
+        dag=dag,
+        task_id="process_image_url",
+        params={
+            "product_info_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
+        },
+        sql="template/process_image_url.sql",
+        local=True,
+    )
+
     add_additional_img_urls = SparkSQLOperator(
         dag=dag,
         task_id="add_additional_img_urls",
         params={
             "product_info_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
         },
-        sql="template/add_additional_img_urls.sql",
+        sql="template/add_additional_image_urls.sql",
         local=True,
     )
 
     head >> truncation >> [downloads[0], rakuten_download]
     [downloads[-1], rakuten_download] >> product_info_processing >> \
-    add_additional_img_urls >> tail
+    process_image_url >> add_additional_img_urls >> tail
     return {"head": head, "tail": tail}
