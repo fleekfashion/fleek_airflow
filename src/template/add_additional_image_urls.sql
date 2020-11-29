@@ -64,8 +64,8 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   SELECT 
     product_id,
     TRANSFORM(
-      sequence(2, 2),
-      x -> regexp_replace(product_image_url, 'default_', format_string('%d_side_', x))
+      array('2_side_', '3_back_', '4_full_'),
+      x -> regexp_replace(product_image_url, 'default_', x)
     ) as additional_image_urls
   FROM pinfo
   WHERE 
