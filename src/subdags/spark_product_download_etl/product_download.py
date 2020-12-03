@@ -90,8 +90,6 @@ def get_operators(dag: DAG_TYPE) -> dict:
     )
 
 
-    head >> truncation
-    truncation >> [downloads[0], rakuten_download]
-    [downloads[-1], rakuten_download] >> product_info_processing
-    product_info_processing >> tail
+    head >> truncation >> [downloads[0], rakuten_download]
+    [downloads[-1], rakuten_download] >> product_info_processing >> tail
     return {"head": head, "tail": tail}
