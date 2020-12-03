@@ -7,7 +7,7 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   -- Revolve
   SELECT 
     product_id,
-    TRANSFORM( sequence(1, 4), x -> regexp_replace(product_image_url, 'V.\.jpg?', format_string('V%d.jpg?', x)   )  ) as additional_image_urls
+    TRANSFORM( sequence(2, 4), x -> regexp_replace(product_image_url, 'V.\.jpg?', format_string('V%d.jpg?', x)   )  ) as additional_image_urls
   FROM pinfo
   WHERE advertiser_name='REVOLVE'
 
