@@ -11,4 +11,4 @@ DBFS_DEFS_DIR = f"dbfs:/{PROJECT}/defs"
 DBFS_SCRIPT_DIR = f"{DBFS_AIRFLOW_DIR}/spark_scripts"
 DBFS_TMP_DIR = f"{DBFS_AIRFLOW_DIR}/tmp"
 
-SHARED_POOL_ID = "1009-012348-breed1-pool-Cm0SCnWa"
+SHARED_POOL_ID = "1203-171041-peso28-pool-fy1Vjl3w"
