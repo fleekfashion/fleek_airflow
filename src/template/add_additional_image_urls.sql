@@ -4,15 +4,6 @@ CREATE OR REPLACE TEMPORARY VIEW pinfo AS (
 );
 
 CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
-  -- Free People increase to f later
-  SELECT 
-    product_id,
-    TRANSFORM( array('a', 'b', 'c'), x -> regexp_replace(product_image_url, '_.\\?', format_string('_%s?', x)   )  ) as additional_image_urls
-  FROM pinfo
-  WHERE advertiser_name='Free People'
-
-  UNION ALL
-
   -- Revolve
   SELECT 
     product_id,
@@ -30,6 +21,62 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   WHERE 
     advertiser_name='ASOS' 
     AND size(product_additional_image_urls) > 0
+
+  UNION ALL
+
+  -- forever 21 
+  SELECT 
+    product_id,
+    TRANSFORM(
+      array('2_side_', '3_back_', '4_full_'),
+      x -> regexp_replace(product_image_url, 'default_', x)
+    ) as additional_image_urls
+  FROM pinfo
+  WHERE 
+    advertiser_name='Forever 21' 
+
+  UNION ALL
+
+  -- topshop
+  SELECT 
+    product_id,
+    TRANSFORM( sequence(1, 4), x -> regexp_replace(product_image_url, '_.\\.jpg', format_string('_%d.jpg', x)   )  ) as additional_image_urls
+  FROM pinfo
+  WHERE 
+    advertiser_name='Topshop' 
+
+  UNION ALL
+
+  -- pacsun
+  SELECT 
+    product_id,
+    TRANSFORM( sequence(1, 4), x -> regexp_replace(product_image_url, '_00_', format_string('_0%d_', x)   )  ) as additional_image_urls
+  FROM pinfo
+  WHERE 
+    advertiser_name='PacSun' 
+
+  /*
+  UNION ALL
+
+  -- Free People increase to f later
+  SELECT 
+    product_id,
+    TRANSFORM( array('a', 'b', 'c'), x -> regexp_replace(product_image_url, '_.\\?', format_string('_%s?', x)   )  ) as additional_image_urls
+  FROM pinfo
+  WHERE advertiser_name='Free People'
+
+  UNION ALL
+
+  -- nastygal
+  SELECT 
+    product_id,
+    TRANSFORM(
+      sequence(1, 4),
+      x -> regexp_replace(product_image_url, '\\.jpg', format_string('_%d.jpg', x))
+    ) as additional_image_urls
+  FROM pinfo
+  WHERE 
+    advertiser_name='NastyGal' 
 
   UNION ALL
 
@@ -57,52 +104,7 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   WHERE 
     advertiser_name='Madewell US' 
     AND size(product_additional_image_urls) > 0
-
-  UNION ALL
-
-  -- forever 21 
-  SELECT 
-    product_id,
-    TRANSFORM(
-      array('2_side_', '3_back_', '4_full_'),
-      x -> regexp_replace(product_image_url, 'default_', x)
-    ) as additional_image_urls
-  FROM pinfo
-  WHERE 
-    advertiser_name='Forever 21' 
-
-  UNION ALL
-
-  -- nastygal
-  SELECT 
-    product_id,
-    TRANSFORM(
-      sequence(1, 4),
-      x -> regexp_replace(product_image_url, '\\.jpg', format_string('_%d.jpg', x))
-    ) as additional_image_urls
-  FROM pinfo
-  WHERE 
-    advertiser_name='NastyGal' 
-
-  UNION ALL
-
-  -- topshop
-  SELECT 
-    product_id,
-    TRANSFORM( sequence(1, 4), x -> regexp_replace(product_image_url, '_.\\.jpg', format_string('_%d.jpg', x)   )  ) as additional_image_urls
-  FROM pinfo
-  WHERE 
-    advertiser_name='Topshop' 
-
-  UNION ALL
-
-  -- pacsun
-  SELECT 
-    product_id,
-    TRANSFORM( sequence(1, 4), x -> regexp_replace(product_image_url, '_00_', format_string('_0%d_', x)   )  ) as additional_image_urls
-  FROM pinfo
-  WHERE 
-    advertiser_name='PacSun' 
+  */
 );
 
 MERGE INTO {{params.product_info_table}} AS TARGET
