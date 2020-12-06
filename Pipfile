@@ -6,6 +6,7 @@ verify_ssl = true
 [dev-packages]
 jedi = "*"
 pylint = "*"
+delta = "*"
 
 [packages]
 apache-airflow = {extras = ["gcp", "postgres", "databricks"],version = "*"}
