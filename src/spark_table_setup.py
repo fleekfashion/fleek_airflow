@@ -21,7 +21,7 @@ from src.subdags import spark_table_setup
 dag = DAG(
         DAG_ID,
         start_date=days_ago(1),
-        schedule_interval="@weekly",
+        schedule_interval="@once",
         default_args=DEFAULT_DAG_ARGS,
         doc_md=__doc__
     )
