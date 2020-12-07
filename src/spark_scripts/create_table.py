@@ -3,11 +3,14 @@ import json
 
 from pyspark.sql.types import *
 import pyspark.sql.functions as F
-from pyspark.sql import SQLContext
+from pyspark.sql import SQLContext, SparkSession
+
+from delta.tables import DeltaTable
 
 ## Hack for linter
 try:
     sqlContext = SQLContext(1)
+    spark = SparkSession(sqlContext)
 except:
     pass
 
@@ -23,70 +26,133 @@ SCHEMA = StructType.fromJson(json_args["schema"])
 
 ## Optional Args
 PARTITION = json_args.get("partition")
-COMMENT = json_args.get("comment")
+COMMENT = json_args.get("comment", " ")
 
-def build_fields(schema):
-    def _build_field(field):
-        nullable = "" if field.nullable else "NOT NULL"
-        c = field.metadata.get("comment")
-        c = c if c else ""
-        c = c.replace("'", "\\'") #handle internal quotation
-        comment = f"COMMENT '{c}'" if c else ""
-        if type(field.dataType) != StructType:
-            return f"{field.name} {field.dataType.simpleString()} {nullable} {comment}"
-        else:
-            internal_fields = []
-            for f in field.dataType.fields:
-                local_nullable = "" if f.nullable else "NOT NULL"
-                internal_fields.append(
-                    f"{field.name}: {field.dataType.simpleString()} {local_nullable} {comment}"
-                )
-            internal = ", ".join
-            return f"{field.name} {field.dataType.typeName()}<{internal}> {nullable}"
-    return ",\n".join([ _build_field(field) for field in schema.fields ])
+def _build_field(field, strict):
+    nullable = "NOT NULL" if ( not field.nullable and strict) else ""
+    c = field.metadata.get("comment")
+    c = c if c else ""
+    c = c.replace("'", "\\'") #handle internal quotation
+    comment = f"COMMENT '{c}'" if c else ""
+    if type(field.dataType) != StructType:
+        return f"{field.name} {field.dataType.simpleString()} {nullable} {comment}"
 
+    internal_fields = []
+    for f in field.dataType.fields:
+        local_nullable = "" if f.nullable else "NOT NULL"
+        internal_fields.append(
+            f"{field.name}: {field.dataType.simpleString()} {local_nullable} {comment}"
+        )
+    internal = ", ".join
+    return f"{field.name} {field.dataType.typeName()}<{internal}> {nullable}"
+
+def build_fields(schema, strict):
+    return ",\n".join([ _build_field(field, strict) for field in schema.fields ])
+
+##################################
+## Create initial table 
+##################################
 def create_table(schema, table, replace=False): 
-    table_statement= "CREATE OR REPLACE TABLE" if replace else "CREATE TABLE IF NOT EXISTS"
     partition = f"PARTITIONED BY ({PARTITION})" if PARTITION else ""
-    comment = f"COMMENT '{COMMENT}'" if COMMENT else ""
-    fields = build_fields(schema)
-
-    sql = f"""{table_statement} {table}
-    ({fields})
+    fields = build_fields(schema, strict=True)
+    sql = f"""
+    CREATE TABLE IF NOT EXISTS {table} (
+    {fields}
+    )
     USING DELTA
     {partition}
-    {comment}
+    COMMENT '{COMMENT}'
     """
-    print(sql)
     sqlContext.sql(sql)
-
-# Save initial table
 create_table(SCHEMA, TABLE, replace=False)
 
+##################################
+## Add new columns
+##################################
 old_schema = sqlContext.table(TABLE).schema
-if old_schema.fieldNames() != SCHEMA.fieldNames():
-    temp_table = TABLE+"_temp"
-    overlapping_fields = StructType(
-        filter(lambda x: x.name in SCHEMA.fieldNames(), old_schema.fields)
-    )
-    new_fields = filter(lambda x: x.name not in old_schema.fieldNames(), SCHEMA.fields)
+overlapping_fields = StructType(
+    filter(lambda x: x.name in SCHEMA.fieldNames(), old_schema.fields)
+)
+new_fields = list(filter(lambda x: x.name not in old_schema.fieldNames(), SCHEMA.fields))
+new_schema_fields = StructType(new_fields)
+new_columns = build_fields(new_schema_fields, False)
 
-    transformed_df = sqlContext.table(TABLE).select(overlapping_fields.fieldNames())
-    for field in new_fields:
+query = f"""
+ALTER TABLE {TABLE} ADD COLUMNS (
+  {new_columns}
+  )
+"""
+
+if len(new_fields) > 0:
+    spark.sql(query)
+
+##################################
+## Order fields correctly
+##################################
+def order_columns():
+    old_schema = spark.table(TABLE).schema
+    for i in range(len(SCHEMA.fields)):
+        fnew = SCHEMA.fields[i]
+        fold = old_schema.fields[i]
+        if fnew.name != fold.name:
+            if i == 0:
+                spark.sql(f"ALTER TABLE {TABLE} ALTER COLUMN {fnew.name} FIRST")
+            else:
+                spark.sql(f"ALTER TABLE {TABLE} ALTER COLUMN {fnew.name} AFTER {SCHEMA.fields[i-1].name}")
+            ## update schema with new ordering
+            old_schema = spark.table(TABLE).schema
+order_columns()
+
+##############################################################
+## Get fields to change null constraint
+#############################################################
+new_not_null_fields = []
+new_null_fields = []
+old_schema = spark.table(TABLE).schema 
+for fnew, fold in zip(SCHEMA.fields, old_schema.fields):
+    if fnew.nullable != fold.nullable:
+        if fnew.nullable:
+            new_null_fields.append(fnew)
+        elif not fnew.nullable:
+            new_not_null_fields.append(fnew)
+
+##################################
+## Set relevant default values
+##################################
+def _build_update_set(fields):
+    res = dict()
+    for field in fields:
         default_value = field.metadata.get("default")
+        if default_value is None:
+            continue
         if type(default_value) == list:
             value = F.array([F.lit(v) for v in default_value]).cast(field.dataType.simpleString())
         else:
             value = F.lit(default_value)
-        transformed_df = transformed_df.withColumn(field.name, value)
-    transformed_df.write.saveAsTable(temp_table, format="delta", mode="overwrite")
+        res[field.name] = F.coalesce(field.name, value)
+    return res
 
-    sqlContext.sql(f"DROP TABLE IF EXISTS {TABLE}")
-    create_table(SCHEMA, TABLE, replace=True)
-    df = sqlContext.table(temp_table)
-    df.write.saveAsTable(
-        name=TABLE,
-        format="delta",
-        mode="append"
-    )
-    sqlContext.sql(f"DROP TABLE IF EXISTS {temp_table}")
+t = DeltaTable.forName(spark, TABLE)
+update_set = _build_update_set(new_not_null_fields)
+t.update(set=update_set)
+
+##################################
+## Add not null constraints
+##################################
+for field in new_not_null_fields:
+    query = f"ALTER TABLE {TABLE} ALTER COLUMN {field.name} SET NOT NULL"
+    spark.sql(query)
+
+##################################
+## Drop not null constraints
+##################################
+for field in new_null_fields:
+    query = f"ALTER TABLE {TABLE} ALTER COLUMN {field.name} DROP NOT NULL"
+    spark.sql(query)
+
+
+##################################
+## Update Comments 
+##################################
+for field in SCHEMA.fields:
+    spark.sql(f"ALTER TABLE {TABLE} ALTER COLUMN {field.name} COMMENT '{field.metadata.get('comment', ' ')}'")
