@@ -1,35 +1,69 @@
-from src.defs.postgre import utils
-
-def create_table_query(table_name: str, columns: list, is_prod: bool = False,
-                       tail: str="", drop: bool=False):
-    query = "BEGIN TRANSACTION;\n"
-    if drop == True:
-        query += f"DROP TABLE IF EXISTS {table_name};\n"
-    query += f"CREATE TABLE IF NOT EXISTS {table_name}(\n"
-    
-    for i, col in enumerate(columns):
-        if type(col) == str:
-            query += col
-        else:
-            query += f"\t{col['name']} {col['type']} {col['mode']}"
-            if is_prod:
-                query += " " + col.get("prod", "")
-        if i != len(columns) - 1:
-            query += ","
-        query += "\n"
-
+def _py_to_pg(val, dtype):
+    def _simple_py_to_pg(val):
+        if type(val) == str:
+            return f"'{val}'"
+        if type(val) == int or type(val) == float:
+            return "{val}"
+        if type(val) == bool:
+            return "{val}".lower()
+    if type(val) == list:
+        return f"ARRAY[{', '.join(map(_simple_py_to_pg, val))}]::{dtype}"
+    else:
+        return _simple_py_to_pg(val)
+            
+def create_table_query(table_name: str, columns: list, is_prod: bool = False, tail: str=""):
     tail = tail if is_prod else ""
-    query += f") {tail};\n"
-    query += "END TRANSACTION;"
-    return query
 
-def create_staging_table_query(table_name: str,
-                               denomer=utils.DENOMER):
-    staging_name = table_name+denomer
+    def _build_field(col, is_prod):
+        if is_prod:
+            return f"{col['name']} {col['type']} {col.get('mode', '')} {col.get('prod', '')}"
+        else:
+            return f"{col['name']} {col['type']}"
+
+    def _add_column(col):
+        return f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS {_build_field(col, False)};\n"
+
+    def _set_default_vals(col):
+        default = _py_to_pg(col['default'], col['type'])
+        return f"{col['name']} = coalesce({col['name']}, {default})"
+
+    def _set_nullability(col):
+        constraint = "SET NOT NULL" if "not null" in col['mode'].lower() else "DROP NOT NULL"
+        return f"ALTER TABLE {table_name} ALTER COLUMN {col['name']} {constraint};\n"
+
+    fields = ",\n".join(
+        map(lambda x: _build_field(x, is_prod), columns)
+    )
+
+    add_fields = "".join(
+        map(_add_column, columns)
+    )
+
+    default_vals = ", ".join(
+        map(_set_default_vals,
+            filter(lambda x: 'default' in x.keys(), columns)
+            )
+    )
+    default_vals = default_vals if is_prod else ""
+
+    set_default_stmt = f"""
+    UPDATE {table_name}
+        SET {default_vals};
+    """ if len(default_vals) > 0 else ""
+
+    nullability_stmt = "".join(
+        map(_set_nullability, columns)
+    ) if is_prod else ""
+
     query = f"""
     BEGIN TRANSACTION;
-    DROP TABLE IF EXISTS {staging_name};
-    CREATE TABLE {staging_name} ( LIKE {table_name} );
+    CREATE TABLE IF NOT EXISTS {table_name} (
+    {fields}
+    )
+    {tail};
+    {add_fields};
+    {set_default_stmt};
+    {nullability_stmt};
     END TRANSACTION;
     """
     return query
