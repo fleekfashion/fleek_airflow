@@ -91,6 +91,51 @@ TABLES = {
                     )
                 }
             ),
+            StructField(name="advertiser_name",
+                dataType=StringType(),
+                nullable=False,
+                metadata={
+                    "comment": (
+                        "used for airflow streaming"
+                    )
+                }
+            ),
+            StructField(name="advertiser_names",
+                dataType=ArrayType(StringType()),
+                nullable=False,
+                metadata={
+                    "comment": (
+                        "used for airflow streaming"
+                    )
+                }
+            ),
+            StructField(name="product_label",
+                dataType=StringType(),
+                nullable=False,
+                metadata={
+                    "comment": (
+                        "used for airflow streaming"
+                    )
+                }
+            ),
+            StructField(name="product_labels",
+                dataType=ArrayType(StringType()),
+                nullable=False,
+                metadata={
+                    "comment": (
+                        "used for airflow streaming"
+                    )
+                }
+            ),
+            StructField(name="searchString",
+                dataType=StringType(),
+                nullable=False,
+                metadata={
+                    "comment": (
+                        "used for airflow streaming"
+                    )
+                }
+            ),
         ]),
         "partition": ["execution_date"],
         "comment": "Table of all user events: event is main event, method is how event occured"
