@@ -232,11 +232,19 @@ class SparkSQLOperator(SparkScriptOperator):
         output_table: str = None,
         mode: str = None,
         output_format: str = "delta",
+        drop_duplicates: bool = False,
+        duplicates_subset: list = None,
         **kwargs
     ):
         kwargs['script'] = "run_sql.py"
         super(SparkSQLOperator, self).__init__(**kwargs)
-        self.json_args = { "mode": mode, "output_table": output_table, "format": output_format}
+        self.json_args = {
+            "mode": mode,
+            "output_table": output_table,
+            "format": output_format,
+            "drop_duplicates": drop_duplicates,
+            "duplicates_subset": duplicates_subset,
+        }
 
 
 def create_table_operator(
