@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.7
 
 ENV AIRFLOW_HOME /usr/local/airflow
 ENV AIRFLOW_USER_ID 9001
