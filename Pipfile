@@ -5,8 +5,9 @@ verify_ssl = true
 
 [dev-packages]
 jedi = "*"
-pylint = "*"
 delta = "*"
+pyspark-stubs = "*"
+pyflakes = "*"
 
 [packages]
 apache-airflow = {extras = ["gcp", "postgres", "databricks"],version = "*"}
@@ -24,6 +25,7 @@ sagemaker = "==1.69.0"
 scipy = {"version>" = "1.5.1"}
 databricks-cli = "*"
 pyspark = {"version>" = "3.0.0"}
+pylint = "*"
 
 [requires]
 python_version = "3.7"

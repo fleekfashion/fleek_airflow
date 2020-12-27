@@ -1,3 +1,10 @@
+DELETE
+FROM {{ params.processed_similarity_table }}
+WHERE 
+  product_id in (
+    SELECT product_id FROM {{params.product_similarity_table}}
+  );
+
 WITH all_products AS (
   SELECT * FROM {{params.active_table}} 
     UNION ALL
@@ -22,7 +29,7 @@ SELECT
   product_id, 
   similar_product_id,
   CASE WHEN size(array_intersect(root_label, similar_label)) > 0
-    THEN 1.2*similarity_score
+    THEN 1.0*similarity_score
     ELSE similarity_score
   END AS similarity_score
 FROM pinfo

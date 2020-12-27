@@ -23,20 +23,20 @@ def get_operators(dag: DAG_TYPE) -> dict:
     head = DummyOperator(task_id="active_products_ml_head", dag=dag)
     tail = DummyOperator(task_id="active_products_ml_tail", dag=dag)
 
-    compute_product_similarity = SparkScriptOperator(
+    compute_product_similarity = SparkSQLOperator(
         task_id="compute_product_similarity",
         dag=dag,
-        script="compute_product_similarity.py",
-        json_args={
-            "active_table": "{{params.active_table}}",
-            "historic_table": "{{params.historic_table}}",
-            "output_table": pcdefs.get_full_name(pcdefs.PRODUCT_SIMILARITY_SCORES),
-            "TOP_N": 1000,
-        },
+        sql="template/compute_product_similarity.sql",
         params={
             "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
             "historic_table": pcdefs.get_full_name(pcdefs.HISTORIC_PRODUCTS_TABLE),
+            "historic_days": 45,
+            "min_score": .4
         },
+        output_table=pcdefs.get_full_name(pcdefs.PRODUCT_SIMILARITY_SCORES),
+        mode="WRITE_TRUNCATE",
+        drop_duplicates=True,
+        duplicates_subset=["product_id", "similar_product_id"],
         num_workers=8,
     )
 
@@ -46,13 +46,14 @@ def get_operators(dag: DAG_TYPE) -> dict:
         script="process_similar_products.py",
         sql="template/similar_items_processing.sql",
         json_args={
-            "output_table": pcdefs.get_full_name(pcdefs.SIMILAR_PRODUCTS_TABLE),
+            "output_table": "{{params.processed_similarity_table}}",
             "TOP_N": 100,
         },
         params={
             "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
             "historic_table": pcdefs.get_full_name(pcdefs.HISTORIC_PRODUCTS_TABLE),
             "product_similarity_table": pcdefs.get_full_name(pcdefs.PRODUCT_SIMILARITY_SCORES),
+            "processed_similarity_table": pcdefs.get_full_name(pcdefs.SIMILAR_PRODUCTS_TABLE),
         },
         num_workers=4,
     )
