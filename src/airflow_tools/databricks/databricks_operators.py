@@ -15,7 +15,7 @@ import copy
 from airflow.models import DAG
 from airflow.models.baseoperator import BaseOperator, BaseOperatorLink
 from airflow.utils.decorators import apply_defaults
-from airflow.contrib.operators.databricks_operator import DatabricksSubmitRunOperator, _handle_databricks_operator_execution, _deep_string_coerce
+from airflow.providers.databricks.operators.databricks import  _handle_databricks_operator_execution, _deep_string_coerce
 from airflow.contrib.hooks.databricks_hook import DatabricksHook
 from pyspark.sql.types import StructType
 

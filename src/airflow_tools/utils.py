@@ -1,10 +1,10 @@
 from airflow.sensors.external_task_sensor import ExternalTaskSensor
-from pendulum import Pendulum
+from pendulum import DateTime
 
-def nearest_day(execution_date: Pendulum) -> Pendulum:
+def nearest_day(execution_date: DateTime) -> DateTime:
     return execution_date.date()
 
-def nearest_hour(execution_date: Pendulum) -> Pendulum:
+def nearest_hour(execution_date: DateTime) -> DateTime:
     return execution_date.hour_(execution_date.hour)
 
 def get_dag_sensor(dag, external_dag_id,
