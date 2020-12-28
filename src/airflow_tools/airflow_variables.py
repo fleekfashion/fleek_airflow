@@ -12,8 +12,8 @@ DEFAULT_DAG_ARGS = {
         'email': ['airflow@fleek_airflow.com'],
         'email_on_failure': True,
         'email_on_retry': False,
-        'retries': 1,
-        'retry_delay': timedelta(minutes=5),
+        'retries': 2,
+        'retry_delay': timedelta(minutes=10),
         'template_searchpath': ["/usr/local/airflow/dags/src/template/"],
         }
 
