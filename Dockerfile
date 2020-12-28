@@ -17,7 +17,6 @@ RUN pip3 install pipenv
 # Add Python dependencies
 RUN cd $AIRFLOW_HOME
 ADD Pipfile Pipfile
-ADD Pipfile.lock Pipfile.lock
 RUN pipenv install --system --deploy
 
 # Cleanup any unneeded temp files

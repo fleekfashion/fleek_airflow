@@ -10,7 +10,7 @@ pyspark-stubs = "*"
 pyflakes = "*"
 
 [packages]
-apache-airflow = {extras = ["gcp", "postgres", "databricks"],version = "*"}
+apache-airflow = {extras = ["gcp", "postgres", "databricks"], version = "==2.0.0"}
 mysqlclient = "*"
 dill = "*"
 pyhash = "==0.9.3"

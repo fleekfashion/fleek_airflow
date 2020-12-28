@@ -3,3 +3,4 @@
 *.pylintrc
 aws_creds/
 *.env
+*.lock
