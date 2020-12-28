@@ -86,8 +86,7 @@ class SparkScriptOperator(BaseOperator):
         self.spark_version = spark_version
         self.spark_conf = spark_conf
         self.libraries = libraries
-        self.init_scripts = init_scripts + ["install_pyfunctional.sh"]
-
+        self.init_scripts = init_scripts
         self.databricks_conn_id = databricks_conn_id
         self.polling_period_seconds = polling_period_seconds
         self.databricks_retry_limit = databricks_retry_limit
