@@ -97,11 +97,7 @@ WORKER_SLEEP_TIME="{{params.sleep_time}}"
 
 sleep ${WORKER_SLEEP_TIME}s
 
-MAX_LOG_AGE_IN_DAYS="{{dag_run.conf.maxLogAgeInDays}}"
-if [ "${MAX_LOG_AGE_IN_DAYS}" == "" ]; then
-    echo "maxLogAgeInDays conf variable isn't included. Using Default '""" + str(DEFAULT_MAX_LOG_AGE_IN_DAYS) + """'."
-    MAX_LOG_AGE_IN_DAYS='""" + str(DEFAULT_MAX_LOG_AGE_IN_DAYS) + """'
-fi
+MAX_LOG_AGE_IN_DAYS="{{dag_run.conf.maxLogAgeInDays | default(params.default_max_age) }}"
 ENABLE_DELETE=""" + str("true" if ENABLE_DELETE else "false") + """
 echo "Finished Getting Configurations"
 echo ""
@@ -217,7 +213,9 @@ for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
             bash_command=log_cleanup,
             params={
                 "directory": str(directory),
-                "sleep_time": int(log_cleanup_id)*3},
+                "sleep_time": int(log_cleanup_id)*3,
+                "default_max_age": DEFAULT_MAX_LOG_AGE_IN_DAYS
+            },
             dag=dag)
 
         log_cleanup_op.set_upstream(start)
