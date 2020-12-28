@@ -8,6 +8,7 @@ import os
 PROJECT = os.environ.get("PROJECT", "staging")
 DBFS_AIRFLOW_DIR = f"dbfs:/{PROJECT}/airflow"
 DBFS_DEFS_DIR = f"dbfs:/{PROJECT}/defs"
+DBFS_INIT_SCRIPT_DIR = f"dbfs:/shared/init_scripts/"
 DBFS_SCRIPT_DIR = f"{DBFS_AIRFLOW_DIR}/spark_scripts"
 DBFS_TMP_DIR = f"{DBFS_AIRFLOW_DIR}/tmp"
 
