@@ -26,6 +26,7 @@ pyspark = {"version>" = "3.0.0"}
 pylint = "*"
 paramiko = "*"
 apache-airflow-providers-ssh = "*"
+pyfunctional = "*"
 
 [requires]
 python_version = "3.7"

@@ -18,9 +18,9 @@ from airflow.utils.decorators import apply_defaults
 from airflow.providers.databricks.operators.databricks import  _handle_databricks_operator_execution, _deep_string_coerce
 from airflow.contrib.hooks.databricks_hook import DatabricksHook
 from pyspark.sql.types import StructType
-
+from functional import seq 
 from src.airflow_tools.airflow_variables import SRC_DIR
-from src.defs.delta.utils import DBFS_SCRIPT_DIR, SHARED_POOL_ID, DBFS_TMP_DIR, PROJECT
+from src.defs.delta.utils import DBFS_SCRIPT_DIR, SHARED_POOL_ID, DBFS_TMP_DIR, PROJECT, DBFS_INIT_SCRIPT_DIR
 
 def _cp_dbfs(src: str, dest: str,
         overwrite: bool = False) -> None:
@@ -40,8 +40,6 @@ def dbfs_read_json(dbfs_path: str):
         data = json.load(handle)
     subprocess.run(f"rm {json_filename}".split())
     return data
-
-
 
 class SparkScriptOperator(BaseOperator):
     template_fields = ('sql', 'json_args',)
@@ -89,7 +87,6 @@ class SparkScriptOperator(BaseOperator):
         self.spark_conf = spark_conf
         self.libraries = libraries
         self.init_scripts = init_scripts
-
         self.databricks_conn_id = databricks_conn_id
         self.polling_period_seconds = polling_period_seconds
         self.databricks_retry_limit = databricks_retry_limit
@@ -137,7 +134,19 @@ class SparkScriptOperator(BaseOperator):
         else:
             return {}
     
-    
+    def _build_init_scripts_params(self):
+        def _upload_script(script: str) -> str:
+            dbfs_path = f"{DBFS_INIT_SCRIPT_DIR}/{script}"
+            _cp_dbfs(f"{SRC_DIR}/init_scripts/{script}", dbfs_path, overwrite=True)
+            return dbfs_path
+        scripts = seq(self.init_scripts) \
+                .map(lambda x: x if 'dbfs:/' in x else _upload_script(x)) \
+                .map(lambda x: { "dbfs" : { "destination" : x }}) \
+                .to_list()
+        return {
+            "init_scripts": scripts
+        }
+
     def _build_cluster_params(self):
         if self.cluster_id is not None:
             return {"existing_cluster_id": self.cluster_id}
@@ -158,14 +167,10 @@ class SparkScriptOperator(BaseOperator):
                 }
             })
 
-
         params.update({"spark_version": self.spark_version})
         params.update(self._build_spark_conf())
         params.update(self._build_machine_type_param())
-        params["init_scripts"] = [
-            { "dbfs" : { "destination" : script }}
-            for script in self.init_scripts
-        ]
+        params.update(self._build_init_scripts_params())
         return {"new_cluster": params}
 
 
@@ -207,13 +212,9 @@ class SparkScriptOperator(BaseOperator):
 
     def execute(self, context):
         job_json = self._build_json_job()
-        print(self.sql)
-        print(job_json)
-
         hook = self.get_hook()
         self.run_id = hook.submit_run(job_json)
-        print(f"\n\n{'*'*10} RUN ID: {self.run_id} {'*'*10}\n\n")
-
+        context['ti'].xcom_push(key="job_params", value=job_json)
         _handle_databricks_operator_execution(self, hook, self.log, context)
         _rm_dbfs(self.dbfs_json_path)
 
