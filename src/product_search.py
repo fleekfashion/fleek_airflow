@@ -4,8 +4,10 @@ TLDR: Update product search meili endpoint
 
 from datetime import timedelta
 
+from airflow.decorators import task
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
 from functional import seq
 
@@ -14,9 +16,11 @@ from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
 from src.airflow_tools import dag_defs
 from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, SparkSQLOperator
 from src.airflow_tools.utils import get_dag_sensor
+from src.callable import search_settings 
 from src.defs.delta import product_catalog as pcdefs
 from src.defs.delta import postgres as phooks
 from src.defs.postgre import product_catalog as postdefs
+from src.defs.delta.utils import DBFS_DEFS_DIR 
 from src.defs import search
 
 DAG_ID = dag_defs.PRODUCT_SEARCH
@@ -37,17 +41,36 @@ upload_products = SparkScriptOperator(
     dag=dag,
     task_id="upload_products",
     script="product_search_upload.py",
-    n_workers=0,
+    local=True,
     json_args={
         "products_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
         "fields": seq(postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE)) \
                 .filter(lambda x: x != "is_active")
                 .to_list() + ['swipe_rate'],
-        "search_endpoint": f"{pcdefs.PROJECT}_products",
+        "search_endpoint": search.PRODUCT_SEARCH_INDEX,
         "search_url": search.URL,
         "search_password": search.PASSWORD
     },
     init_scripts=["install_meilisearch.sh"]
 )
 
-trigger >> head >> upload_products >> tail
+@task
+def update_product_search_settings():
+   settings = search_settings.update_settings(
+           synonyms_filepath=f"{DBFS_DEFS_DIR}/search/global/synonyms.json",
+           settings_filepath=f"{DBFS_DEFS_DIR}/search/products/settings.json",
+           index_name=search.PRODUCT_SEARCH_INDEX
+       )
+   return settings
+
+@task
+def update_autocomplete_settings():
+   settings = search_settings.update_settings(
+           synonyms_filepath=f"{DBFS_DEFS_DIR}/search/global/synonyms.json",
+           settings_filepath=f"{DBFS_DEFS_DIR}/search/autocomplete/settings.json",
+           index_name=search.AUTOCOMPLETE_INDEX
+       )
+   return settings
+trigger >> head >> update_product_search_settings >> upload_products >> tail
+head >> update_autocomplete_settings >> tail
+

@@ -9,7 +9,7 @@ from pyspark.sql import SQLContext, SparkSession
 from pyspark import SparkContext
 
 import meilisearch
-from functional import pseq as seq
+from functional import seq
 
 ## Hack for linter
 try:
@@ -33,13 +33,6 @@ SEARCH_PASSWORD = json_args["search_password"]
 c = meilisearch.Client('http://161.35.113.38/', 'fleek-app-prod1')
 index = c.get_index(SEARCH_ENDPOINT)
 
-df = spark.table(PRODUCTS_TABLE) \
-  .withColumn("swipe_rate", 
-              (F.col("n_likes") + F.col("n_add_to_cart") + 1) / 
-              (F.col("n_views") + 6) 
-    ) \
-  .select(FIELDS)
-
 def _process_entry(e):
     e = copy.copy(e)
     e['execution_date'] = e['execution_date'].strftime('%Y-%m-%d')
@@ -58,6 +51,14 @@ def get_keys_to_delete(active_ids: Set[int]) -> List[int]:
     return old_keys
     
 ## Load current data
+df = spark.table(PRODUCTS_TABLE) \
+  .withColumn("swipe_rate", 
+              (F.col("n_likes") + F.col("n_add_to_cart") + 1) / 
+              (F.col("n_views") + 6) 
+    ) \
+  .select(FIELDS)
+
+## Collect Data
 data = seq(df.collect()) \
         .map(lambda x: x.asDict()) \
         .map(lambda x: _process_entry) \
