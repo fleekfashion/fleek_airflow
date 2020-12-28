@@ -37,6 +37,20 @@ trigger = get_dag_sensor(dag, dag_defs.SPARK_PRODUCT_DOWNLOAD_ETL)
 head = DummyOperator(task_id=f"{DAG_ID}_dag_head", dag=dag)
 tail = DummyOperator(task_id=f"{DAG_ID}_dag_tail", dag=dag)
 
+AUTOCOMPLETE_DEFS_DIR = f"{DBFS_DEFS_DIR}/search/autocomplete"
+PRODUCT_SEARCH_DEFS_DIR = f"{DBFS_DEFS_DIR}/search/products"
+
+update_product_search_settings = PythonOperator(
+    task_id="update_product_search_settings",
+    dag=dag,
+    python_callable=search_settings.update_settings,
+    op_kwargs={
+        "synonyms_filepath": f"{DBFS_DEFS_DIR}/search/global/synonyms.json",
+        "settings_filepath": f"{PRODUCT_SEARCH_DEFS_DIR}/settings.json",
+        "index_name": search.PRODUCT_SEARCH_INDEX
+    }
+)
+
 upload_products = SparkScriptOperator(
     dag=dag,
     task_id="upload_products",
@@ -54,23 +68,37 @@ upload_products = SparkScriptOperator(
     init_scripts=["install_meilisearch.sh"]
 )
 
-@task
-def update_product_search_settings():
-   settings = search_settings.update_settings(
-           synonyms_filepath=f"{DBFS_DEFS_DIR}/search/global/synonyms.json",
-           settings_filepath=f"{DBFS_DEFS_DIR}/search/products/settings.json",
-           index_name=search.PRODUCT_SEARCH_INDEX
-       )
-   return settings
+update_autocomplete_settings = PythonOperator(
+    task_id="update_autocomplete_settings",
+    dag=dag,
+    python_callable=search_settings.update_settings,
+    op_kwargs={
+        "synonyms_filepath": f"{DBFS_DEFS_DIR}/search/global/synonyms.json",
+        "settings_filepath": f"{AUTOCOMPLETE_DEFS_DIR}/settings.json",
+        "index_name": search.AUTOCOMPLETE_INDEX
+    }
+)
 
-@task
-def update_autocomplete_settings():
-   settings = search_settings.update_settings(
-           synonyms_filepath=f"{DBFS_DEFS_DIR}/search/global/synonyms.json",
-           settings_filepath=f"{DBFS_DEFS_DIR}/search/autocomplete/settings.json",
-           index_name=search.AUTOCOMPLETE_INDEX
-       )
-   return settings
+
+AUTOCOMPLETE_DEFS_LOCAL_DIR = AUTOCOMPLETE_DEFS_DIR.replace('dbfs:/', '/dbfs/')
+autocomplete_upload = SparkScriptOperator(
+    dag=dag,
+    task_id="autocomplete_upload",
+    script="autocomplete_upload.py",
+    local=True,
+    json_args={
+        "active_products_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
+        "autocomplete_index": search.AUTOCOMPLETE_INDEX,
+        "product_search_index": search.PRODUCT_SEARCH_INDEX,
+        "search_url": search.URL,
+        "search_password": search.PASSWORD,
+        "taxonomy_path": f"{AUTOCOMPLETE_DEFS_LOCAL_DIR}/taxonomy.json",
+        "global_attributes_path": f"{AUTOCOMPLETE_DEFS_LOCAL_DIR}/global_attributes.json",
+        "colors_path": f"{AUTOCOMPLETE_DEFS_LOCAL_DIR}/colors.json",
+        "labels_path": f"{DBFS_DEFS_DIR.replace('dbfs:/', '/dbfs/')}/product_download/global/product_labels.json",
+    },
+    init_scripts=["install_meilisearch.sh"]
+)
 trigger >> head >> update_product_search_settings >> upload_products >> tail
-head >> update_autocomplete_settings >> tail
+head >> update_autocomplete_settings >> autocomplete_upload >> tail
 

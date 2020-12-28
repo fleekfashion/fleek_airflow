@@ -53,7 +53,7 @@ def get_keys_to_delete(active_ids: Set[int]) -> List[int]:
 ## Load current data
 df = spark.table(PRODUCTS_TABLE) \
   .withColumn("swipe_rate", 
-              (F.col("n_likes") + F.col("n_add_to_cart") + 1) / 
+              (F.col("n_likes") + F.col("n_add_to_cart") + 1) /
               (F.col("n_views") + 6) 
     ) \
   .select(FIELDS)
@@ -61,7 +61,7 @@ df = spark.table(PRODUCTS_TABLE) \
 ## Collect Data
 data = seq(df.collect()) \
         .map(lambda x: x.asDict()) \
-        .map(lambda x: _process_entry) \
+        .map(_process_entry) \
         .to_list()
 active_product_ids = seq(data) \
         .map(lambda x: x['product_id']) \
@@ -71,6 +71,6 @@ active_product_ids = seq(data) \
 index.delete_documents(get_keys_to_delete(active_product_ids))
 
 ## Upload Products
-step = 800
+step = 700
 for i in range(0, len(data) , step):
     res = index.add_documents(data[i: min(i+step, len(data) - 1)])

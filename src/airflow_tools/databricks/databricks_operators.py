@@ -11,6 +11,7 @@ import subprocess
 import random
 import json
 import copy
+from typing import Dict, List, Union, Any
 
 from airflow.models import DAG
 from airflow.models.baseoperator import BaseOperator, BaseOperatorLink
@@ -27,12 +28,13 @@ def _cp_dbfs(src: str, dest: str,
     flags = "-r --overwrite" if overwrite else "-r"
     cmd = f"dbfs cp {flags} {src} {dest}" 
     process = subprocess.run(cmd.split())
+    process.check_returncode()
 
 def _rm_dbfs(dbfs_path: str) -> None:
     cmd = f"dbfs rm  {dbfs_path}" 
     process = subprocess.run(cmd.split())
 
-def dbfs_read_json(dbfs_path: str):
+def dbfs_read_json(dbfs_path: str) -> Union[Dict[Any, Any], List[Any]]:
     json_filename = f"{random.randint(0, 2**48)}.json"
     _cp_dbfs(src=dbfs_path, dest=json_filename)
 

@@ -6,12 +6,14 @@ from pyspark.sql.types import *
 from pyspark.sql import SQLContext, SparkSession
 from pyspark import SparkContext
 
+from functional import seq
+
 ## Hack for linter
 try:
     sqlContext = SQLContext(1)
     sc = SparkContext()
     spark = SparkSession(sc)
-except:
+except Exception:
     pass
 
 parser = argparse.ArgumentParser()
