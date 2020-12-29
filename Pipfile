@@ -9,6 +9,7 @@ delta = "*"
 pyspark-stubs = "*"
 pyflakes = "*"
 meilisearch = "*"
+mypy = "*"
 
 [packages]
 apache-airflow = {extras = ["databricks", "postgres", "google", "mysql"],version = "==2.0.0"}
