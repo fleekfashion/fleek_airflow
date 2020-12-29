@@ -122,7 +122,7 @@ df['primary_key'] = df.index
 ################################################
 
 def _has_hits(doc) -> bool:
-    query = f"{doc['secondary_attribute']} {doc['primary_attribute']} {doc['attribute_descriptor']}"
+    query = f"{doc['secondary_attribute']} {doc['primary_attribute']} {doc['attribute_descriptor']}".rstrip().lstrip()
     label = doc.get('product_label', "")
     facetFilters = [f"product_labels:{label}"] if len(label) > 0 else None
     res = product_search_index.search(query, opt_params={
