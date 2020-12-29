@@ -48,6 +48,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
         json_args={
             "output_table": "{{params.processed_similarity_table}}",
             "TOP_N": 100,
+            "DS": "{{ds}}"
         },
         params={
             "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),

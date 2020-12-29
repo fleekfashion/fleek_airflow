@@ -94,10 +94,13 @@ def get_operators(dag: DAG):
             "src": pcdefs.get_full_name(pcdefs.SIMILAR_PRODUCTS_TABLE),
             "target": spark_defs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE, staging=True),
             "columns": ", ".join(postdefs.get_columns(postdefs.SIMILAR_PRODUCTS_TABLE)),
-            "mode": "OVERWRITE TABLE"
+            "mode": "OVERWRITE TABLE",
+            "partition_field": "execution_date"
         },
-        sql="template/std_insert.sql",
-        local=True
+        sql="template/std_partitioned_insert.sql",
+        local=True,
+
+
     )
 
     write_similar_items_prod = CloudSqlQueryOperator(
