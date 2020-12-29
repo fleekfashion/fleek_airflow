@@ -151,5 +151,4 @@ df.write \
   .format("delta") \
   .mode("overwrite") \
   .option("replaceWhere", f"execution_date = '{DS}'") \
-  .saveAsTable("prod_product_catalog.product_info")
-df.write.saveAsTable(OUTPUT_TABLE, format="delta", mode="overwrite")
+  .saveAsTable(OUTPUT_TABLE)
