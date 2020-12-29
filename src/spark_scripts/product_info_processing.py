@@ -147,4 +147,9 @@ df = df.withColumn('product_additional_image_urls', F.expr("array_remove(product
 ###################################
 ## Save table
 ###################################
-df.write.saveAsTable(OUTPUT_TABLE, format="delta", mode="append")
+df.write \
+  .format("delta") \
+  .mode("overwrite") \
+  .option("replaceWhere", f"execution_date = '{DS}'") \
+  .saveAsTable("prod_product_catalog.product_info")
+df.write.saveAsTable(OUTPUT_TABLE, format="delta", mode="overwrite")
