@@ -3,6 +3,7 @@ import json
 
 from pyspark.sql import SQLContext, SparkSession
 from pyspark.sql.types import DateType
+from pyspark.sql.column import Column
 from pyspark import SparkContext
 
 # Databricks notebook source
@@ -37,7 +38,7 @@ for query in SQL.split(";"):
 # Processing: Filter out products whose labels dont match
 #############################################################
 def sorted_posexplode(score_field: str, additional_fields: list, asc: bool = True
-        ) -> F.col:
+        ) -> Column:
     fields = [score_field] + additional_fields
     zipped_fields = F.arrays_zip(*fields) # score first for sorting
     sorted_fields = F.array_sort(zipped_fields)
@@ -53,7 +54,7 @@ df.groupBy("product_id") \
         "product_id",
         sorted_posexplode(
             "similarity_scores",
-            "similar_product_ids",
+            ["similar_product_ids"],
             asc=False
         )
     ) \
