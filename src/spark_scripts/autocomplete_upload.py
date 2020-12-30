@@ -56,6 +56,7 @@ ADVERTISER_NAMES = seq(advertisers) \
 c = meilisearch.Client(SEARCH_URL, SEARCH_PASSWORD)
 index = c.get_index(AUTOCOMPLETE_INDEX)
 product_search_index = c.get_index(PRODUCT_SEARCH_INDEX)
+SEARCHABLE_ATTRIBUTES = index.get_searchable_attributes()
 
 ################################################
 # Process Each row: handle nulls, filters etc.
@@ -89,7 +90,7 @@ processed_docs = (
     .to_list()
 df = pd.DataFrame(processed_docs)
 
-def posexplode(df, attribute):
+def posexplode(df: pd.DataFrame, attribute: str) -> pd.DataFrame:
     df = df.explode(attribute)
     df[attribute + '_rank'] = df.groupby(df.index).cumcount()+1
     df = df.reset_index(drop=True)
@@ -103,19 +104,24 @@ def _add_global_attributes(doc):
         .to_list()
     doc['secondary_attribute'] = [""] + existing_attributes + global_attributes
     return doc
-
+def _build_suggestion(x):
+    return f"{x['secondary_attribute']} {x['primary_attribute']} {x['attribute_descriptor']} {x['product_label']}".replace("  ", " ").rstrip().lstrip()
 
 df = posexplode(df, "product_label") \
     .apply(_add_global_attributes, axis=1) \
     .drop(labels=['secondary_attributes'], axis=1)
 df = posexplode(df, "secondary_attribute")
 df = posexplode(df, "attribute_descriptor")
-df = df.drop_duplicates()
-df['rank'] = (1.1*df.product_label_rank + 
-              df.secondary_attribute_rank +
-              df.attribute_descriptor_rank) / 3.1
-df['primary_key'] = df.index
-
+df['suggestion'] = df.apply(_build_suggestion, axis=1) # build suggestion string
+df['rank'] = (
+        (
+            1.2*df.product_label_rank +
+            1.1*df.attribute_descriptor_rank + 
+            df.secondary_attribute_rank
+        ) / 3.3
+    )
+df['primary_key'] = df[SEARCHABLE_ATTRIBUTES].apply(lambda x: hash(tuple(x)), axis = 1)
+df = df.drop_duplicates(subset=['primary_key'])
 
 ################################################
 # Filter out autocomplete string with no items
@@ -137,11 +143,17 @@ final_docs = seq(exploded_docs) \
     .filter(_has_hits) \
     .to_list()
 
+################################################
+# Batch upload documents
+################################################
+step = 1000
+for i in range(0, len(final_docs) , step):
+    res = index.add_documents(final_docs[i: min(i+step, len(final_docs))])
 
 ################################################
 # Delete inactive documents
 ################################################
-def get_keys_to_delete(active_ids: Set[int], primary_key: str) -> List[int]:
+def _get_keys_to_delete(active_keys: Set[int], primary_key: str) -> List[int]:
     hits = index.search("", opt_params={
         "offset": 0,
         "limit": 10**10,
@@ -149,18 +161,20 @@ def get_keys_to_delete(active_ids: Set[int], primary_key: str) -> List[int]:
     })['hits']
     old_keys = seq(hits) \
             .map(lambda x: x[primary_key]) \
-            .filter(lambda x: x not in active_ids) \
+            .filter(lambda x: x not in active_keys) \
             .to_list()
     return old_keys
 
-index.delete_documents(get_keys_to_delete(
-    active_ids=seq(final_docs).map(lambda x: x['primary_key']).to_set(),
-    primary_key='primary_key'
-))
+def delete_old_documents():
+    keys = _get_keys_to_delete(
+        active_keys=seq(final_docs).map(lambda x: x['primary_key']).to_set(),
+        primary_key='primary_key'
+    )
+    index.delete_documents(keys)
+    return len(keys) > 0
 
-################################################
-# Batch upload documents 
-################################################
-step = 1000
-for i in range(0, len(final_docs) , step):
-    res = index.add_documents(final_docs[i: min(i+step, len(final_docs))])
+## B/c of distinct search suggestions
+## We need to iteratively delete documents
+## (should not be more than 2-3 iterations)
+while delete_old_documents():
+    pass

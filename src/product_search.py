@@ -4,23 +4,20 @@ TLDR: Update product search meili endpoint
 
 from datetime import timedelta
 
-from airflow.decorators import task
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
 from functional import seq
 
-from src.airflow_tools.queries import postgre_queries as pquery
 from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
 from src.airflow_tools import dag_defs
-from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, SparkSQLOperator
+from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator
 from src.airflow_tools.utils import get_dag_sensor
-from src.callable import search_settings 
+from src.callable import search_settings
 from src.defs.delta import product_catalog as pcdefs
-from src.defs.delta import postgres as phooks
 from src.defs.postgre import product_catalog as postdefs
-from src.defs.delta.utils import DBFS_DEFS_DIR 
+from src.defs.delta.utils import DBFS_DEFS_DIR
 from src.defs import search
 
 DAG_ID = dag_defs.PRODUCT_SEARCH
@@ -33,7 +30,9 @@ dag = DAG(
         description=__doc__
 )
 
-trigger = get_dag_sensor(dag, dag_defs.SPARK_PRODUCT_DOWNLOAD_ETL)
+trigger = get_dag_sensor(dag,
+        dag_defs.SPARK_PRODUCT_DOWNLOAD_ETL,
+        timeout=timedelta(hours=8))
 head = DummyOperator(task_id=f"{DAG_ID}_dag_head", dag=dag)
 tail = DummyOperator(task_id=f"{DAG_ID}_dag_tail", dag=dag)
 
@@ -101,4 +100,3 @@ autocomplete_upload = SparkScriptOperator(
 )
 trigger >> head >> update_product_search_settings >> upload_products >> tail
 head >> update_autocomplete_settings >> autocomplete_upload >> tail
-

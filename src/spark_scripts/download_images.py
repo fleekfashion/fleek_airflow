@@ -54,6 +54,7 @@ print(sql)
 
 downloadUDF = F.udf(downloader, BinaryType())
 sqlContext.sql(sql) \
+    .drop_duplicates(subset=['product_id']) \
     .repartition(sc.defaultParallelism * 3) \
     .cache() \
     .withColumn("image_content", downloadUDF(F.col("product_image_url"))) \
