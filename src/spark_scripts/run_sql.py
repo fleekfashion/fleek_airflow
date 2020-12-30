@@ -37,7 +37,7 @@ for query in SQL.split(";"):
 
 processed_df = df.transform(
                 lambda df: df.drop_duplicates(subset=SUBSET)
-                if DROP_DUPLICATES else df)
+                if DROP_DUPLICATES and MODE is not None else df)
 
 if MODE == "WRITE_APPEND":
     processed_df.write.saveAsTable(OUTPUT_TABLE, format=FORMAT, mode="append")

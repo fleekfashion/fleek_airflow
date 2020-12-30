@@ -64,8 +64,6 @@ def get_operators(dag: DAG_TYPE) -> dict:
             },
         sql="template/spark_append_new_active_products.sql",
         local=True,
-        drop_duplicates=True,
-        duplicates_subset=['product_id'],
     )
 
     head >> image_download >> new_product_ml >> append_new_products >> tail
