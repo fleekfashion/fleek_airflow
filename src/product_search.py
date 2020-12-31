@@ -125,6 +125,7 @@ upload_trending_searches = PythonOperator(
     op_kwargs={
         "def_filepath": f"{DBFS_DEFS_DIR}/search/trending/searches.json",
         "index_name": search.TRENDING_INDEX,
+        "random_order": True,
     }
 )
 
@@ -139,22 +140,13 @@ update_label_settings = PythonOperator(
     }
 )
 
-def processor(docs: dict) -> List[dict]:
-    new_docs = []
-    for label in docs.keys():
-        new_docs.append({
-            "product_label": label
-        })
-    return sorted(new_docs, key=lambda x: x["product_label"])
-
 upload_label_searches = PythonOperator(
     task_id="upload_label_searches",
     dag=dag,
     python_callable=upload_trending_documents.add_documents,
     op_kwargs={
-        "def_filepath": f"{DBFS_DEFS_DIR}/product_download/global/product_labels.json",
-        "index_name": search.LABELS_INDEX,
-        "processor": processor
+        "def_filepath": f"{AUTOCOMPLETE_DEFS_DIR}/labels.json",
+        "index_name": search.LABELS_INDEX
     }
 )
 

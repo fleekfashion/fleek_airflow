@@ -1,4 +1,5 @@
 from typing import Dict, Any, Set, List, Callable
+import random
 
 from meilisearch import Client
 from meilisearch.index import Index
@@ -38,7 +39,8 @@ def _process_doc(product_index: Index, doc: dict):
 def add_documents(
     def_filepath: str,
     index_name: str,
-    processor: Callable = lambda x: x
+    processor: Callable = lambda x: x,
+    random_order: bool = False
     ) -> None:
     index = Client(search.URL, search.PASSWORD) \
             .get_index(index_name)
@@ -48,7 +50,7 @@ def add_documents(
     docs = processor(docs)
     
     for i, doc in enumerate(docs):
-        doc["rank"] = i
+        doc["rank"] = random.random() if random_order else i
         _process_doc(product_index, doc)
         doc['primary_key'] = hash(tuple(doc.values()))
     
