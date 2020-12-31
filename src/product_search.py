@@ -4,9 +4,11 @@ TLDR: Update product search meili endpoint
 
 from datetime import timedelta
 
+import meilisearch
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python import PythonOperator
+from airflow.sensors.time_delta import TimeDeltaSensor 
 from airflow.utils.dates import days_ago
 from functional import seq
 
@@ -14,7 +16,7 @@ from src.airflow_tools.airflow_variables import DEFAULT_DAG_ARGS
 from src.airflow_tools import dag_defs
 from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator
 from src.airflow_tools.utils import get_dag_sensor
-from src.callable import search_settings
+from src.callable import search_settings, upload_trending_documents
 from src.defs.delta import product_catalog as pcdefs
 from src.defs.postgre import product_catalog as postdefs
 from src.defs.delta.utils import DBFS_DEFS_DIR
@@ -98,5 +100,35 @@ autocomplete_upload = SparkScriptOperator(
     },
     init_scripts=["install_meilisearch.sh"]
 )
-trigger >> head >> update_product_search_settings >> upload_products >> tail
+
+sleep_task_1 = TimeDeltaSensor(
+    task_id="short_nap",
+    delta=timedelta(minutes=30),
+    mode='reschedule'
+)
+
+update_trending_settings = PythonOperator(
+    task_id="update_trending_settings",
+    dag=dag,
+    python_callable=search_settings.update_settings,
+    op_kwargs={
+        "synonyms_filepath": f"{DBFS_DEFS_DIR}/search/global/synonyms.json",
+        "settings_filepath": f"{DBFS_DEFS_DIR}/search/trending/settings.json",
+        "index_name": search.TRENDING_INDEX
+    }
+)
+
+upload_trending_searches = PythonOperator(
+    task_id="upload_trending_searches",
+    dag=dag,
+    python_callable=upload_trending_documents.add_documents,
+    op_kwargs={
+        "def_filepath": f"{DBFS_DEFS_DIR}/search/trending/searches.json",
+        "index_name": search.TRENDING_INDEX,
+    }
+)
+
+trigger >> head >> update_product_search_settings >> upload_products  >> \
+        sleep_task_1 >> update_trending_settings >> upload_trending_searches \
+        >> tail
 head >> update_autocomplete_settings >> autocomplete_upload >> tail

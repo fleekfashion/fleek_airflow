@@ -1,1 +1,1 @@
-from . import search_settings
+from . import *
