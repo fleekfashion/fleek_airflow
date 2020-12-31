@@ -3,7 +3,7 @@ TLDR: Update product search meili endpoint
 """
 
 from datetime import timedelta
-
+from typing import Dict, List
 import meilisearch
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
@@ -128,7 +128,39 @@ upload_trending_searches = PythonOperator(
     }
 )
 
+update_label_settings = PythonOperator(
+    task_id="update_label_settings",
+    dag=dag,
+    python_callable=search_settings.update_settings,
+    op_kwargs={
+        "synonyms_filepath": f"{DBFS_DEFS_DIR}/search/global/synonyms.json",
+        "settings_filepath": f"{DBFS_DEFS_DIR}/search/trending/settings.json",
+        "index_name": search.LABELS_INDEX
+    }
+)
+
+def processor(docs: dict) -> List[dict]:
+    new_docs = []
+    for label in docs.keys():
+        new_docs.append({
+            "product_label": label
+        })
+    return sorted(new_docs, key=lambda x: x["product_label"])
+
+upload_label_searches = PythonOperator(
+    task_id="upload_label_searches",
+    dag=dag,
+    python_callable=upload_trending_documents.add_documents,
+    op_kwargs={
+        "def_filepath": f"{DBFS_DEFS_DIR}/product_download/global/product_labels.json",
+        "index_name": search.LABELS_INDEX,
+        "processor": processor
+    }
+)
+
 trigger >> head >> update_product_search_settings >> upload_products  >> \
-        sleep_task_1 >> update_trending_settings >> upload_trending_searches \
-        >> tail
+    sleep_task_1 >> update_trending_settings >> upload_trending_searches \
+    >> tail
+sleep_task_1 >> update_label_settings >> upload_label_searches \
+    >> tail
 head >> update_autocomplete_settings >> autocomplete_upload >> tail

@@ -38,12 +38,14 @@ def _process_doc(product_index: Index, doc: dict):
 def add_documents(
     def_filepath: str,
     index_name: str,
+    processor: Callable = lambda x: x
     ) -> None:
     index = Client(search.URL, search.PASSWORD) \
             .get_index(index_name)
     product_index = Client(search.URL, search.PASSWORD) \
             .get_index(search.PRODUCT_SEARCH_INDEX)
     docs = dbfs_read_json(def_filepath)
+    docs = processor(docs)
     
     for i, doc in enumerate(docs):
         doc["rank"] = i
