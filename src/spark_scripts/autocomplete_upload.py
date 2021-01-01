@@ -105,8 +105,6 @@ def _add_global_attributes(doc):
         .to_list()
     doc['secondary_attribute'] = [""] + existing_attributes + global_attributes
     return doc
-def _build_suggestion(x):
-    return f"{x['secondary_attribute']} {x['primary_attribute']} {x['attribute_descriptor']} {x['product_label']}".replace("  ", " ").rstrip().lstrip()
 
 ## Explode Relevant fields
 df = posexplode(df, "product_label") \
@@ -121,7 +119,12 @@ df = df[df.apply(lambda x: x['secondary_attribute'] not in x['EXCLUDE'], axis=1)
         .drop("EXCLUDE", axis=1)
 
 ## Build search columns
+def _build_suggestion(x):
+    return f"{x['secondary_attribute']} {x['primary_attribute']} {x['attribute_descriptor']} {x['product_label']}".replace("  ", " ").rstrip().lstrip()
+order_invariant_hash = lambda x: hash(tuple(sorted(x.split())))
+
 df['suggestion'] = df.apply(_build_suggestion, axis=1) # build suggestion string
+df['suggestion_hash'] = df.suggestion.apply(order_invariant_hash)
 df['rank'] = (
         (
             1.2*df.product_label_rank +
