@@ -155,37 +155,12 @@ final_docs = seq(exploded_docs) \
     .to_list()
 
 ################################################
-# Batch upload documents
+# Delete and Upload documents
 ################################################
+index.delete_all_documents()
 step = 1000
 for i in range(0, len(final_docs) , step):
     res = index.add_documents(final_docs[i: min(i+step, len(final_docs))])
-
 ################################################
 # Delete inactive documents
 ################################################
-def _get_keys_to_delete(active_keys: Set[int], primary_key: str) -> List[int]:
-    hits = index.search("", opt_params={
-        "offset": 0,
-        "limit": 10**10,
-        "attributesToRetrieve": [primary_key]
-    })['hits']
-    old_keys = seq(hits) \
-            .map(lambda x: x[primary_key]) \
-            .filter(lambda x: x not in active_keys) \
-            .to_list()
-    return old_keys
-
-def delete_old_documents():
-    keys = _get_keys_to_delete(
-        active_keys=seq(final_docs).map(lambda x: x['primary_key']).to_set(),
-        primary_key='primary_key'
-    )
-    index.delete_documents(keys)
-    return len(keys) > 0
-
-## B/c of distinct search suggestions
-## We need to iteratively delete documents
-## (should not be more than 2-3 iterations)
-while delete_old_documents():
-    pass
