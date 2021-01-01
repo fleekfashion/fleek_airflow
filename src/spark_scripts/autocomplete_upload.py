@@ -72,6 +72,7 @@ def _process_doc(doc):
     doc["secondary_attributes"] = doc.get("secondary_attributes", [])
     doc["primary_attribute"] = doc.get("primary_attribute", "")
     doc["product_label"] = [""] + doc['product_label'] if not doc['is_base_label'] else doc["product_label"]
+    doc["EXCLUDE"] = set(doc.get('EXCLUDE', []))
     return doc
 
 ################################################
@@ -104,15 +105,26 @@ def _add_global_attributes(doc):
         .to_list()
     doc['secondary_attribute'] = [""] + existing_attributes + global_attributes
     return doc
-def _build_suggestion(x):
-    return f"{x['secondary_attribute']} {x['primary_attribute']} {x['attribute_descriptor']} {x['product_label']}".replace("  ", " ").rstrip().lstrip()
 
+## Explode Relevant fields
 df = posexplode(df, "product_label") \
     .apply(_add_global_attributes, axis=1) \
     .drop(labels=['secondary_attributes'], axis=1)
 df = posexplode(df, "secondary_attribute")
 df = posexplode(df, "attribute_descriptor")
+
+## Drop excluded attributes
+df = df[df.apply(lambda x: x['secondary_attribute'] not in x['EXCLUDE'], axis=1)] \
+        .reset_index() \
+        .drop("EXCLUDE", axis=1)
+
+## Build search columns
+def _build_suggestion(x):
+    return f"{x['secondary_attribute']} {x['primary_attribute']} {x['attribute_descriptor']} {x['product_label']}".replace("  ", " ").rstrip().lstrip()
+order_invariant_hash = lambda x: hash(tuple(sorted(x.split())))
+
 df['suggestion'] = df.apply(_build_suggestion, axis=1) # build suggestion string
+df['suggestion_hash'] = df.suggestion.apply(order_invariant_hash)
 df['rank'] = (
         (
             1.2*df.product_label_rank +
@@ -120,13 +132,12 @@ df['rank'] = (
             df.secondary_attribute_rank
         ) / 3.3
     )
-df['primary_key'] = df[SEARCHABLE_ATTRIBUTES].apply(lambda x: hash(tuple(x)), axis = 1)
+df['primary_key'] = df[SEARCHABLE_ATTRIBUTES].apply(lambda x: hash(tuple(x)), axis = 1) ## only use searchable attributes
 df = df.drop_duplicates(subset=['primary_key'])
 
 ################################################
 # Filter out autocomplete string with no items
 ################################################
-
 def _has_hits(doc) -> bool:
     query = f"{doc['secondary_attribute']} {doc['primary_attribute']} {doc['attribute_descriptor']}".rstrip().lstrip()
     label = doc.get('product_label', "")
@@ -144,37 +155,12 @@ final_docs = seq(exploded_docs) \
     .to_list()
 
 ################################################
-# Batch upload documents
+# Delete and Upload documents
 ################################################
+index.delete_all_documents()
 step = 1000
 for i in range(0, len(final_docs) , step):
     res = index.add_documents(final_docs[i: min(i+step, len(final_docs))])
-
 ################################################
 # Delete inactive documents
 ################################################
-def _get_keys_to_delete(active_keys: Set[int], primary_key: str) -> List[int]:
-    hits = index.search("", opt_params={
-        "offset": 0,
-        "limit": 10**10,
-        "attributesToRetrieve": [primary_key]
-    })['hits']
-    old_keys = seq(hits) \
-            .map(lambda x: x[primary_key]) \
-            .filter(lambda x: x not in active_keys) \
-            .to_list()
-    return old_keys
-
-def delete_old_documents():
-    keys = _get_keys_to_delete(
-        active_keys=seq(final_docs).map(lambda x: x['primary_key']).to_set(),
-        primary_key='primary_key'
-    )
-    index.delete_documents(keys)
-    return len(keys) > 0
-
-## B/c of distinct search suggestions
-## We need to iteratively delete documents
-## (should not be more than 2-3 iterations)
-while delete_old_documents():
-    pass
