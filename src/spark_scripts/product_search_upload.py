@@ -68,6 +68,6 @@ active_product_ids = seq(data) \
 index.delete_documents(get_keys_to_delete(active_product_ids))
 
 ## Upload Products
-step = 700
+step = 500
 for i in range(0, len(data) , step):
     res = index.add_documents(data[i: min(i+step, len(data) - 1)])
