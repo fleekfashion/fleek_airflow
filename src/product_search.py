@@ -4,6 +4,8 @@ TLDR: Update product search meili endpoint
 
 from datetime import timedelta
 from typing import Dict, List
+import copy
+
 import meilisearch
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
@@ -23,18 +25,22 @@ from src.defs.delta.utils import DBFS_DEFS_DIR
 from src.defs import search
 
 DAG_ID = dag_defs.PRODUCT_SEARCH
+DAG_ARGS = copy.copy(DEFAULT_DAG_ARGS)
 dag = DAG(
         DAG_ID,
         catchup=False,
         start_date=days_ago(1),
+        max_active_runs=1,
         schedule_interval="@daily",
-        default_args=DEFAULT_DAG_ARGS,
+        default_args=DAG_ARGS,
         description=__doc__
 )
 
-trigger = get_dag_sensor(dag,
-        dag_defs.SPARK_PRODUCT_DOWNLOAD_ETL,
-        timeout=timedelta(hours=8))
+trigger = get_dag_sensor(
+    dag,
+    dag_defs.SPARK_PRODUCT_DOWNLOAD_ETL,
+    timeout=timedelta(hours=6)
+)
 head = DummyOperator(task_id=f"{DAG_ID}_dag_head", dag=dag)
 tail = DummyOperator(task_id=f"{DAG_ID}_dag_tail", dag=dag)
 
@@ -55,16 +61,19 @@ update_product_search_settings = PythonOperator(
 upload_products = SparkScriptOperator(
     dag=dag,
     task_id="upload_products",
+    sql="template/process_product_search_products.sql",
     script="product_search_upload.py",
     local=True,
     json_args={
-        "products_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
         "fields": seq(postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE)) \
                 .filter(lambda x: x != "is_active")
-                .to_list() + ['swipe_rate'],
+                .to_list() + ['swipe_rate', 'default_search_order'],
         "search_endpoint": search.PRODUCT_SEARCH_INDEX,
         "search_url": search.URL,
         "search_password": search.PASSWORD
+    },
+    params={
+        "active_products_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE)
     },
     init_scripts=["install_meilisearch.sh"]
 )
@@ -103,7 +112,7 @@ autocomplete_upload = SparkScriptOperator(
 
 sleep_task_1 = TimeDeltaSensor(
     task_id="short_nap",
-    delta=timedelta(minutes=30),
+    delta=timedelta(minutes=7),
     mode='reschedule'
 )
 

@@ -24,8 +24,9 @@ parser.add_argument("--json", type=str, required=True)
 args = parser.parse_args()
 with open(args.json, "rb") as handle:
     json_args = json.load(handle)
+
+SQL = json_args["sql"]
 SEARCH_ENDPOINT = json_args["search_endpoint"]
-PRODUCTS_TABLE = json_args["products_table"]
 FIELDS = json_args["fields"]
 SEARCH_URL = json_args["search_url"]
 SEARCH_PASSWORD = json_args["search_password"]
@@ -51,12 +52,8 @@ def get_keys_to_delete(active_ids: Set[int]) -> List[int]:
     return old_keys
     
 ## Load current data
-df = spark.table(PRODUCTS_TABLE) \
-  .withColumn("swipe_rate", 
-              (F.col("n_likes") + F.col("n_add_to_cart") + 1) /
-              (F.col("n_views") + 6) 
-    ) \
-  .select(FIELDS)
+df = spark.sql(SQL) \
+        .select(FIELDS)
 
 ## Collect Data
 data = seq(df.collect()) \
