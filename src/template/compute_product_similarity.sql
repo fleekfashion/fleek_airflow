@@ -4,7 +4,6 @@ CREATE OR REPLACE TEMPORARY VIEW active_products AS (
     product_image_embedding,
     explode(product_labels) as product_label
   FROM {{ params.active_table }} 
-  LIMIT 1000
 );
 
 CREATE OR REPLACE TEMPORARY VIEW all_products AS (
@@ -25,7 +24,6 @@ CREATE OR REPLACE TEMPORARY VIEW all_products AS (
       SELECT product_id from {{ params.active_table }}
     ) 
     AND execution_date > DATE_SUB( '{{ ds }}', {{ params.historic_days }})
-  LIMIT 1000
 );
 
 CREATE OR REPLACE TEMPORARY VIEW product_pairs AS (
