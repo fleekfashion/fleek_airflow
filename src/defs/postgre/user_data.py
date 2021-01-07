@@ -56,8 +56,22 @@ SCHEMAS = {
                 "type": "TEXT[]",
                 "mode": ""
             },
+            {
+                "name": "advertiser_names",
+                "type": "TEXT[]",
+                "mode": ""
+            },
+            {
+                "name": "product_labels",
+                "type": "TEXT[]",
+                "mode": ""
+            },
+            {
+                "name": "searchString",
+                "type": "TEXT",
+                "mode": ""
+            },
         ],
         "tail" : f";\nCREATE INDEX IF NOT EXISTS {PROJECT}_user_events_table_index ON {get_full_name(USER_EVENTS_TABLE)} (event_timestamp)"
     },
 }
-
