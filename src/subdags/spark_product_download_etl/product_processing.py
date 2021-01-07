@@ -63,7 +63,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             "columns": ", ".join(pcdefs.get_columns(pcdefs.ACTIVE_PRODUCTS_TABLE)),
             },
         sql="template/spark_append_new_active_products.sql",
-        local=True
+        local=True,
     )
 
     head >> image_download >> new_product_ml >> append_new_products >> tail

@@ -55,7 +55,6 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   WHERE 
     advertiser_name='PacSun' 
 
-  /*
   UNION ALL
 
   -- Free People increase to f later
@@ -104,7 +103,6 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   WHERE 
     advertiser_name='Madewell US' 
     AND size(product_additional_image_urls) > 0
-  */
 );
 
 MERGE INTO {{params.product_info_table}} AS TARGET

@@ -16,7 +16,8 @@ if [ "$@" = "webserver" ] || [ "$@" = "worker" ] || [ "$@" = "scheduler" ] ; the
     done
 
     echo "Initialize database..."
-    $CMD initdb
+    $CMD db init 
+    $CMD users create --role Admin --username kian --email ghodoussikian@gmail.com --firstname Kian --lastname Ghodoussi --password $KIAN_PASSWORD 
     ./database_setup.sh
     databricks configure <<!
 $DATABRICKS_HOST

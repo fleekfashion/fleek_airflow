@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.7
 
 ENV AIRFLOW_HOME /usr/local/airflow
 ENV AIRFLOW_USER_ID 9001
@@ -18,7 +18,7 @@ RUN pip3 install pipenv
 RUN cd $AIRFLOW_HOME
 ADD Pipfile Pipfile
 ADD Pipfile.lock Pipfile.lock
-RUN pipenv install --dev --system --deploy
+RUN pipenv install --system --deploy
 
 # Cleanup any unneeded temp files
 RUN apt-get clean \
