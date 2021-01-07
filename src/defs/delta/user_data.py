@@ -93,19 +93,19 @@ TABLES = {
             ),
             StructField(name="advertiser_names",
                 dataType=ArrayType(StringType()),
-                nullable=False,
+                nullable=True,
                 metadata={
                 }
             ),
             StructField(name="product_labels",
                 dataType=ArrayType(StringType()),
-                nullable=False,
+                nullable=True,
                 metadata={
                 }
             ),
             StructField(name="searchString",
                 dataType=StringType(),
-                nullable=False,
+                nullable=True,
                 metadata={
                 }
             ),
