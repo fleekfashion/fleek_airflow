@@ -27,7 +27,6 @@ with open(args.json, "rb") as handle:
 
 SQL = json_args["sql"]
 SEARCH_ENDPOINT = json_args["search_endpoint"]
-PRODUCTS_TABLE = json_args["products_table"]
 FIELDS = json_args["fields"]
 SEARCH_URL = json_args["search_url"]
 SEARCH_PASSWORD = json_args["search_password"]
@@ -53,7 +52,7 @@ def get_keys_to_delete(active_ids: Set[int]) -> List[int]:
     return old_keys
     
 ## Load current data
-df = spark.table(SQL) \
+df = spark.sql(SQL) \
         .select(FIELDS)
 
 ## Collect Data

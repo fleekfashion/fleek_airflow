@@ -4,6 +4,8 @@ TLDR: Update product search meili endpoint
 
 from datetime import timedelta
 from typing import Dict, List
+import copy
+
 import meilisearch
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
@@ -24,7 +26,6 @@ from src.defs import search
 
 DAG_ID = dag_defs.PRODUCT_SEARCH
 DAG_ARGS = copy.copy(DEFAULT_DAG_ARGS)
-DAG_ARGS["depends_on_past"] = True
 dag = DAG(
         DAG_ID,
         catchup=False,
@@ -38,7 +39,7 @@ dag = DAG(
 trigger = get_dag_sensor(
     dag,
     dag_defs.SPARK_PRODUCT_DOWNLOAD_ETL,
-    timeout=timedelta(hours=5)
+    timeout=timedelta(hours=6)
 )
 head = DummyOperator(task_id=f"{DAG_ID}_dag_head", dag=dag)
 tail = DummyOperator(task_id=f"{DAG_ID}_dag_tail", dag=dag)
@@ -72,7 +73,7 @@ upload_products = SparkScriptOperator(
         "search_password": search.PASSWORD
     },
     params={
-        "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE
+        "active_products_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE)
     },
     init_scripts=["install_meilisearch.sh"]
 )
