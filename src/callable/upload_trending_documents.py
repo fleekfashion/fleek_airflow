@@ -23,13 +23,14 @@ def _get_keys_to_delete(index: Index, active_keys: Set[int], primary_key: str) -
 def _process_doc(product_index: Index, doc: dict):
     doc['suggestion'] = f"{doc.get('secondary_attribute', '')} {doc.get('primary_attribute', '')} {doc.get('attribute_descriptor', '')} {doc.get('product_label', '')}".replace("  ", " ").rstrip().lstrip()
 
-    product_label = doc.get('product_label', "")
-    search_string = doc['suggestion'].replace(product_label, "")
+    search_string = doc['suggestion']
     opt_params = {
         "offset": 0,
         "limit": 1,
         "attributesToRetrieve": ["product_image_url"]
     }
+
+    product_label = doc.get('product_label', "")
     if len(product_label) > 0:
         opt_params['facetFilters'] = [f"product_labels:{product_label}"]
     first_hit = product_index.search(search_string, opt_params=opt_params)['hits'][0]
