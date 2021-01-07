@@ -1,16 +1,16 @@
 from typing import Callable
-from airflow.sensors.external_task_sensor import ExternalTaskSensor
+from datetime import timedelta
+from airflow.sensors.external_task import ExternalTaskSensor
 
 def get_dag_sensor(dag,
         external_dag_id: str,
         execution_date_fn: Callable=None,
-        timeout=None,
+        timeout: timedelta = None,
         retries=0) -> ExternalTaskSensor:
     return ExternalTaskSensor(
         dag=dag,
         task_id=f"{external_dag_id}_sensor",
         external_dag_id=external_dag_id,
-        external_task_id=f"{external_dag_id}_dag_tail",
         check_existence=True,
         execution_date_fn=execution_date_fn,
         execution_timeout=timeout,
@@ -21,7 +21,7 @@ def get_task_sensor(dag,
         external_dag_id: str,
         external_task_id,
         execution_date_fn: Callable=None,
-        timeout=None,
+        timeout: int = 60*60*12,
         retries=0) -> ExternalTaskSensor:
     return ExternalTaskSensor(
         dag=dag,
