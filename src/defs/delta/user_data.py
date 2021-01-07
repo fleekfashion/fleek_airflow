@@ -91,6 +91,24 @@ TABLES = {
                     )
                 }
             ),
+            StructField(name="advertiser_names",
+                dataType=ArrayType(StringType()),
+                nullable=True,
+                metadata={
+                }
+            ),
+            StructField(name="product_labels",
+                dataType=ArrayType(StringType()),
+                nullable=True,
+                metadata={
+                }
+            ),
+            StructField(name="searchString",
+                dataType=StringType(),
+                nullable=True,
+                metadata={
+                }
+            ),
         ]),
         "partition": ["execution_date"],
         "comment": "Table of all user events: event is main event, method is how event occured"
