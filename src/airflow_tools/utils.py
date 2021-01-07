@@ -21,7 +21,7 @@ def get_task_sensor(dag,
         external_dag_id: str,
         external_task_id,
         execution_date_fn: Callable=None,
-        timeout: int = 60*60*12,
+        timeout: timedelta = None,
         retries=0) -> ExternalTaskSensor:
     return ExternalTaskSensor(
         dag=dag,
