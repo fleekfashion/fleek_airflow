@@ -1,4 +1,4 @@
-DROP TABLE {{ params.table }};
+DROP TABLE IF EXISTS {{ params.table }};
 CREATE TABLE IF NOT EXISTS {{ params.table }}
 USING org.apache.spark.sql.jdbc
 OPTIONS (
