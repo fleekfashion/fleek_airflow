@@ -87,6 +87,25 @@ def get_operators(dag: DAG):
         )
     )
 
+    write_product_price_history = CloudSqlQueryOperator(
+        dag=dag,
+        gcp_cloudsql_conn_id=postdefs.CONN_ID,
+        task_id="PROD_write_product_price_history",
+        sql=pquery.upsert(
+            table_name=postdefs.get_full_name(postdefs.PRODUCT_PRICE_HISTORY_TABLE),
+            staging_name=f"""(
+            SELECT 
+                product_id, 
+                DATE('{{{{ ds }}}}') AS execution_date,
+                product_sale_price AS product_price 
+            FROM {pinfo_table_name}
+            WHERE is_active
+            ) product_prices""",
+            key="product_id, execution_date",
+            columns=postdefs.get_columns(postdefs.PRODUCT_PRICE_HISTORY_TABLE),
+        )
+    )
+
     write_similar_items_staging= SparkSQLOperator(
         task_id="STAGING_write_similar_items",
         dag=dag,
@@ -143,7 +162,7 @@ def get_operators(dag: DAG):
         )
     )
 
-    head >> insert_active_products >> merge_active_products >> write_top_products >> tail
+    head >> insert_active_products >> merge_active_products >> [write_top_products, write_product_price_history] >> tail
     head >> write_similar_items_staging >> write_similar_items_prod >> tail
     head >> write_product_recs_staging >> write_product_recs_prod >> tail
 
