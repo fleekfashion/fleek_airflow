@@ -11,6 +11,7 @@ DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
 
 PRODUCT_INFO_TABLE = "product_info"
+PRODUCT_PRICE_HISTORY_TABLE = "product_price_history"
 SIMILAR_PRODUCTS_TABLE = "similar_products_v2"
 TOP_PRODUCTS_TABLE = "top_products"
 
@@ -117,11 +118,37 @@ SCHEMAS = {
                 "mode": "NOT NULL"
             },
         ],
-        "tail" : f";\nCREATE INDEX IF NOT EXISTS {PROJECT}_product_info_index ON {get_full_name(PRODUCT_INFO_TABLE)} (is_active, product_id)"
+        "tail": f";\nCREATE INDEX IF NOT EXISTS {PROJECT}_product_info_index ON {get_full_name(PRODUCT_INFO_TABLE)} (is_active, product_id)"
+    },
+
+    PRODUCT_PRICE_HISTORY_TABLE: {
+        "schema": [
+            {
+                "name": "product_id",
+                "type": "bigint",
+                "mode": "NOT NULL",
+                "prod": (
+                    f"REFERENCES {get_full_name(PRODUCT_INFO_TABLE)} (product_id)"
+                )
+            },
+            {
+                "name": "execution_date",
+                "type": "DATE",
+                "mode": "NOT NULL"
+            },
+            {
+                "name": "product_price",
+                "type": "double precision",
+                "mode": "NOT NULL",
+                "prod": (
+                    f",\n constraint pk_{PROJECT}_{PRODUCT_PRICE_HISTORY_TABLE} primary key (product_id, execution_date)"
+                )
+            },
+        ]
     },
 
     SIMILAR_PRODUCTS_TABLE: {
-        "schema" : [
+        "schema": [
             {
                 "name": "product_id",
                 "type": "bigint",
@@ -146,7 +173,7 @@ SCHEMAS = {
     },
 
     TOP_PRODUCTS_TABLE: {
-        "schema" : [
+        "schema": [
             {
                 "name": "product_id",
                 "type": "bigint",
@@ -156,6 +183,6 @@ SCHEMAS = {
                 )
             }
         ],
-    "tail": ""
+        "tail": ""
     }
 }
