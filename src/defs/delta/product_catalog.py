@@ -401,7 +401,7 @@ TABLES = {
                     }
                 ),
                 StructField(name="external_id",
-                    dataType=LongType(),
+                    dataType=StringType(),
                     nullable=True,
                     metadata={
                         "comment": (

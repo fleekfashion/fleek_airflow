@@ -127,8 +127,13 @@ def _build_products_df(cj_df):
     final_df['product_additional_image_urls'] = cj_df.additionalImageLink
     final_df['color'] = cj_df.color
     final_df['size'] = cj_df.size
-    final_df['external_id'] = cj_df.id
-    final_df['product_external_labels'] = df.apply(lambda x: [ x['googleProductCategory'], x['availability'], x['gender']], axis=1)
+    final_df['external_id'] = cj_df.id.astype(str)
+    final_df['product_external_labels'] = cj_df.apply(
+        lambda x: [
+            x.get('googleProductCategory', ""),
+            x.get('availability', ""),
+            x.get('gender', "")
+        ], axis=1)
     return final_df
 
 
