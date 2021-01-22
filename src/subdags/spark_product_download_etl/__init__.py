@@ -1,5 +1,2 @@
-from . import product_download
-from . import product_processing
-from . import update_active_products
-from . import active_products_ml
-from . import postgre_export
+from . import active_products_ml, new_product_processing, postgre_export
+from . import product_download, product_info_processing, update_active_products
