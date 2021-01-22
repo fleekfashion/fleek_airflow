@@ -171,6 +171,15 @@ TABLES = {
                         )
                     }
                 ),
+                StructField(name="external_id",
+                    dataType=LongType(),
+                    nullable=True,
+                    metadata={
+                        "comment": (
+                            "External identifier for each product."
+                        )
+                    }
+                ),
                 StructField(name="product_image_embedding",
                     dataType=ArrayType(FloatType(), False),
                     nullable=False,
@@ -391,6 +400,15 @@ TABLES = {
                         )
                     }
                 ),
+                StructField(name="external_id",
+                    dataType=LongType(),
+                    nullable=True,
+                    metadata={
+                        "comment": (
+                            "External identifier for each product."
+                        )
+                    }
+                ),
                 StructField(name="execution_date",
                     dataType=DateType(),
                     nullable=False,
@@ -441,6 +459,23 @@ TABLES[DAILY_PRODUCT_DUMP_TABLE] = {
     "schema": StructType(
         [ StructField(x.name, x.dataType, nullable=True, metadata=x.metadata)
             for x in TABLES[PRODUCT_INFO_TABLE]["schema"].fields
+        ] + [
+            StructField(name="color",
+                dataType=StringType(),
+                nullable=True,
+                metadata={
+                    "comment": (
+                    )
+                }
+            ),
+            StructField(name="size",
+                dataType=StringType(),
+                nullable=True,
+                metadata={
+                    "comment": (
+                    )
+                }
+            ),
         ]
     ),
     "comment": "Dump products from all sources here"
