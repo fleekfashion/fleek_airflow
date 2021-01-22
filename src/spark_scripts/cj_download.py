@@ -126,7 +126,7 @@ def _build_products_df(cj_df):
     final_df['product_image_url'] = cj_df['imageLink']
     final_df['product_additional_image_urls'] = cj_df.additionalImageLink
     final_df['color'] = cj_df.color
-    final_df['size'] = cj_df.size
+    final_df['size'] = cj_df["size"]
     final_df['external_id'] = cj_df.id.astype(str)
     final_df['product_external_labels'] = cj_df.apply(
         lambda x: [
