@@ -26,11 +26,9 @@ dag = DAG(
         start_date=days_ago(1),
         schedule_interval="@daily",
         default_args=DEFAULT_DAG_ARGS,
-        description=__doc__
+        description=__doc__,
+        default_view="graph"
     )
-
-head = DummyOperator(task_id=f"{DAG_ID}_dag_head", dag=dag)
-tail = DummyOperator(task_id=f"{DAG_ID}_dag_tail", dag=dag)
 
 download_operators = spark_product_download_etl.product_download.get_operators(dag)
 product_proc_operators = spark_product_download_etl.product_processing.get_operators(dag)
@@ -39,13 +37,7 @@ update_active_prod_operators = spark_product_download_etl.update_active_products
 active_products_ml = spark_product_download_etl.active_products_ml.get_operators(dag)
 postgre_export = spark_product_download_etl.postgre_export.get_operators(dag)
 
-head >> download_operators["head"]
-
-download_operators['tail'] >> product_proc_operators["head"]
-download_operators['tail'] >> update_active_prod_operators["head"]
-
-[ product_proc_operators['tail'], update_active_prod_operators['tail'] ] >> \
-        active_products_ml["head"]
-
-active_products_ml["tail"] >> postgre_export["head"]
-postgre_export["tail"] >> tail
+download_operators >> product_proc_operators
+download_operators >> update_active_prod_operators
+[ product_proc_operators, update_active_prod_operators ] >> active_products_ml
+active_products_ml >> postgre_export

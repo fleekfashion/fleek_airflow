@@ -10,9 +10,9 @@ Overview
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.bigquery_operator import BigQueryOperator
-
 from airflow.contrib.operators.gcp_sql_operator import CloudSqlQueryOperator
 from airflow.contrib.operators.bigquery_to_gcs import BigQueryToCloudStorageOperator
+from airflow.utils.task_group import TaskGroup
 
 from src.airflow_tools.databricks.databricks_operators import SparkSQLOperator
 from src.airflow_tools.queries import postgre_queries as pquery
@@ -29,141 +29,140 @@ from src.defs.delta import postgres as phooks
 
 
 def get_operators(dag: DAG):
-    head = DummyOperator(task_id="postgre_export_head", dag=dag)
-    tail = DummyOperator(task_id="postgre_export_tail", dag=dag)
+    with TaskGroup(group_id="postgre_export", dag=dag) as group:
 
-    pinfo_table_name=postdefs.get_full_name(postdefs.PRODUCT_INFO_TABLE)
-    pinfo_staging_name=postdefs.get_full_name(postdefs.PRODUCT_INFO_TABLE, staging=True)
-    columns = ", ".join(
-            [ c for c in postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE)
-            if "is_active" not in c ])
+        pinfo_table_name=postdefs.get_full_name(postdefs.PRODUCT_INFO_TABLE)
+        pinfo_staging_name=postdefs.get_full_name(postdefs.PRODUCT_INFO_TABLE, staging=True)
+        columns = ", ".join(
+                [ c for c in postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE)
+                if "is_active" not in c ])
 
 
-    insert_active_products = SparkSQLOperator(
-        task_id="STAGE_active_products",
-        dag=dag,
-        sql="template/std_insert.sql",
-        params={
-            "target": spark_defs.get_full_name(postdefs.PRODUCT_INFO_TABLE, staging=True),
-            "mode": "OVERWRITE TABLE",
-            "src": f"(SELECT *, true as is_active FROM {pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE)})",
-            "columns": ", ".join([ c for c in postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE)]),
-        },
-        local=True
-    )
-
-    merge_active_products = CloudSqlQueryOperator(
-        dag=dag,
-        gcp_cloudsql_conn_id=postdefs.CONN_ID,
-        task_id="PROD_merge_active_products",
-        sql=pquery.staging_to_live_query(
-            table_name=pinfo_table_name,
-            staging_name=pinfo_staging_name,
-            mode="UPSERT",
-            key="product_id",
-            columns=postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE),
-            tail=f""";
-                UPDATE {pinfo_table_name} SET 
-                    is_active = false
-                WHERE product_id NOT IN (
-                    SELECT product_id FROM {pinfo_staging_name}
-                );"""
+        insert_active_products = SparkSQLOperator(
+            task_id="STAGE_active_products",
+            dag=dag,
+            sql="template/std_insert.sql",
+            params={
+                "target": spark_defs.get_full_name(postdefs.PRODUCT_INFO_TABLE, staging=True),
+                "mode": "OVERWRITE TABLE",
+                "src": f"(SELECT *, true as is_active FROM {pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE)})",
+                "columns": ", ".join([ c for c in postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE)]),
+            },
+            local=True
         )
-    )
 
-    write_top_products = CloudSqlQueryOperator(
-        dag=dag,
-        gcp_cloudsql_conn_id=postdefs.CONN_ID,
-        task_id="PROD_write_top_products",
-        sql=pquery.staging_to_live_query(
-            table_name=postdefs.get_full_name(postdefs.TOP_PRODUCTS_TABLE),
-            staging_name=f"""(
-            SELECT *
-            FROM {pinfo_table_name}
-            WHERE 'top_product'=ANY(product_tags) AND is_active
-            ) top_p""",
-            mode="WRITE_TRUNCATE",
-            columns=postdefs.get_columns(postdefs.TOP_PRODUCTS_TABLE),
+        merge_active_products = CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=postdefs.CONN_ID,
+            task_id="PROD_merge_active_products",
+            sql=pquery.staging_to_live_query(
+                table_name=pinfo_table_name,
+                staging_name=pinfo_staging_name,
+                mode="UPSERT",
+                key="product_id",
+                columns=postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE),
+                tail=f""";
+                    UPDATE {pinfo_table_name} SET 
+                        is_active = false
+                    WHERE product_id NOT IN (
+                        SELECT product_id FROM {pinfo_staging_name}
+                    );"""
+            )
         )
-    )
 
-    write_product_price_history = CloudSqlQueryOperator(
-        dag=dag,
-        gcp_cloudsql_conn_id=postdefs.CONN_ID,
-        task_id="PROD_write_product_price_history",
-        sql=pquery.upsert(
-            table_name=postdefs.get_full_name(postdefs.PRODUCT_PRICE_HISTORY_TABLE),
-            staging_name=f"""(
-            SELECT 
-                product_id, 
-                DATE('{{{{ ds }}}}') AS execution_date,
-                product_sale_price AS product_price 
-            FROM {pinfo_table_name}
-            WHERE is_active
-            ) product_prices""",
-            key="product_id, execution_date",
-            columns=postdefs.get_columns(postdefs.PRODUCT_PRICE_HISTORY_TABLE),
+        write_top_products = CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=postdefs.CONN_ID,
+            task_id="PROD_write_top_products",
+            sql=pquery.staging_to_live_query(
+                table_name=postdefs.get_full_name(postdefs.TOP_PRODUCTS_TABLE),
+                staging_name=f"""(
+                SELECT *
+                FROM {pinfo_table_name}
+                WHERE 'top_product'=ANY(product_tags) AND is_active
+                ) top_p""",
+                mode="WRITE_TRUNCATE",
+                columns=postdefs.get_columns(postdefs.TOP_PRODUCTS_TABLE),
+            )
         )
-    )
 
-    write_similar_items_staging= SparkSQLOperator(
-        task_id="STAGING_write_similar_items",
-        dag=dag,
-        params={
-            "src": pcdefs.get_full_name(pcdefs.SIMILAR_PRODUCTS_TABLE),
-            "target": spark_defs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE, staging=True),
-            "columns": ", ".join(postdefs.get_columns(postdefs.SIMILAR_PRODUCTS_TABLE)),
-            "mode": "OVERWRITE TABLE",
-            "partition_field": "execution_date"
-        },
-        sql="template/std_partitioned_insert.sql",
-        local=True,
-
-
-    )
-
-    write_similar_items_prod = CloudSqlQueryOperator(
-        dag=dag,
-        gcp_cloudsql_conn_id=postdefs.CONN_ID,
-        task_id="PROD_write_similar_items",
-        sql=pquery.upsert(
-            table_name=postdefs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE),
-            staging_name=postdefs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE, staging=True),
-            key="product_id, index",
-            columns=postdefs.get_columns(postdefs.SIMILAR_PRODUCTS_TABLE),
+        write_product_price_history = CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=postdefs.CONN_ID,
+            task_id="PROD_write_product_price_history",
+            sql=pquery.upsert(
+                table_name=postdefs.get_full_name(postdefs.PRODUCT_PRICE_HISTORY_TABLE),
+                staging_name=f"""(
+                SELECT 
+                    product_id, 
+                    DATE('{{{{ ds }}}}') AS execution_date,
+                    product_sale_price AS product_price 
+                FROM {pinfo_table_name}
+                WHERE is_active
+                ) product_prices""",
+                key="product_id, execution_date",
+                columns=postdefs.get_columns(postdefs.PRODUCT_PRICE_HISTORY_TABLE),
+            )
         )
-    )
+
+        write_similar_items_staging= SparkSQLOperator(
+            task_id="STAGING_write_similar_items",
+            dag=dag,
+            params={
+                "src": pcdefs.get_full_name(pcdefs.SIMILAR_PRODUCTS_TABLE),
+                "target": spark_defs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE, staging=True),
+                "columns": ", ".join(postdefs.get_columns(postdefs.SIMILAR_PRODUCTS_TABLE)),
+                "mode": "OVERWRITE TABLE",
+                "partition_field": "execution_date"
+            },
+            sql="template/std_partitioned_insert.sql",
+            local=True,
 
 
-    write_product_recs_staging = SparkSQLOperator(
-        task_id="STAGING_write_product_recs",
-        dag=dag,
-        params={
-            "src": pdefs.get_full_name(pdefs.USER_PRODUCT_RECS_TABLE),
-            "target": phooks.get_full_name(pdefs.USER_PRODUCT_RECS_TABLE, staging=True),
-            "columns": ", ".join(
-                persdefs.get_columns(persdefs.USER_PRODUCT_RECS_TABLE)
-            ),
-            "mode": "OVERWRITE TABLE"
-        },
-        sql="template/std_insert.sql",
-        local=True
-    )
-
-    write_product_recs_prod = CloudSqlQueryOperator(
-        dag=dag,
-        gcp_cloudsql_conn_id=persdefs.CONN_ID,
-        task_id="PROD_write_product_recs",
-        sql=pquery.upsert(
-            table_name=persdefs.get_full_name(persdefs.USER_PRODUCT_RECS_TABLE),
-            staging_name=persdefs.get_full_name(persdefs.USER_PRODUCT_RECS_TABLE, staging=True),
-            key="user_id, index",
-            columns=persdefs.get_columns(persdefs.USER_PRODUCT_RECS_TABLE),
         )
-    )
 
-    head >> insert_active_products >> merge_active_products >> [write_top_products, write_product_price_history] >> tail
-    head >> write_similar_items_staging >> write_similar_items_prod >> tail
-    head >> write_product_recs_staging >> write_product_recs_prod >> tail
+        write_similar_items_prod = CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=postdefs.CONN_ID,
+            task_id="PROD_write_similar_items",
+            sql=pquery.upsert(
+                table_name=postdefs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE),
+                staging_name=postdefs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE, staging=True),
+                key="product_id, index",
+                columns=postdefs.get_columns(postdefs.SIMILAR_PRODUCTS_TABLE),
+            )
+        )
 
-    return {"head": head, "tail": tail}
+
+        write_product_recs_staging = SparkSQLOperator(
+            task_id="STAGING_write_product_recs",
+            dag=dag,
+            params={
+                "src": pdefs.get_full_name(pdefs.USER_PRODUCT_RECS_TABLE),
+                "target": phooks.get_full_name(pdefs.USER_PRODUCT_RECS_TABLE, staging=True),
+                "columns": ", ".join(
+                    persdefs.get_columns(persdefs.USER_PRODUCT_RECS_TABLE)
+                ),
+                "mode": "OVERWRITE TABLE"
+            },
+            sql="template/std_insert.sql",
+            local=True
+        )
+
+        write_product_recs_prod = CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=persdefs.CONN_ID,
+            task_id="PROD_write_product_recs",
+            sql=pquery.upsert(
+                table_name=persdefs.get_full_name(persdefs.USER_PRODUCT_RECS_TABLE),
+                staging_name=persdefs.get_full_name(persdefs.USER_PRODUCT_RECS_TABLE, staging=True),
+                key="user_id, index",
+                columns=persdefs.get_columns(persdefs.USER_PRODUCT_RECS_TABLE),
+            )
+        )
+
+        insert_active_products >> merge_active_products >> [write_top_products, write_product_price_history]
+        write_similar_items_staging >> write_similar_items_prod
+        write_product_recs_staging >> write_product_recs_prod
+
+    return group 
