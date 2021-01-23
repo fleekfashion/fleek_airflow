@@ -65,5 +65,6 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             local=True,
             execution_timeout=timedelta(hours=1)
         )
-        truncation >> [downloads[0], rakuten_download]
+        truncation >> downloads
+        truncation >> rakuten_download
     return group
