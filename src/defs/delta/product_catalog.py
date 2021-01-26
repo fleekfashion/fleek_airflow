@@ -1,22 +1,24 @@
 import os
 from pyspark.sql.types import *
 
+from src.defs.utils import DeltaTableDef 
+
 PROJECT = os.environ.get("PROJECT", "staging")
 PROJECT = PROJECT if PROJECT == "prod" else "staging"
-DATASET = f"{PROJECT}_product_catalog"
+DATASET = f"product_catalog"
 
-ACTIVE_PRODUCTS_TABLE = "active_products"
-DAILY_PRODUCT_DUMP_TABLE = "daily_product_dump"
-HISTORIC_PRODUCTS_TABLE = "historic_products"
-NEW_PRODUCT_FEATURES_TABLE = "daily_product_ml_features"
-PRODUCT_INFO_TABLE  = "product_info"
-PRODUCT_SIMILARITY_SCORES = "product_similarity_scores"
-SIMILAR_PRODUCTS_TABLE = "similar_products_v2"
+ACTIVE_PRODUCTS_TABLE_NAME = "active_products"
+DAILY_PRODUCT_DUMP_TABLE_NAME = "daily_product_dump"
+HISTORIC_PRODUCTS_TABLE_NAME = "historic_products"
+NEW_PRODUCT_FEATURES_TABLE_NAME = "daily_product_ml_features"
+PRODUCT_INFO_TABLE_NAME  = "product_info"
+PRODUCT_SIMILARITY_SCORES_TABLE_NAME = "product_similarity_scores"
+SIMILAR_PRODUCTS_TABLE_NAME = "similar_products_v2"
 
 def get_full_name(table_name):
     name = ".".join(
         [
-            DATASET,
+            PROJECT + "_" + DATASET,
             table_name
         ]
     )
@@ -27,7 +29,7 @@ def get_columns(table_name):
 
 
 TABLES = {
-    ACTIVE_PRODUCTS_TABLE: {
+    ACTIVE_PRODUCTS_TABLE_NAME: {
         "schema": StructType([
                 StructField(name="product_id",
                     dataType=LongType(),
@@ -238,7 +240,7 @@ TABLES = {
         )
     },
 
-    NEW_PRODUCT_FEATURES_TABLE: {
+    NEW_PRODUCT_FEATURES_TABLE_NAME: {
         "schema": StructType([
             StructField(name="product_id",
                 dataType=LongType(),
@@ -263,7 +265,7 @@ TABLES = {
         "comment": "Daily ML Features table"
     },
 
-    PRODUCT_INFO_TABLE: {
+    PRODUCT_INFO_TABLE_NAME: {
         "schema": StructType([
                 StructField(name="product_id",
                     dataType=LongType(),
@@ -437,17 +439,32 @@ TABLES = {
 ## Similar Tables
 #######################################
 
-TABLES[DAILY_PRODUCT_DUMP_TABLE] = {
+TABLES[DAILY_PRODUCT_DUMP_TABLE_NAME] = {
     "schema": StructType(
         [ StructField(x.name, x.dataType, nullable=True, metadata=x.metadata)
-            for x in TABLES[PRODUCT_INFO_TABLE]["schema"].fields
+            for x in TABLES[PRODUCT_INFO_TABLE_NAME]["schema"].fields
         ]
     ),
     "comment": "Dump products from all sources here"
 }
 
-TABLES[HISTORIC_PRODUCTS_TABLE] = {
-    "schema": TABLES[ACTIVE_PRODUCTS_TABLE]["schema"],
+TABLES[HISTORIC_PRODUCTS_TABLE_NAME] = {
+    "schema": TABLES[ACTIVE_PRODUCTS_TABLE_NAME]["schema"],
     "partition": ["execution_date"],
     "comment": "Dump products from all sources here"
 }
+
+ACTIVE_PRODUCTS_TABLE = DeltaTableDef.from_tables(dataset=DATASET, tables=TABLES,
+        name=ACTIVE_PRODUCTS_TABLE_NAME)
+DAILY_PRODUCT_DUMP_TABLE = DeltaTableDef.from_tables(dataset=DATASET, tables=TABLES,
+        name=DAILY_PRODUCT_DUMP_TABLE_NAME)
+HISTORIC_PRODUCTS_TABLE = DeltaTableDef.from_tables(dataset=DATASET, tables=TABLES,
+        name=HISTORIC_PRODUCTS_TABLE_NAME)
+NEW_PRODUCT_FEATURES_TABLE = DeltaTableDef.from_tables(dataset=DATASET, tables=TABLES,
+        name=NEW_PRODUCT_FEATURES_TABLE_NAME)
+PRODUCT_INFO_TABLE= DeltaTableDef.from_tables(dataset=DATASET, tables=TABLES,
+        name=PRODUCT_INFO_TABLE_NAME)
+PRODUCT_SIMILARITY_SCORES_TABLE= DeltaTableDef.from_tables(dataset=DATASET, tables=TABLES,
+        name=PRODUCT_SIMILARITY_SCORES_TABLE_NAME)
+SIMILAR_PRODUCTS_TABLE= DeltaTableDef.from_tables(dataset=DATASET, tables=TABLES,
+        name=SIMILAR_PRODUCTS_TABLE_NAME)
