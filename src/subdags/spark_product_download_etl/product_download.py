@@ -22,8 +22,8 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
 
         truncation = SparkSQLOperator(
             dag=dag,
-            task_id=f"truncate_{pcdefs.DAILY_PRODUCT_DUMP_TABLE}",
-            sql=f"DELETE FROM {pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE)}",
+            task_id=f"truncate_{pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_name()}",
+            sql=f"DELETE FROM {pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name()}",
             min_workers=1,
             max_workers=2
         )
@@ -39,7 +39,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 dag=dag,
                 json_args={
                     "params": query_data,
-                    "output_table": pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE),
+                    "output_table": pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name(),
                 },
                 script="cj_download.py",
                 local=True
@@ -60,7 +60,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                     "Topshop": "Topshop",
                     "Free People": "Free People"
                 },
-                "output_table": pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE),
+                "output_table": pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name(),
             },
             script="rakuten_download.py",
             init_scripts=["dbfs:/shared/init_scripts/install_xmltodict.sh"],
@@ -72,8 +72,8 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             dag=dag,
             task_id="product_info_processing",
             json_args={
-                "src_table": pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE),
-                "output_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
+                "src_table": pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name(),
+                "output_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
                 "ds": "{{ds}}",
                 "timestamp": "{{ execution_date.int_timestamp }}",
                 "drop_kwargs_path": f"{DBFS_DEFS_DIR}/product_download/global/drop_keywords.json" \

@@ -14,12 +14,13 @@ from airflow.utils.task_group import TaskGroup
 
 from src.airflow_tools.databricks.databricks_operators import SparkScriptOperator, SparkSQLOperator, dbfs_read_json
 from src.airflow_tools.airflow_variables import SRC_DIR, DAG_CONFIG, DAG_TYPE
+from src.defs.utils import PROJECT 
 from src.defs.delta import product_catalog as pcdefs
 from src.defs.delta.utils import SHARED_POOL_ID, DBFS_DEFS_DIR, DBFS_AIRFLOW_DIR
 
 def get_operators(dag: DAG_TYPE) -> TaskGroup:
     f"{__doc__}"
-    IMG_TABLE = f"{pcdefs.PROJECT}_tmp.daily_image_download" 
+    IMG_TABLE = f"{PROJECT}_tmp.daily_image_download" 
 
     with TaskGroup(group_id="new_product_processing", dag=dag) as group:
         image_download = SparkScriptOperator(
@@ -29,8 +30,8 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             json_args={
                 "ds": "{{ds}}",
                 "output_table": IMG_TABLE,
-                "src_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
-                "active_products_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE)
+                "src_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
+                "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name()
             },
             num_workers=3
         )
@@ -43,7 +44,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 "img_table": IMG_TABLE,
                 "model_path": "/dbfs/ml/models/product_image_embeddings/inception/",
                 "version": "2",
-                "dest_table": pcdefs.get_full_name(pcdefs.NEW_PRODUCT_FEATURES_TABLE),
+                "dest_table": pcdefs.NEW_PRODUCT_FEATURES_TABLE.get_full_name(),
                 "num_partitions": 1
             },
             pool_id=None,
@@ -57,10 +58,10 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             task_id="apend_new_products",
             dag=dag,
             params={
-                "product_info_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
-                "prod_ml_features_table": pcdefs.get_full_name(pcdefs.NEW_PRODUCT_FEATURES_TABLE),
-                "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
-                "columns": ", ".join(pcdefs.get_columns(pcdefs.ACTIVE_PRODUCTS_TABLE)),
+                "product_info_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
+                "prod_ml_features_table": pcdefs.NEW_PRODUCT_FEATURES_TABLE.get_full_name(),
+                "active_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+                "columns": ", ".join(pcdefs.ACTIVE_PRODUCTS_TABLE.get_columns()),
                 },
             sql="template/spark_append_new_active_products.sql",
             local=True,

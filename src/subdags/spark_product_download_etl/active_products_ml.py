@@ -28,12 +28,12 @@ def get_operators(dag: DAG_TYPE) -> dict:
             dag=dag,
             sql="template/compute_product_similarity.sql",
             params={
-                "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
-                "historic_table": pcdefs.get_full_name(pcdefs.HISTORIC_PRODUCTS_TABLE),
+                "active_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+                "historic_table": pcdefs.HISTORIC_PRODUCTS_TABLE.get_full_name(),
                 "historic_days": 45,
                 "min_score": .4
             },
-            output_table=pcdefs.get_full_name(pcdefs.PRODUCT_SIMILARITY_SCORES),
+            output_table=pcdefs.PRODUCT_SIMILARITY_SCORES_TABLE.get_full_name(),
             mode="WRITE_TRUNCATE",
             drop_duplicates=True,
             duplicates_subset=["product_id", "similar_product_id"],
@@ -51,10 +51,10 @@ def get_operators(dag: DAG_TYPE) -> dict:
                 "DS": "{{ds}}"
             },
             params={
-                "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
-                "historic_table": pcdefs.get_full_name(pcdefs.HISTORIC_PRODUCTS_TABLE),
-                "product_similarity_table": pcdefs.get_full_name(pcdefs.PRODUCT_SIMILARITY_SCORES),
-                "processed_similarity_table": pcdefs.get_full_name(pcdefs.SIMILAR_PRODUCTS_TABLE),
+                "active_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+                "historic_table": pcdefs.HISTORIC_PRODUCTS_TABLE.get_full_name(),
+                "product_similarity_table": pcdefs.PRODUCT_SIMILARITY_SCORES_TABLE.get_full_name(),
+                "processed_similarity_table": pcdefs.SIMILAR_PRODUCTS_TABLE.get_full_name(),
             },
             num_workers=4,
         )
@@ -64,10 +64,10 @@ def get_operators(dag: DAG_TYPE) -> dict:
             dag=dag,
             script="product_recs.py",
             json_args={
-                "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
-                "historic_table": pcdefs.get_full_name(pcdefs.HISTORIC_PRODUCTS_TABLE),
-                "events_table": user_delta.get_full_name(user_delta.USER_EVENTS_TABLE),
-                "output_table": pdefs.get_full_name(pdefs.USER_PRODUCT_RECS_TABLE),
+                "active_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+                "historic_table": pcdefs.HISTORIC_PRODUCTS_TABLE.get_full_name(),
+                "events_table": user_delta.USER_EVENTS_TABLE.get_full_name(),
+                "output_table": pdefs.USER_PRODUCT_RECS_TABLE.get_full_name(),
                 "TOP_N": 500
             },
             num_workers=4,
@@ -82,7 +82,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             dag=dag,
             sql="template/daily_top_product_tag.sql",
             params={
-                "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
+                "active_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
                 "min_views": 2,
                 "limit": 1000,
                 "tag": "top_product"
@@ -95,7 +95,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             dag=dag,
             sql="template/daily_new_product_tag.sql",
             params={
-                "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
+                "active_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
                 "n_days": 3,
                 "tag": "new_product"
             },
