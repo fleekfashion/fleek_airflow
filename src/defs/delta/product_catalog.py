@@ -228,6 +228,22 @@ TABLES = {
                         )
                     }
                 ),
+                StructField(name="color",
+                    dataType=StringType(),
+                    nullable=True,
+                    metadata={
+                        "comment": (
+                        )
+                    }
+                ),
+                StructField(name="size",
+                    dataType=StringType(),
+                    nullable=True,
+                    metadata={
+                        "comment": (
+                        )
+                    }
+                ),
         ]),
         "comment": (
             "Current product available in catalog"
@@ -428,6 +444,22 @@ TABLES = {
                         )
                     }
                 ),
+                StructField(name="color",
+                    dataType=StringType(),
+                    nullable=True,
+                    metadata={
+                        "comment": (
+                        )
+                    }
+                ),
+                StructField(name="size",
+                    dataType=StringType(),
+                    nullable=True,
+                    metadata={
+                        "comment": (
+                        )
+                    }
+                ),
         ]),
         "partition": ["execution_date"],
         "comment": (
@@ -446,23 +478,6 @@ TABLES[DAILY_PRODUCT_DUMP_TABLE] = {
     "schema": StructType(
         [ StructField(x.name, x.dataType, nullable=True, metadata=x.metadata)
             for x in TABLES[PRODUCT_INFO_TABLE]["schema"].fields
-        ] + [
-            StructField(name="color",
-                dataType=StringType(),
-                nullable=True,
-                metadata={
-                    "comment": (
-                    )
-                }
-            ),
-            StructField(name="size",
-                dataType=StringType(),
-                nullable=True,
-                metadata={
-                    "comment": (
-                    )
-                }
-            ),
         ]
     ),
     "comment": "Dump products from all sources here"

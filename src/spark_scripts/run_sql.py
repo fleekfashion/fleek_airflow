@@ -25,6 +25,7 @@ OUTPUT_TABLE = json_args.get("output_table")
 FORMAT = json_args.get("format") or "delta"
 DROP_DUPLICATES = json_args.get("drop_duplicates") or False
 SUBSET = json_args.get("duplicates_subset")
+OPTIONS = json_args.get("options", {})
 
 def process_df(df):
     if DROP_DUPLICATES:
@@ -35,11 +36,12 @@ def process_df(df):
 for query in SQL.split(";"):
     df = sqlContext.sql(query)
 
-processed_df = df.transform(
+writer = df.transform(
                 lambda df: df.drop_duplicates(subset=SUBSET)
-                if DROP_DUPLICATES and MODE is not None else df)
+                if DROP_DUPLICATES and MODE is not None else df) \
+           .write.options(**OPTIONS)
 
 if MODE == "WRITE_APPEND":
-    processed_df.write.saveAsTable(OUTPUT_TABLE, format=FORMAT, mode="append")
+    writer.saveAsTable(OUTPUT_TABLE, format=FORMAT, mode="append")
 elif MODE == "WRITE_TRUNCATE":
-    processed_df.write.saveAsTable(OUTPUT_TABLE, format=FORMAT, mode="overwrite")
+   writer.saveAsTable(OUTPUT_TABLE, format=FORMAT, mode="overwrite")
