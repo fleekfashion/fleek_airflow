@@ -21,7 +21,7 @@ from airflow.contrib.hooks.databricks_hook import DatabricksHook
 from pyspark.sql.types import StructType
 from functional import seq 
 from src.airflow_tools.airflow_variables import SRC_DIR
-from src.defs.delta.utils import DBFS_SCRIPT_DIR, SHARED_POOL_ID, DBFS_TMP_DIR, PROJECT, DBFS_INIT_SCRIPT_DIR
+from src.defs.delta.utils import DBFS_SCRIPT_DIR, SHARED_POOL_ID, DBFS_TMP_DIR, PROJECT, DBFS_INIT_SCRIPT_DIR, DEV_CLUSTER_ID
 
 def _cp_dbfs(src: str, dest: str,
         overwrite: bool = False) -> None:
@@ -70,6 +70,7 @@ class SparkScriptOperator(BaseOperator):
             polling_period_seconds=15,
             databricks_retry_limit: int=3,
             databricks_retry_delay: int=1,
+            dev_mode: bool=False,
             **kwargs
             ):
 
@@ -95,6 +96,7 @@ class SparkScriptOperator(BaseOperator):
         self.databricks_retry_delay = databricks_retry_delay
         self.run_id = None
         self.dbfs_json_path = None
+        self.dev_mode = dev_mode
     
     def _upload_json_to_dbfs(self, json_dict: dict):
         json_filename = f"{random.randint(0, 2**48)}.json"
@@ -150,8 +152,12 @@ class SparkScriptOperator(BaseOperator):
         }
 
     def _build_cluster_params(self):
+
         if self.cluster_id is not None:
             return {"existing_cluster_id": self.cluster_id}
+
+        if self.dev_mode:
+            return {"existing_cluster_id": DEV_CLUSTER_ID}
 
         params = {}
         if self.local:
