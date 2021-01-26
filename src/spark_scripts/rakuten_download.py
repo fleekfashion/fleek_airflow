@@ -92,16 +92,12 @@ def get_rakuten_df(file):
 def build_products_df(rakuten_df):
     # Construct array of product labels from primary and secondary categories (if they exist)
     def _get_product_labels(row):
-        product_labels = []
-        primary_category = row['category.primary']
-        secondary_category = row['category.secondary']
-        gender = row['attributeClass.Gender']
-        if primary_category is not None:
-            product_labels.append(primary_category)
-        if secondary_category is not None:
-            product_labels.append(secondary_category)
-        if gender is not None:
-            product_labels.append(gender)
+        product_labels = [
+            row.get('category.primary', ''),
+            row.get('category.secondary', ''),
+            row.get('attributeClass.Gender', ''),
+            row.get('shipping.availability', '')
+        ]
         return product_labels
 
     # Case where only sale price listed
@@ -142,6 +138,8 @@ def build_products_df(rakuten_df):
     final_df['product_purchase_url'] = rakuten_df['URL.product']
     final_df['product_image_url'] = rakuten_df['URL.productImage']
     final_df['product_additional_image_urls'] = rakuten_df.apply(_get_additional_image_urls, axis=1)
+    final_df['color'] = rakuten_df['attributeClass.Color']
+    final_df['size'] = rakuten_df['attributeClass.Size']
     return final_df
 
 def upload_df(df):
