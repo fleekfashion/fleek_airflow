@@ -7,6 +7,7 @@ from functional import seq
 from pyspark.sql.types import StructType
 
 PROJECT = os.environ.get("PROJECT", "staging")
+PROJECT = PROJECT if PROJECT == "prod" else "staging"
 
 class TableDef:
     project = PROJECT
@@ -21,10 +22,13 @@ class TableDef:
 
 class DeltaTableDef(TableDef):
 
-    def __init__(self, schema: StructType, table_name: str, dataset: str):
-        self.schema = schema
+    def __init__(self, table_name: str, dataset: str):
+        self.schema = StructType() 
         self.table_name = table_name
         self.dataset = dataset 
+
+    def set_schema(self, schema: StructType):
+        self.schema = schema
 
     def get_columns(self) -> seq:
         return seq(self.schema.fieldNames())
@@ -38,14 +42,8 @@ class DeltaTableDef(TableDef):
     def get_name(self) -> str:
         return self.table_name
 
-    @classmethod
-    def from_tables(cls, name: str, dataset:str, tables: dict) -> DeltaTableDef:
-        return cls(
-                table_name=name,
-                dataset=dataset,
-                schema=tables.get(name, dict()).get("schema", StructType())
-            )
-        
+    def __hash__(self):
+        return hash(self.table_name)
     
 class PostgresTableDef(TableDef):
     def __init__(self, schema: t.Dict[str, str], table_name: str):
@@ -61,3 +59,6 @@ class PostgresTableDef(TableDef):
     def get_full_name(self):
         return f"{self.project}.{self.table_name}"
 
+def load_delta_schemas(tables: dict):
+    for key, value in tables.items():
+        key.set_schema(value.get("schema", StructType()))

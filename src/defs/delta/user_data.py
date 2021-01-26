@@ -1,29 +1,14 @@
 import os
 from pyspark.sql.types import *
 
-from src.defs.utils import DeltaTableDef
+from src.defs.utils import DeltaTableDef, load_delta_schemas
 
-PROJECT = os.environ.get("PROJECT", "staging")
-PROJECT = PROJECT if PROJECT == "prod" else "staging"
 DATASET = f"user_data"
+USER_EVENTS_TABLE = DeltaTableDef("user_events", DATASET)
 
-USER_EVENTS_TABLE_NAME = "user_events"
-
-
-def get_full_name(table_name):
-    name = ".".join(
-        [
-            PROJECT + "_" + DATASET,
-            table_name
-        ]
-    )
-    return name
-
-def get_columns(table_name):
-    return TABLES[table_name]["schema"].fieldNames()
 
 TABLES = {
-    USER_EVENTS_TABLE_NAME: {
+    USER_EVENTS_TABLE: {
         "schema": StructType([
             StructField(name="user_id",
                 dataType=LongType(),
@@ -118,5 +103,4 @@ TABLES = {
     },
 }
 
-USER_EVENTS_TABLE = DeltaTableDef.from_tables(dataset=DATASET,tables=TABLES,
-        name=USER_EVENTS_TABLE_NAME)
+load_delta_schemas(TABLES)
