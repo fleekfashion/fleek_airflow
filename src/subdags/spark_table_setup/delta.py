@@ -31,7 +31,7 @@ def get_operators(dag: DAG):
             op = create_table_operator(
                 task_id=f"create_table_{table}",
                 dag=dag,
-                table=db.get_full_name(table),
+                table=table.get_full_name(),
                 schema=info["schema"],
                 partition=info.get("partition"),
                 comment=info.get("comment"),

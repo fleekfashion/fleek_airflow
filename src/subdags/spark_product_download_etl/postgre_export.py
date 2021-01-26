@@ -45,7 +45,7 @@ def get_operators(dag: DAG):
             params={
                 "target": spark_defs.get_full_name(postdefs.PRODUCT_INFO_TABLE, staging=True),
                 "mode": "OVERWRITE TABLE",
-                "src": f"(SELECT *, true as is_active FROM {pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE)})",
+                "src": f"(SELECT *, true as is_active FROM {pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name()})",
                 "columns": ", ".join([ c for c in postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE)]),
             },
             local=True
@@ -109,7 +109,7 @@ def get_operators(dag: DAG):
             task_id="STAGING_write_similar_items",
             dag=dag,
             params={
-                "src": pcdefs.get_full_name(pcdefs.SIMILAR_PRODUCTS_TABLE),
+                "src": pcdefs.SIMILAR_PRODUCTS_TABLE.get_full_name(),
                 "target": spark_defs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE, staging=True),
                 "columns": ", ".join(postdefs.get_columns(postdefs.SIMILAR_PRODUCTS_TABLE)),
                 "mode": "OVERWRITE TABLE",
@@ -138,7 +138,7 @@ def get_operators(dag: DAG):
             task_id="STAGING_write_product_recs",
             dag=dag,
             params={
-                "src": pdefs.get_full_name(pdefs.USER_PRODUCT_RECS_TABLE),
+                "src": pdefs.USER_PRODUCT_RECS_TABLE.get_full_name(),
                 "target": phooks.get_full_name(pdefs.USER_PRODUCT_RECS_TABLE, staging=True),
                 "columns": ", ".join(
                     persdefs.get_columns(persdefs.USER_PRODUCT_RECS_TABLE)
