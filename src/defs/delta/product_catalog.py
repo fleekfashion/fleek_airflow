@@ -1,30 +1,17 @@
 import os
 from pyspark.sql.types import *
 
-PROJECT = os.environ.get("PROJECT", "staging")
-PROJECT = PROJECT if PROJECT == "prod" else "staging"
-DATASET = f"{PROJECT}_product_catalog"
+from src.defs.utils import DeltaTableDef, load_delta_schemas
 
-ACTIVE_PRODUCTS_TABLE = "active_products"
-DAILY_PRODUCT_DUMP_TABLE = "daily_product_dump"
-HISTORIC_PRODUCTS_TABLE = "historic_products"
-NEW_PRODUCT_FEATURES_TABLE = "daily_product_ml_features"
-PRODUCT_INFO_TABLE  = "product_info"
-PRODUCT_SIMILARITY_SCORES = "product_similarity_scores"
-SIMILAR_PRODUCTS_TABLE = "similar_products_v2"
+DATASET = f"product_catalog"
 
-def get_full_name(table_name):
-    name = ".".join(
-        [
-            DATASET,
-            table_name
-        ]
-    )
-    return name
-
-def get_columns(table_name):
-    return TABLES[table_name]["schema"].fieldNames()
-
+ACTIVE_PRODUCTS_TABLE = DeltaTableDef("active_products", DATASET)
+DAILY_PRODUCT_DUMP_TABLE = DeltaTableDef("daily_product_dump", DATASET)
+HISTORIC_PRODUCTS_TABLE = DeltaTableDef("historic_products", DATASET)
+NEW_PRODUCT_FEATURES_TABLE = DeltaTableDef("daily_product_ml_features", DATASET)
+PRODUCT_INFO_TABLE  = DeltaTableDef("product_info", DATASET)
+PRODUCT_SIMILARITY_SCORES_TABLE = DeltaTableDef("product_similarity_scores", DATASET)
+SIMILAR_PRODUCTS_TABLE = DeltaTableDef("similar_products_v2", DATASET)
 
 TABLES = {
     ACTIVE_PRODUCTS_TABLE: {
@@ -486,3 +473,5 @@ TABLES[HISTORIC_PRODUCTS_TABLE] = {
     "partition": ["execution_date"],
     "comment": "Dump products from all sources here"
 }
+
+load_delta_schemas(TABLES)

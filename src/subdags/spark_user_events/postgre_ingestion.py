@@ -13,6 +13,7 @@ from airflow.contrib.operators.gcp_sql_operator import CloudSqlQueryOperator
 from src.airflow_tools.operators import cloudql_operators as csql
 from src.airflow_tools.databricks.databricks_operators import SparkSQLOperator
 from src.airflow_tools.queries import postgre_queries as pquery
+from src.defs.utils import PROJECT
 from src.defs.postgre import user_data as postdefs
 from src.defs.delta import user_data as delta_user_data
 from src.defs.delta import postgres as delta_postgre
@@ -55,15 +56,15 @@ def get_operators(dag: DAG) -> dict:
     )
 
 
-    main_user_events_table = delta_user_data.get_full_name(delta_user_data.USER_EVENTS_TABLE)
-    if delta_user_data.PROJECT == "staging":
+    main_user_events_table = delta_user_data.USER_EVENTS_TABLE.get_full_name()
+    if PROJECT == "staging":
         secondary_project = "prod"
         secondary_user_events_table = main_user_events_table.replace("staging", "prod")
     else:
         secondary_project = "staging"
         secondary_user_events_table = main_user_events_table.replace("prod", "staging")
 
-    append_user_events = append_user_events_func((delta_user_data.PROJECT, main_user_events_table))
+    append_user_events = append_user_events_func((PROJECT, main_user_events_table))
     append_user_events_secondary = append_user_events_func((secondary_project, secondary_user_events_table))
      
 

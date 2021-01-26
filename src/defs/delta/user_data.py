@@ -1,23 +1,11 @@
 import os
 from pyspark.sql.types import *
 
-PROJECT = os.environ.get("PROJECT", "staging")
-PROJECT = PROJECT if PROJECT == "prod" else "staging"
-DATASET = f"{PROJECT}_user_data"
+from src.defs.utils import DeltaTableDef, load_delta_schemas
 
-USER_EVENTS_TABLE = "user_events"
+DATASET = f"user_data"
+USER_EVENTS_TABLE = DeltaTableDef("user_events", DATASET)
 
-def get_full_name(table_name):
-    name = ".".join(
-        [
-            DATASET,
-            table_name
-        ]
-    )
-    return name
-
-def get_columns(table_name):
-    return TABLES[table_name]["schema"].fieldNames()
 
 TABLES = {
     USER_EVENTS_TABLE: {
@@ -114,3 +102,5 @@ TABLES = {
         "comment": "Table of all user events: event is main event, method is how event occured"
     },
 }
+
+load_delta_schemas(TABLES)

@@ -24,8 +24,8 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             dag=dag,
             task_id="basic_processing",
             json_args={
-                "src_table": pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE),
-                "output_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
+                "src_table": pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name(),
+                "output_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
                 "ds": "{{ds}}",
                 "timestamp": "{{ execution_date.int_timestamp }}",
                 "drop_kwargs_path": f"{DBFS_DEFS_DIR}/product_download/global/drop_keywords.json" \
@@ -40,8 +40,8 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             dag=dag,
             task_id="product_info_processing",
             json_args={
-                "src_table": pcdefs.get_full_name(pcdefs.DAILY_PRODUCT_DUMP_TABLE),
-                "output_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
+                "src_table": pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name(),
+                "output_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
                 "ds": "{{ds}}",
                 "timestamp": "{{ execution_date.int_timestamp }}",
                 "drop_kwargs_path": f"{DBFS_DEFS_DIR}/product_download/global/drop_keywords.json" \
@@ -57,5 +57,6 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 'spark.sql.shuffle.partitions': '8'
             }
         )
+
 
     return group

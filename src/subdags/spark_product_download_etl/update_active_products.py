@@ -24,10 +24,10 @@ def get_operators(dag: DAG_TYPE) -> dict:
             task_id="active_to_historic_products",
             dag=dag,
             params={
-                "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
-                "product_info_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
-                "columns": ", ".join(pcdefs.get_columns(pcdefs.ACTIVE_PRODUCTS_TABLE)),
-                "historic_table": pcdefs.get_full_name(pcdefs.HISTORIC_PRODUCTS_TABLE)
+                "active_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+                "product_info_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
+                "columns": ", ".join(pcdefs.ACTIVE_PRODUCTS_TABLE.get_columns()),
+                "historic_table": pcdefs.HISTORIC_PRODUCTS_TABLE.get_full_name()
                 },
             sql="template/spark_active_to_historic.sql",
             local=True
@@ -37,8 +37,8 @@ def get_operators(dag: DAG_TYPE) -> dict:
             task_id="delete_inactive_products",
             dag=dag,
             params={
-                "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
-                "product_info_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
+                "active_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+                "product_info_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
                 },
             sql="template/spark_delete_inactive_products.sql",
             local=True
@@ -48,7 +48,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             dag=dag,
             task_id="process_image_url",
             params={
-                "product_info_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
+                "product_info_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
             },
             sql="template/process_image_url.sql",
             local=True,
@@ -58,7 +58,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             dag=dag,
             task_id="add_additional_image_urls",
             params={
-                "product_info_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
+                "product_info_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
             },
             sql="template/add_additional_image_urls.sql",
             local=True,
@@ -68,10 +68,10 @@ def get_operators(dag: DAG_TYPE) -> dict:
             task_id="update_active_product_info",
             dag=dag,
             params={
-                "active_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
-                "product_info_table": pcdefs.get_full_name(pcdefs.PRODUCT_INFO_TABLE),
+                "active_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+                "product_info_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
                 "columns": list(filter( lambda x: x not in ["execution_date"],
-                    pcdefs.get_columns(pcdefs.PRODUCT_INFO_TABLE)
+                    pcdefs.PRODUCT_INFO_TABLE.get_columns()
                     ))
                 },
             sql="template/spark_update_active_product_info.sql",

@@ -73,7 +73,7 @@ upload_products = SparkScriptOperator(
         "search_password": search.PASSWORD
     },
     params={
-        "active_products_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE)
+        "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name()
     },
     init_scripts=["install_meilisearch.sh"]
 )
@@ -97,7 +97,7 @@ autocomplete_upload = SparkScriptOperator(
     script="autocomplete_upload.py",
     local=True,
     json_args={
-        "active_products_table": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE),
+        "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
         "autocomplete_index": search.AUTOCOMPLETE_INDEX,
         "product_search_index": search.PRODUCT_SEARCH_INDEX,
         "search_url": search.URL,

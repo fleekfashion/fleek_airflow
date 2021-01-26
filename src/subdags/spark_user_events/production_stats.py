@@ -23,8 +23,8 @@ def get_operators(dag: DAG) -> dict:
         task_id="update_product_stats",
         sql="template/spark_update_product_stats.sql",
         params={
-            "src": userdefs.get_full_name(userdefs.USER_EVENTS_TABLE),
-            "target": pcdefs.get_full_name(pcdefs.ACTIVE_PRODUCTS_TABLE)
+            "src": userdefs.USER_EVENTS_TABLE.get_full_name(),
+            "target": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name()
         },
         local=True
     )
