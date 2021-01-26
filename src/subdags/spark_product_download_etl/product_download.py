@@ -22,7 +22,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
 
         truncation = SparkSQLOperator(
             dag=dag,
-            task_id=f"truncate_{pcdefs.DAILY_PRODUCT_DUMP_TABLE}",
+            task_id=f"truncate_{pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_name()}",
             sql=f"DELETE FROM {pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name()}",
             min_workers=1,
             max_workers=2

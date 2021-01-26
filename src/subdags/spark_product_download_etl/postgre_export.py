@@ -139,7 +139,7 @@ def get_operators(dag: DAG):
             dag=dag,
             params={
                 "src": pdefs.USER_PRODUCT_RECS_TABLE.get_full_name(),
-                "target": phooks.get_full_name(pdefs.USER_PRODUCT_RECS_TABLE, staging=True),
+                "target": phooks.get_full_name(persdefs.USER_PRODUCT_RECS_TABLE, staging=True),
                 "columns": ", ".join(
                     persdefs.get_columns(persdefs.USER_PRODUCT_RECS_TABLE)
                 ),
