@@ -78,7 +78,8 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                                 "product_id", "execution_date", "execution_timestamp",
                                 "product_tags",
                                 "product_labels", "product_secondary_labels",
-                                "product_external_labels", "product_sale_price"
+                                "product_external_labels", "product_sale_price",
+                                "product_details"
                         ]
                     ).make_string(", "),
                 "required_fields_filter": pcdefs.PRODUCT_INFO_TABLE.get_fields() \

@@ -37,7 +37,7 @@ def _build_field(field, strict):
     if type(field.dataType) == StructType:
         internal_fields = []
         for f in field.dataType.fields:
-            local_nullable = "" if f.nullable else "NOT NULL"
+            local_nullable = "" if f.nullable or not strict else "NOT NULL"
             internal_fields.append(
                 f"{f.name}: {f.dataType.simpleString()} {local_nullable} {comment}"
             )
