@@ -244,6 +244,26 @@ TABLES = {
                         )
                     }
                 ),
+                StructField(
+                    name="product_details",
+                    dataType=StructType(
+                        [
+                            StructField(name="color",
+                                dataType=StringType(),
+                                nullable=False,
+                            ),
+                            StructField(name="size",
+                                dataType=StringType(),
+                                nullable=False,
+                            ),
+                            StructField(name="product_price",
+                                dataType=FloatType(),
+                                nullable=False,
+                            ),
+                        ]
+                    ),
+                    nullable=True
+                ),
         ]),
         "comment": (
             "Current product available in catalog"
@@ -459,6 +479,26 @@ TABLES = {
                         "comment": (
                         )
                     }
+                ),
+                StructField(
+                    name="product_details",
+                    dataType=StructType(
+                        [
+                            StructField(name="color",
+                                dataType=StringType(),
+                                nullable=False,
+                            ),
+                            StructField(name="size",
+                                dataType=StringType(),
+                                nullable=False,
+                            ),
+                            StructField(name="product_price",
+                                dataType=FloatType(),
+                                nullable=False,
+                            ),
+                        ]
+                    ),
+                    nullable=True
                 ),
         ]),
         "partition": ["execution_date"],

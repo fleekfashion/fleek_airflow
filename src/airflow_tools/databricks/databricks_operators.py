@@ -255,7 +255,6 @@ class SparkSQLOperator(SparkScriptOperator):
             "drop_duplicates": drop_duplicates,
             "duplicates_subset": duplicates_subset,
             "options": options,
-            "params": self.params
         }
 
 

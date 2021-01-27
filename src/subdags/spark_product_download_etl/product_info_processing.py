@@ -104,11 +104,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
         update_sets = []
         for key, value in LABELS.items():
             label_filters[key] = seq(value).map(args_to_filter).make_string("\n\nOR\n\n")
-        for key, value in label_filters.items():
-            update_sets.append(f"""
-  SET t.product_labels = array_union(t.product_labels, ARRAY('{ key }'))
-  WHERE \n{ value }
-  """)
+        res = [ [k, v] for k, v in label_filters.items() ]
 
         kwargs_processing = SparkSQLOperator(
             dag=dag,
@@ -118,10 +114,15 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 "src": TABLE1,
                 "output": TABLE2,
                 "label_filters": label_filters,
-                "updates": update_sets
+                "updates": res
 
             },
-            dev_mode=True,
+            output_table=TABLE2,
+            mode="WRITE_TRUNCATE",
+            options={
+                "overwriteSchema": "true"
+            },
+            dev_mode=True
         )
 
         stepn = SparkSQLOperator(
