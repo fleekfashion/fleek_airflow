@@ -12,8 +12,18 @@ CREATE OR REPLACE TEMPORARY VIEW basic_parsed_products AS (
     CAST( ARRAY() as array<string> ) as product_tags,
     CAST( ARRAY() as array<string> ) as product_labels,
     CAST( ARRAY() as array<string> ) as product_secondary_labels,
-    CAST( ARRAY() as array<string> ) as product_external_labels,
-    COALESCE(product_sale_price, product_price) as product_sale_price
+    COALESCE(
+      product_external_labels,
+      CAST( ARRAY() as array<string> ) 
+    ) as product_external_labels,
+    COALESCE(
+      product_additional_image_urls,
+      CAST( ARRAY() as array<string> )
+    ) as product_additional_image_urls,
+    COALESCE(
+      product_sale_price,
+      product_price
+    ) as product_sale_price
   FROM t
 );
 
