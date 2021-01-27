@@ -128,6 +128,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             dev_mode=True
         )
 
+
         drop_args_filter = seq(DROP_KWARGS).map(args_to_filter).make_string("\n\nOR\n\n")
         combine_info = SparkSQLOperator(
             dag=dag,
