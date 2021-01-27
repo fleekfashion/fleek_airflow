@@ -17,11 +17,13 @@ from src.defs.delta import product_catalog as pcdefs
 from src.defs.delta.utils import SHARED_POOL_ID, DBFS_DEFS_DIR, PROJECT
 
 TABLE1 = f"{PROJECT}_tmp.product_info_processing_step_1"
-TABLE2 = f"{PROJECT}_tmp.product_info_processing_step_2"
+LABELS_TABLE = f"{PROJECT}_tmp.product_labels"
+COMBINED_TABLE = f"{PROJECT}_tmp.combined_table"
 
 DROP_KWARGS_PATH = f"{DBFS_DEFS_DIR}/product_download/global/drop_keywords.json"
 LABELS_PATH = f"{DBFS_DEFS_DIR}/product_download/global/product_labels.json"
 LABELS = dbfs_read_json(LABELS_PATH)
+DROP_KWARGS = dbfs_read_json(DROP_KWARGS_PATH)
 
 def _process_args(args):
     new_args = {}
@@ -78,8 +80,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                                 "product_id", "execution_date", "execution_timestamp",
                                 "product_tags",
                                 "product_labels", "product_secondary_labels",
-                                "product_external_labels", "product_sale_price",
-                                "product_details"
+                                "product_external_labels", "product_sale_price"
                         ]
                     ).make_string(", "),
                 "required_fields_filter": pcdefs.PRODUCT_INFO_TABLE.get_fields() \
@@ -98,27 +99,27 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             dev_mode=True,
             output_table=TABLE1,
             mode="WRITE_TRUNCATE",
+            options={
+                "overwriteSchema": "true"
+            },
         )
 
-
         label_filters = dict()
-        update_sets = []
         for key, value in LABELS.items():
             label_filters[key] = seq(value).map(args_to_filter).make_string("\n\nOR\n\n")
         res = [ [k, v] for k, v in label_filters.items() ]
-
-        kwargs_processing = SparkSQLOperator(
+        apply_product_labels = SparkSQLOperator(
             dag=dag,
-            sql="template/product_kwarg_processing.sql",
-            task_id="kwargs_processing",
+            sql="template/apply_product_labels.sql",
+            task_id="apply_product_labels",
             params={
                 "src": TABLE1,
-                "output": TABLE2,
+                "output": LABELS_TABLE,
                 "label_filters": label_filters,
                 "updates": res
 
             },
-            output_table=TABLE2,
+            output_table=LABELS_TABLE,
             mode="WRITE_TRUNCATE",
             options={
                 "overwriteSchema": "true"
@@ -126,13 +127,34 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             dev_mode=True
         )
 
+        drop_args_filter = seq(DROP_KWARGS).map(args_to_filter).make_string("\n\nOR\n\n")
+        combine_info = SparkSQLOperator(
+            dag=dag,
+            sql="template/combine_product_info.sql",
+            task_id="combine_product_info",
+            params={
+                "labels": LABELS_TABLE,
+                "src": TABLE1,
+                "drop_args_filter": drop_args_filter,
+                "columns": pcdefs.PRODUCT_INFO_TABLE.get_columns() \
+                        .filter(lambda x: x not in ["product_id", "product_labels"]) \
+                        .make_string(", ")
+            },
+            output_table=COMBINED_TABLE,
+            mode="WRITE_TRUNCATE",
+            options={
+                "overwriteSchema": "true"
+            },
+            dev_mode=True
+        )
+        
         stepn = SparkSQLOperator(
             dag=dag,
             sql="template/basic_product_info_processing.sql",
             task_id="write_to_product_info",
             params={
                 "src": TABLE1,
-                "output": TABLE2,
+                "output": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
                 "ungrouped_columns": pcdefs.PRODUCT_INFO_TABLE.get_columns() \
                         .filter(
                             lambda x: x not in [
@@ -143,31 +165,10 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                     ).make_string(", "),
             },
             dev_mode=True,
-            output_table=TABLE2,
+            output_table=pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
             mode="WRITE_TRUNCATE",
         )
 
-        product_info_processing = SparkScriptOperator(
-            dag=dag,
-            task_id="product_info_processing",
-            json_args={
-                "src_table": pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name(),
-                "output_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
-                "ds": "{{ds}}",
-                "timestamp": "{{ execution_date.int_timestamp }}",
-                "drop_kwargs_path": f"{DBFS_DEFS_DIR}/product_download/global/drop_keywords.json" \
-                        .replace("dbfs:", "/dbfs"),
-                "labels_path": f"{DBFS_DEFS_DIR}/product_download/global/product_labels.json" \
-                        .replace("dbfs:", "/dbfs")
-            },
-            script="product_info_processing.py",
-            local=True,
-            machine_type='i3.xlarge',
-            pool_id=None,
-            spark_conf={
-                'spark.sql.shuffle.partitions': '8'
-            }
-        )
-
+    basic_processing >> apply_product_labels >> combine_info >> stepn
 
     return group
