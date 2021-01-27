@@ -84,7 +84,8 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                         ]
                     ).make_string(", "),
                 "required_fields_filter": pcdefs.PRODUCT_INFO_TABLE.get_fields() \
-                        .filter(lambda x: x.nullable) \
+                        .filter(lambda x: not x.nullable) \
+                        .filter(lambda x: x.name != "product_details") \
                         .map(lambda x: f"{x.name} is NOT NULL") \
                         .make_string(" AND "),
                 "ungrouped_columns": pcdefs.PRODUCT_INFO_TABLE.get_columns() \
@@ -148,17 +149,16 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             dev_mode=True
         )
         
-        stepn = SparkSQLOperator(
+        write_to_product_info = SparkSQLOperator(
             dag=dag,
-            sql="template/basic_product_info_processing.sql",
+            sql="template/product_info_grouping.sql",
             task_id="write_to_product_info",
             params={
-                "src": TABLE1,
-                "output": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
+                "src": COMBINED_TABLE,
                 "ungrouped_columns": pcdefs.PRODUCT_INFO_TABLE.get_columns() \
                         .filter(
                             lambda x: x not in [
-                                "product_id"
+                                "product_id", "product_details"
                         ]
                     ).map(
                         lambda x: f"first({x}) as {x}"
@@ -166,9 +166,11 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             },
             dev_mode=True,
             output_table=pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
+            options={
+                "replaceWhere":"execution_date = '{{ds}}'"
+            },
             mode="WRITE_TRUNCATE",
         )
 
-    basic_processing >> apply_product_labels >> combine_info >> stepn
-
+        basic_processing >> apply_product_labels >> combine_info >> write_to_product_info 
     return group

@@ -19,4 +19,5 @@ CREATE OR REPLACE TEMPORARY VIEW basic_parsed_products AS (
 
 SELECT *
 FROM basic_parsed_products
+WHERE {{ params.required_fields_filter }}
 

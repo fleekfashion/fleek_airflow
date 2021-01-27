@@ -13,6 +13,7 @@ CREATE OR REPLACE TEMPORARY VIEW pi AS (
   FROM {{params.src}} pi
   INNER JOIN labels l
     ON pi.product_id=l.product_id
+  WHERE size(l.product_labels) > 0
 );
 
 SELECT 

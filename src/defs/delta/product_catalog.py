@@ -261,6 +261,10 @@ TABLES = {
                                     dataType=FloatType(),
                                     nullable=False,
                                 ),
+                                StructField(name="product_sale_price",
+                                    dataType=FloatType(),
+                                    nullable=False,
+                                ),
                             ]
                         )
                     ),
@@ -499,10 +503,17 @@ TABLES = {
                                     dataType=FloatType(),
                                     nullable=False,
                                 ),
+                                StructField(name="product_sale_price",
+                                    dataType=FloatType(),
+                                    nullable=False,
+                                ),
                             ]
                         )
                     ),
-                    nullable=False
+                    nullable=False,
+                    metadata={
+                        "default": []
+                    }
                 ),
         ]),
         "partition": ["execution_date"],
