@@ -246,23 +246,25 @@ TABLES = {
                 ),
                 StructField(
                     name="product_details",
-                    dataType=StructType(
-                        [
-                            StructField(name="color",
-                                dataType=StringType(),
-                                nullable=False,
-                            ),
-                            StructField(name="size",
-                                dataType=StringType(),
-                                nullable=False,
-                            ),
-                            StructField(name="product_price",
-                                dataType=FloatType(),
-                                nullable=False,
-                            ),
-                        ]
+                    dataType=ArrayType(
+                        StructType(
+                            [
+                                StructField(name="color",
+                                    dataType=StringType(),
+                                    nullable=False,
+                                ),
+                                StructField(name="size",
+                                    dataType=StringType(),
+                                    nullable=False,
+                                ),
+                                StructField(name="product_price",
+                                    dataType=FloatType(),
+                                    nullable=False,
+                                ),
+                            ]
+                        )
                     ),
-                    nullable=True
+                    nullable=False
                 ),
         ]),
         "comment": (
@@ -482,23 +484,25 @@ TABLES = {
                 ),
                 StructField(
                     name="product_details",
-                    dataType=StructType(
-                        [
-                            StructField(name="color",
-                                dataType=StringType(),
-                                nullable=False,
-                            ),
-                            StructField(name="size",
-                                dataType=StringType(),
-                                nullable=False,
-                            ),
-                            StructField(name="product_price",
-                                dataType=FloatType(),
-                                nullable=False,
-                            ),
-                        ]
+                    dataType=ArrayType(
+                        StructType(
+                            [
+                                StructField(name="color",
+                                    dataType=StringType(),
+                                    nullable=False,
+                                ),
+                                StructField(name="size",
+                                    dataType=StringType(),
+                                    nullable=False,
+                                ),
+                                StructField(name="product_price",
+                                    dataType=FloatType(),
+                                    nullable=False,
+                                ),
+                            ]
+                        )
                     ),
-                    nullable=True
+                    nullable=False
                 ),
         ]),
         "partition": ["execution_date"],
