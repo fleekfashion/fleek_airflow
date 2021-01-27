@@ -254,7 +254,8 @@ class SparkSQLOperator(SparkScriptOperator):
             "format": output_format,
             "drop_duplicates": drop_duplicates,
             "duplicates_subset": duplicates_subset,
-            "options": options
+            "options": options,
+            "params": self.params
         }
 
 
