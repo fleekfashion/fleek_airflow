@@ -251,7 +251,7 @@ TABLES = {
                             [
                                 StructField(name="color",
                                     dataType=StringType(),
-                                    nullable=False,
+                                    nullable=True,
                                 ),
                                 StructField(name="size",
                                     dataType=StringType(),
@@ -263,6 +263,10 @@ TABLES = {
                                 ),
                                 StructField(name="product_sale_price",
                                     dataType=FloatType(),
+                                    nullable=False,
+                                ),
+                                StructField(name="product_purchase_url",
+                                    dataType=StringType(),
                                     nullable=False,
                                 ),
                             ]
@@ -493,7 +497,7 @@ TABLES = {
                             [
                                 StructField(name="color",
                                     dataType=StringType(),
-                                    nullable=False,
+                                    nullable=True,
                                 ),
                                 StructField(name="size",
                                     dataType=StringType(),
@@ -505,6 +509,10 @@ TABLES = {
                                 ),
                                 StructField(name="product_sale_price",
                                     dataType=FloatType(),
+                                    nullable=False,
+                                ),
+                                StructField(name="product_purchase_url",
+                                    dataType=StringType(),
                                     nullable=False,
                                 ),
                             ]

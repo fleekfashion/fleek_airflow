@@ -18,6 +18,8 @@ from src.defs.delta.utils import SHARED_POOL_ID, DBFS_DEFS_DIR, PROJECT
 
 TABLE1 = f"{PROJECT}_tmp.product_info_processing_step_1"
 LABELS_TABLE = f"{PROJECT}_tmp.product_labels"
+IMAGE_URL_TABLE = f"{PROJECT}_tmp.combined_table"
+ADDITIONAL_IMAGE_URL_TABLE = f"{PROJECT}_tmp.combined_table"
 COMBINED_TABLE = f"{PROJECT}_tmp.combined_table"
 
 DROP_KWARGS_PATH = f"{DBFS_DEFS_DIR}/product_download/global/drop_keywords.json"
@@ -129,17 +131,55 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             dev_mode=True
         )
 
-        drop_args_filter = seq(DROP_KWARGS).map(args_to_filter).make_string("\n\nOR\n\n")
+        process_image_urls = SparkSQLOperator(
+            dag=dag,
+            task_id="process_image_url",
+            params={
+                "product_info_table": TABLE1,
+            },
+            sql="template/process_image_url.sql",
+            output_table=IMAGE_URL_TABLE,
+            mode="WRITE_TRUNCATE",
+            options={
+                "overwriteSchema": "true"
+            },
+            dev_mode=True
+        )
+
+        add_additional_image_urls = SparkSQLOperator(
+            dag=dag,
+            task_id="add_additional_image_urls",
+            params={
+                "product_info_table": TABLE1 ,
+                "image_urls_table": IMAGE_URL_TABLE,
+                "labels": LABELS_TABLE,
+            },
+            sql="template/add_additional_image_urls.sql",
+            output_table=ADDITIONAL_IMAGE_URL_TABLE,
+            mode="WRITE_TRUNCATE",
+            options={
+                "overwriteSchema": "true"
+            },
+            dev_mode=True
+        )
+
         combine_info = SparkSQLOperator(
             dag=dag,
             sql="template/combine_product_info.sql",
             task_id="combine_product_info",
             params={
                 "labels": LABELS_TABLE,
+                "image_url_table": IMAGE_URL_TABLE,
+                "additional_image_urls_table": ADDITIONAL_IMAGE_URL_TABLE,
                 "src": TABLE1,
-                "drop_args_filter": drop_args_filter,
+                "drop_args_filter": seq(DROP_KWARGS) \
+                        .map(args_to_filter) \
+                        .make_string("\n\nOR\n\n"),
                 "columns": pcdefs.PRODUCT_INFO_TABLE.get_columns() \
-                        .filter(lambda x: x not in ["product_id", "product_labels"]) \
+                        .filter(lambda x: x not in [
+                            "product_id", "product_labels",
+                            "product_image_url", "product_additional_image_urls"
+                        ]) \
                         .make_string(", ")
             },
             output_table=COMBINED_TABLE,
@@ -168,10 +208,13 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             dev_mode=True,
             output_table=pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
             options={
-                "replaceWhere":"execution_date = '{{ds}}'"
+                "replaceWhere":"execution_date = '{{ds}}'",
+                "mergeSchema": "true"
             },
             mode="WRITE_TRUNCATE",
         )
 
-        basic_processing >> apply_product_labels >> combine_info >> write_to_product_info 
+        basic_processing >> [ apply_product_labels, process_image_urls] >> \
+                add_additional_image_urls >> combine_info >> \
+                write_to_product_info 
     return group

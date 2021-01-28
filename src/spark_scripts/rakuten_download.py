@@ -151,7 +151,7 @@ def upload_df(df):
         sorted(schema.fields, key=lambda x: df.columns.to_list().index(x.name))
     )
     spark_df = sqlContext.createDataFrame(data=df, schema=schema)
-    spark_df.write.saveAsTable(OUTPUT_TABLE,
+    spark_df.write.option("mergeSchema", "true").saveAsTable(OUTPUT_TABLE,
                         mode="append",
                         format="delta")
 
