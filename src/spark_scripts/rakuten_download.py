@@ -138,8 +138,8 @@ def build_products_df(rakuten_df):
     final_df['product_purchase_url'] = rakuten_df['URL.product']
     final_df['product_image_url'] = rakuten_df['URL.productImage']
     final_df['product_additional_image_urls'] = rakuten_df.apply(_get_additional_image_urls, axis=1)
-    final_df['color'] = rakuten_df['attributeClass.Color']
-    final_df['size'] = rakuten_df['attributeClass.Size']
+    final_df['color'] = rakuten_df.get('attributeClass.Color')
+    final_df['size'] = rakuten_df.get('attributeClass.Size')
     return final_df
 
 def upload_df(df):
