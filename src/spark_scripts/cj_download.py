@@ -20,7 +20,7 @@ except:
 def _build_query(company_id, website_id, limit, advertiser_id, keyword):
     query = f"""
     {{
-      products(companyId: "{company_id}", partnerIds: ["{advertiser_id}"], keywords: ["{keyword}"], limit:{limit}) {{
+      shoppingProducts(companyId: "{company_id}", partnerIds: ["{advertiser_id}"], keywords: ["{keyword}"], limit:{limit}) {{
         totalCount
         count
         resultList {{
@@ -29,6 +29,12 @@ def _build_query(company_id, website_id, limit, advertiser_id, keyword):
           targetCountry
           lastUpdated
           link
+          gender
+          size
+          color
+          availability
+          isDeleted
+          id
           mobileLink
           salePrice {{
             amount
@@ -38,6 +44,9 @@ def _build_query(company_id, website_id, limit, advertiser_id, keyword):
             amount
             currency
           }}
+          googleProductCategory {{
+            name
+          }},
           title
           brand
           description
@@ -70,7 +79,7 @@ def _get_cj_df(company_id, website_id, limit, advertiser_id, query_params):
 
     try:
         batch = json.loads(res.content.decode())
-        batch = batch['data']['products']["resultList"]
+        batch = batch['data']['shoppingProducts']["resultList"]
         print("Success:", company_id, website_id, limit, advertiser_id, query_params)
     except Exception as e:
         print("Failure to Parse:", e, company_id, website_id, limit, advertiser_id, query_params, res.content)
@@ -116,6 +125,15 @@ def _build_products_df(cj_df):
     final_df['product_purchase_url'] = cj_df.apply(lambda x: get_correct_link(x), axis=1)
     final_df['product_image_url'] = cj_df['imageLink']
     final_df['product_additional_image_urls'] = cj_df.additionalImageLink
+    final_df['color'] = cj_df.color
+    final_df['size'] = cj_df["size"]
+    final_df['external_id'] = cj_df.id.astype(str)
+    final_df['product_external_labels'] = cj_df.apply(
+        lambda x: [
+            x.get('googleProductCategory', ""),
+            x.get('availability', ""),
+            x.get('gender', "")
+        ], axis=1)
     return final_df
 
 
@@ -134,7 +152,7 @@ def upload_df(df, output_table):
         sorted(schema.fields, key=lambda x: df.columns.to_list().index(x.name))
     )
     spark_df = sqlContext.createDataFrame(data=df, schema=schema)
-    spark_df.write.saveAsTable(output_table,
+    spark_df.write.option("mergeSchema", "true").saveAsTable(output_table,
                         mode="append",
                         format="delta")
 

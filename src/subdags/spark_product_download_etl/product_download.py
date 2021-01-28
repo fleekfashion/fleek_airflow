@@ -45,8 +45,6 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 local=True
             )
             downloads.append(cj_to_delta )
-        for i in range(1, len(downloads)):
-            downloads[i-1] >> downloads[i]
 
         ## Add 1 hour timeout for rakuten
         rakuten_download = SparkScriptOperator(
@@ -67,29 +65,6 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             local=True,
             execution_timeout=timedelta(hours=1)
         )
-
-        product_info_processing = SparkScriptOperator(
-            dag=dag,
-            task_id="product_info_processing",
-            json_args={
-                "src_table": pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name(),
-                "output_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
-                "ds": "{{ds}}",
-                "timestamp": "{{ execution_date.int_timestamp }}",
-                "drop_kwargs_path": f"{DBFS_DEFS_DIR}/product_download/global/drop_keywords.json" \
-                        .replace("dbfs:", "/dbfs"),
-                "labels_path": f"{DBFS_DEFS_DIR}/product_download/global/product_labels.json" \
-                        .replace("dbfs:", "/dbfs")
-            },
-            script="product_info_processing.py",
-            local=True,
-            machine_type='i3.xlarge',
-            pool_id=None,
-            spark_conf={
-                'spark.sql.shuffle.partitions': '8'
-            }
-        )
-
-        truncation >> [downloads[0], rakuten_download]
-        [downloads[-1], rakuten_download] >> product_info_processing
+        truncation >> downloads
+        truncation >> rakuten_download
     return group

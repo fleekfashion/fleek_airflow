@@ -158,6 +158,15 @@ TABLES = {
                         )
                     }
                 ),
+                StructField(name="external_id",
+                    dataType=LongType(),
+                    nullable=True,
+                    metadata={
+                        "comment": (
+                            "External identifier for each product."
+                        )
+                    }
+                ),
                 StructField(name="product_image_embedding",
                     dataType=ArrayType(FloatType(), False),
                     nullable=False,
@@ -219,9 +228,58 @@ TABLES = {
                         )
                     }
                 ),
+                StructField(name="color",
+                    dataType=StringType(),
+                    nullable=True,
+                    metadata={
+                        "comment": (
+                        )
+                    }
+                ),
+                StructField(name="size",
+                    dataType=StringType(),
+                    nullable=True,
+                    metadata={
+                        "comment": (
+                        )
+                    }
+                ),
+                StructField(
+                    name="product_details",
+                    dataType=ArrayType(
+                        StructType(
+                            [
+                                StructField(name="color",
+                                    dataType=StringType(),
+                                    nullable=True,
+                                ),
+                                StructField(name="size",
+                                    dataType=StringType(),
+                                    nullable=False,
+                                ),
+                                StructField(name="product_price",
+                                    dataType=FloatType(),
+                                    nullable=False,
+                                ),
+                                StructField(name="product_sale_price",
+                                    dataType=FloatType(),
+                                    nullable=False,
+                                ),
+                                StructField(name="product_purchase_url",
+                                    dataType=StringType(),
+                                    nullable=False,
+                                ),
+                            ]
+                        )
+                    ),
+                    nullable=False,
+                    metadata={
+                        "default": []
+                    }
+                ),
         ]),
         "comment": (
-            "Current product available in catalog"
+            "Current products available in catalog"
         )
     },
 
@@ -378,6 +436,15 @@ TABLES = {
                         )
                     }
                 ),
+                StructField(name="external_id",
+                    dataType=StringType(),
+                    nullable=True,
+                    metadata={
+                        "comment": (
+                            "External identifier for each product."
+                        )
+                    }
+                ),
                 StructField(name="execution_date",
                     dataType=DateType(),
                     nullable=False,
@@ -408,6 +475,55 @@ TABLES = {
                     metadata={
                         "comment": (
                         )
+                    }
+                ),
+                StructField(name="color",
+                    dataType=StringType(),
+                    nullable=True,
+                    metadata={
+                        "comment": (
+                        )
+                    }
+                ),
+                StructField(name="size",
+                    dataType=StringType(),
+                    nullable=True,
+                    metadata={
+                        "comment": (
+                        )
+                    }
+                ),
+                StructField(
+                    name="product_details",
+                    dataType=ArrayType(
+                        StructType(
+                            [
+                                StructField(name="color",
+                                    dataType=StringType(),
+                                    nullable=True,
+                                ),
+                                StructField(name="size",
+                                    dataType=StringType(),
+                                    nullable=False,
+                                ),
+                                StructField(name="product_price",
+                                    dataType=FloatType(),
+                                    nullable=False,
+                                ),
+                                StructField(name="product_sale_price",
+                                    dataType=FloatType(),
+                                    nullable=False,
+                                ),
+                                StructField(name="product_purchase_url",
+                                    dataType=StringType(),
+                                    nullable=False,
+                                ),
+                            ]
+                        )
+                    ),
+                    nullable=False,
+                    metadata={
+                        "default": []
                     }
                 ),
         ]),

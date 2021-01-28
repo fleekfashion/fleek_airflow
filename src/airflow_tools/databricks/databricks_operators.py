@@ -243,6 +243,7 @@ class SparkSQLOperator(SparkScriptOperator):
         output_format: str = "delta",
         drop_duplicates: bool = False,
         duplicates_subset: list = None,
+        options: Dict[str, str] = {},
         **kwargs
     ):
         kwargs['script'] = "run_sql.py"
@@ -253,6 +254,7 @@ class SparkSQLOperator(SparkScriptOperator):
             "format": output_format,
             "drop_duplicates": drop_duplicates,
             "duplicates_subset": duplicates_subset,
+            "options": options,
         }
 
 
@@ -270,6 +272,7 @@ def create_table_operator(
         max_workers: int = None,
         machine_type: str = None,
         polling_period_seconds: int = 30,
+        dev_mode=False
         ):
     return SparkScriptOperator(
             script="create_table.py",
@@ -288,4 +291,5 @@ def create_table_operator(
             max_workers=max_workers,
             machine_type=machine_type,
             polling_period_seconds=polling_period_seconds,
+            dev_mode=dev_mode,
         )

@@ -1,13 +1,22 @@
 CREATE OR REPLACE TEMPORARY VIEW pinfo AS (
-  SELECT * FROM {{params.product_info_table}} 
-  WHERE execution_date='{{ ds }}'
+  SELECT 
+    pi.product_id,
+    first(pi.advertiser_name) as advertiser_name,
+    first(
+      COALESCE(urls.product_image_url, pi.product_image_url) 
+    ) as product_image_url,
+    first(pi.product_additional_image_urls) as product_additional_image_urls
+  FROM {{params.product_info_table}} pi
+  LEFT JOIN {{ params.image_urls_table }} urls
+    ON pi.product_id = urls.product_id
+  GROUP BY pi.product_id
 );
 
 CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   -- Revolve
   SELECT 
     product_id,
-    TRANSFORM( sequence(2, 4), x -> regexp_replace(product_image_url, 'V.\.jpg?', format_string('V%d.jpg?', x)   )  ) as additional_image_urls
+    TRANSFORM( sequence(2, 4), x -> regexp_replace(product_image_url, 'V.\.jpg?', format_string('V%d.jpg?', x)   )  ) as product_additional_image_urls
   FROM pinfo
   WHERE advertiser_name='REVOLVE'
 
@@ -16,7 +25,7 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   -- Asos
   SELECT 
     product_id,
-    TRANSFORM( sequence(1, 4), x -> regexp_replace(element_at(product_additional_image_urls, 1), '\\-.\\?', format_string('-%d?', x)   )  ) as additional_image_urls
+    TRANSFORM( sequence(1, 4), x -> regexp_replace(element_at(product_additional_image_urls, 1), '\\-.\\?', format_string('-%d?', x)   )  ) as product_additional_image_urls
   FROM pinfo
   WHERE 
     advertiser_name='ASOS' 
@@ -29,8 +38,12 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
     product_id,
     TRANSFORM(
       array('2_side_', '3_back_', '4_full_'),
-      x -> regexp_replace(product_image_url, 'default_', x)
-    ) as additional_image_urls
+      x -> regexp_replace(
+        regexp_replace(product_image_url, 'default_', x),
+        '1_front_',
+        x
+      )
+    ) as product_additional_image_urls
   FROM pinfo
   WHERE 
     advertiser_name='Forever 21' 
@@ -40,7 +53,7 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   -- topshop
   SELECT 
     product_id,
-    TRANSFORM( sequence(1, 4), x -> regexp_replace(product_image_url, '_.\\.jpg', format_string('_%d.jpg', x)   )  ) as additional_image_urls
+    TRANSFORM( sequence(1, 4), x -> regexp_replace(product_image_url, '_.\\.jpg', format_string('_%d.jpg', x)   )  ) as product_additional_image_urls
   FROM pinfo
   WHERE 
     advertiser_name='Topshop' 
@@ -50,7 +63,7 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   -- pacsun
   SELECT 
     product_id,
-    TRANSFORM( sequence(1, 4), x -> regexp_replace(product_image_url, '_00_', format_string('_0%d_', x)   )  ) as additional_image_urls
+    TRANSFORM( sequence(1, 4), x -> regexp_replace(product_image_url, '_00_', format_string('_0%d_', x)   )  ) as product_additional_image_urls
   FROM pinfo
   WHERE 
     advertiser_name='PacSun' 
@@ -60,7 +73,7 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   -- Free People increase to f later
   SELECT 
     product_id,
-    TRANSFORM( array('a', 'b', 'c'), x -> regexp_replace(product_image_url, '_.\\?', format_string('_%s?', x)   )  ) as additional_image_urls
+    TRANSFORM( array('a', 'b', 'c'), x -> regexp_replace(product_image_url, '_.\\?', format_string('_%s?', x)   )  ) as product_additional_image_urls
   FROM pinfo
   WHERE advertiser_name='Free People'
 
@@ -72,7 +85,7 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
     TRANSFORM(
       sequence(1, 4),
       x -> regexp_replace(product_image_url, '\\.jpg', format_string('_%d.jpg', x))
-    ) as additional_image_urls
+    ) as product_additional_image_urls
   FROM pinfo
   WHERE 
     advertiser_name='NastyGal' 
@@ -82,7 +95,7 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   -- boohoo 
   SELECT 
     product_id,
-    TRANSFORM( sequence(1, 4), x -> regexp_replace(product_image_url, '\\.jpg', format_string('_%d.jpg', x)   )  ) as additional_image_urls
+    TRANSFORM( sequence(1, 4), x -> regexp_replace(product_image_url, '\\.jpg', format_string('_%d.jpg', x)   )  ) as product_additional_image_urls
   FROM pinfo
   WHERE 
     advertiser_name='boohoo.com' 
@@ -98,19 +111,19 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
         x -> regexp_replace(product_image_url, '_m\\?', format_string('_d%d?', x))
       ),
       product_additional_image_urls
-    ) as additional_image_urls
+    ) as product_additional_image_urls
   FROM pinfo
   WHERE 
     advertiser_name='Madewell US' 
     AND size(product_additional_image_urls) > 0
 );
 
-MERGE INTO {{params.product_info_table}} AS TARGET
-USING processed_urls AS SRC
-ON TARGET.execution_date='{{ds}}' AND SRC.product_id = TARGET.product_id
-WHEN MATCHED THEN UPDATE SET
-  TARGET.product_additional_image_urls=array_remove(
-    SRC.additional_image_urls,
-    TARGET.product_image_url
-  )
-
+SELECT 
+  urls.product_id,
+  array_remove(
+    urls.product_additional_image_urls, 
+    pi.product_image_url
+  ) as product_additional_image_urls
+FROM processed_urls urls
+INNER JOIN pinfo pi
+  ON pi.product_id = urls.product_id

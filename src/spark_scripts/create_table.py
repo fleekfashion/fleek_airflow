@@ -34,17 +34,17 @@ def _build_field(field, strict):
     c = c if c else ""
     c = c.replace("'", "\\'") #handle internal quotation
     comment = f"COMMENT '{c}'" if c else ""
-    if type(field.dataType) != StructType:
+    if type(field.dataType) == StructType:
+        internal_fields = []
+        for f in field.dataType.fields:
+            local_nullable = "" if f.nullable or not strict else "NOT NULL"
+            internal_fields.append(
+                f"{f.name}: {f.dataType.simpleString()} {local_nullable} {comment}"
+            )
+        struct_schema = ", ".join(internal_fields)
+        return f"{field.name} {field.dataType.typeName()}<{struct_schema}> {nullable}"
+    else:
         return f"{field.name} {field.dataType.simpleString()} {nullable} {comment}"
-
-    internal_fields = []
-    for f in field.dataType.fields:
-        local_nullable = "" if f.nullable else "NOT NULL"
-        internal_fields.append(
-            f"{field.name}: {field.dataType.simpleString()} {local_nullable} {comment}"
-        )
-    internal = ", ".join
-    return f"{field.name} {field.dataType.typeName()}<{internal}> {nullable}"
 
 def build_fields(schema, strict):
     return ",\n".join([ _build_field(field, strict) for field in schema.fields ])

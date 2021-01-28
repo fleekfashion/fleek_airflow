@@ -44,26 +44,6 @@ def get_operators(dag: DAG_TYPE) -> dict:
             local=True
         )
 
-        process_image_url = SparkSQLOperator(
-            dag=dag,
-            task_id="process_image_url",
-            params={
-                "product_info_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
-            },
-            sql="template/process_image_url.sql",
-            local=True,
-        )
-
-        add_additional_image_urls = SparkSQLOperator(
-            dag=dag,
-            task_id="add_additional_image_urls",
-            params={
-                "product_info_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
-            },
-            sql="template/add_additional_image_urls.sql",
-            local=True,
-        )
-
         update_active_product_info = SparkSQLOperator(
             task_id="update_active_product_info",
             dag=dag,
@@ -78,6 +58,5 @@ def get_operators(dag: DAG_TYPE) -> dict:
             local=True
         )
 
-        process_image_url >> add_additional_image_urls >> update_active_product_info 
-        active_to_historic_products >> del_inactive_products
+        active_to_historic_products >> del_inactive_products >> update_active_product_info
     return group

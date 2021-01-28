@@ -31,13 +31,13 @@ dag = DAG(
     )
 
 download_operators = spark_product_download_etl.product_download.get_operators(dag)
-product_proc_operators = spark_product_download_etl.product_processing.get_operators(dag)
+product_info_processing_ops = spark_product_download_etl.product_info_processing.get_operators(dag)
+new_product_processing_ops = spark_product_download_etl.new_product_processing.get_operators(dag)
 update_active_prod_operators = spark_product_download_etl.update_active_products \
         .get_operators(dag)
 active_products_ml = spark_product_download_etl.active_products_ml.get_operators(dag)
 postgre_export = spark_product_download_etl.postgre_export.get_operators(dag)
 
-download_operators >> product_proc_operators
-download_operators >> update_active_prod_operators
-[ product_proc_operators, update_active_prod_operators ] >> active_products_ml
-active_products_ml >> postgre_export
+download_operators >> product_info_processing_ops >> \
+        [ new_product_processing_ops, update_active_prod_operators ] >> \
+        active_products_ml >> postgre_export
