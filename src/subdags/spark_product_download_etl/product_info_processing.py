@@ -18,9 +18,9 @@ from src.defs.delta.utils import SHARED_POOL_ID, DBFS_DEFS_DIR, PROJECT
 
 TABLE1 = f"{PROJECT}_tmp.product_info_processing_step_1"
 LABELS_TABLE = f"{PROJECT}_tmp.product_labels"
-IMAGE_URL_TABLE = f"{PROJECT}_tmp.combined_table"
-ADDITIONAL_IMAGE_URL_TABLE = f"{PROJECT}_tmp.combined_table"
-COMBINED_TABLE = f"{PROJECT}_tmp.combined_table"
+IMAGE_URL_TABLE = f"{PROJECT}_tmp.processed_urls"
+ADDITIONAL_IMAGE_URL_TABLE = f"{PROJECT}_tmp.additional_image_urls"
+COMBINED_TABLE = f"{PROJECT}_tmp.combined_product_info"
 
 DROP_KWARGS_PATH = f"{DBFS_DEFS_DIR}/product_download/global/drop_keywords.json"
 LABELS_PATH = f"{DBFS_DEFS_DIR}/product_download/global/product_labels.json"
@@ -143,7 +143,9 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             options={
                 "overwriteSchema": "true"
             },
-            dev_mode=True
+            dev_mode=True,
+            drop_duplicates=True,
+            duplicates_subset=['product_id']
         )
 
         add_additional_image_urls = SparkSQLOperator(
@@ -160,7 +162,9 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             options={
                 "overwriteSchema": "true"
             },
-            dev_mode=True
+            dev_mode=True,
+            drop_duplicates=True,
+            duplicates_subset=['product_id']
         )
 
         combine_info = SparkSQLOperator(
@@ -187,7 +191,9 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             options={
                 "overwriteSchema": "true"
             },
-            dev_mode=True
+            dev_mode=True,
+            drop_duplicates=True,
+            duplicates_subset=['product_id']
         )
         
         write_to_product_info = SparkSQLOperator(
@@ -212,9 +218,12 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 "mergeSchema": "true"
             },
             mode="WRITE_TRUNCATE",
+            drop_duplicates=True,
+            duplicates_subset=['product_id']
         )
 
-        basic_processing >> [ apply_product_labels, process_image_urls] >> \
-                add_additional_image_urls >> combine_info >> \
+        basic_processing >> [ apply_product_labels, process_image_urls] 
+        process_image_urls >> add_additional_image_urls
+        [ apply_product_labels, add_additional_image_urls ] >> combine_info >> \
                 write_to_product_info 
     return group

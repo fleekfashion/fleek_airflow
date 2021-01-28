@@ -7,10 +7,6 @@ CREATE OR REPLACE TEMPORARY VIEW pinfo AS (
     ) as product_image_url,
     first(pi.product_additional_image_urls) as product_additional_image_urls
   FROM {{params.product_info_table}} pi
-  INNER JOIN ( 
-    SELECT DISTINCT product_id FROM {{ params.labels }} 
-  ) l
-    ON l.product_id = pi.product_id
   LEFT JOIN {{ params.image_urls_table }} urls
     ON pi.product_id = urls.product_id
   GROUP BY pi.product_id
