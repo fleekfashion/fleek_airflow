@@ -35,7 +35,7 @@ def get_operators(dag: DAG):
                 schema=info["schema"],
                 partition=info.get("partition"),
                 comment=info.get("comment"),
-                dev_mode=True
+                local=True
             )
             head >> op >> tail
     return {"head": head, "tail": tail}

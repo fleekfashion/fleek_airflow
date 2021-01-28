@@ -100,7 +100,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                         lambda x: f"first({x}) as {x}"
                     ).make_string(", "),
             },
-            dev_mode=True,
+            local=True,
             output_table=TABLE1,
             mode="WRITE_TRUNCATE",
             options={
@@ -128,7 +128,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             options={
                 "overwriteSchema": "true"
             },
-            dev_mode=True
+            local=True
         )
 
         process_image_urls = SparkSQLOperator(
@@ -143,7 +143,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             options={
                 "overwriteSchema": "true"
             },
-            dev_mode=True,
+            local=True,
             drop_duplicates=True,
             duplicates_subset=['product_id']
         )
@@ -162,7 +162,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             options={
                 "overwriteSchema": "true"
             },
-            dev_mode=True,
+            local=True,
             drop_duplicates=True,
             duplicates_subset=['product_id']
         )
@@ -191,7 +191,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             options={
                 "overwriteSchema": "true"
             },
-            dev_mode=True,
+            local=True,
             drop_duplicates=True,
             duplicates_subset=['product_id']
         )
@@ -211,7 +211,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                         lambda x: f"first({x}) as {x}"
                     ).make_string(", "),
             },
-            dev_mode=True,
+            local=True,
             output_table=pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
             options={
                 "replaceWhere":"execution_date = '{{ds}}'",
