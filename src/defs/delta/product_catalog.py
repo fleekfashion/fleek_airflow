@@ -272,11 +272,14 @@ TABLES = {
                             ]
                         )
                     ),
-                    nullable=False
+                    nullable=False,
+                    metadata={
+                        "default": []
+                    }
                 ),
         ]),
         "comment": (
-            "Current product available in catalog"
+            "Current products available in catalog"
         )
     },
 
