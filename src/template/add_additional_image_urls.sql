@@ -38,7 +38,11 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
     product_id,
     TRANSFORM(
       array('2_side_', '3_back_', '4_full_'),
-      x -> regexp_replace(product_image_url, 'default_', x)
+      x -> regexp_replace(
+        regexp_replace(product_image_url, 'default_', x),
+        '1_front_',
+        x
+      )
     ) as product_additional_image_urls
   FROM pinfo
   WHERE 
