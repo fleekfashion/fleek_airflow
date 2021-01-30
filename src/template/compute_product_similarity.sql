@@ -26,16 +26,40 @@ CREATE OR REPLACE TEMPORARY VIEW all_products AS (
     AND execution_date > DATE_SUB( '{{ ds }}', {{ params.historic_days }})
 );
 
-CREATE OR REPLACE TEMPORARY VIEW product_pairs AS (
+CREATE OR REPLACE TEMPORARY VIEW new_products AS (
   SELECT 
-    ap.product_id, 
-    ap.product_image_embedding, 
-    p.product_id as similar_product_id, 
-    p.product_image_embedding as similar_product_image_embedding
-  FROM all_products ap
-  INNER JOIN active_products p
-  ON ap.product_label=p.product_label
-  AND ap.product_id != p.product_id
+    product_id,
+    product_image_embedding,
+    explode(product_labels) as product_label
+  FROM {{ params.active_table }} 
+  WHERE product_id NOT IN (
+    SELECT 
+      DISTINCT product_id
+    FROM {{ params.output_table }}
+  )
+);
+
+CREATE OR REPLACE TEMPORARY VIEW product_pairs AS (
+  WITH t AS (
+    SELECT 
+      ap.product_id, 
+      ap.product_image_embedding, 
+      p.product_id as similar_product_id, 
+      p.product_image_embedding as similar_product_image_embedding
+    FROM all_products ap
+    INNER JOIN new_products p
+      ON ap.product_label=p.product_label
+      AND ap.product_id != p.product_id
+  )
+  SELECT 
+    *
+  FROM 
+    t
+  WHERE similar_product_id IN (
+    SELECT 
+      product_id
+    FROM active_products
+  )
 );
 
 CREATE OR REPLACE TEMPORARY VIEW similar_product_scores AS (
@@ -59,10 +83,40 @@ CREATE OR REPLACE TEMPORARY VIEW processed_scores AS (
     * 
   FROM similar_product_scores 
   WHERE similarity_score > {{ params.min_score }}
-  ORDER BY product_id, similarity_score DESC
 );
 
-SELECT 
+
+CREATE OR REPLACE TEMPORARY VIEW existing_active_scores AS (
+  SELECT 
+    * 
+  FROM {{ params.output_table }}
+  WHERE similar_product_id IN (
+    SELECT 
+      product_id
+    FROM active_products
+  )
+);
+
+CREATE OR REPLACE TEMPORARY VIEW all_scores AS (
+  SELECT 
+    *
+  FROM (
+    SELECT
+      *
+    FROM
+      processed_scores
+
+    UNION ALL
+
+    SELECT
+      *
+    FROM
+      existing_active_scores 
+  )
+  ORDER BY 
+    product_id, similarity_score DESC
+);
+
+SELECT
   *
-FROM
-  processed_scores
+FROM all_scores
