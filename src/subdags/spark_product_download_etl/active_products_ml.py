@@ -32,7 +32,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
                 "historic_table": pcdefs.HISTORIC_PRODUCTS_TABLE.get_full_name(),
                 "output_table": pcdefs.PRODUCT_SIMILARITY_SCORES_TABLE.get_full_name(),
                 "historic_days": 45,
-                "min_score": .4
+                "min_score": .6
             },
             output_table=pcdefs.PRODUCT_SIMILARITY_SCORES_TABLE.get_full_name(),
             mode="WRITE_TRUNCATE",
