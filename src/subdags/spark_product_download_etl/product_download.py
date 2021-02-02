@@ -45,6 +45,8 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 local=True
             )
             downloads.append(cj_to_delta )
+        for i in range(0, len(downloads)//2):
+            downloads[i] >> downloads[i+ len(downloads)//2]
 
         ## Add 1 hour timeout for rakuten
         rakuten_download = SparkScriptOperator(
