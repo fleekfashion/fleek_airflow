@@ -5,11 +5,20 @@ import typing as t
 from functools import partial 
 
 from sqlalchemy import Table
+from sqlalchemy import MetaData
 from functional import seq
 from pyspark.sql.types import StructType
+from airflow.contrib.hooks.gcp_sql_hook import CloudSQLHook
+
 
 PROJECT = os.environ.get("PROJECT", "staging")
 PROJECT = PROJECT if PROJECT == "prod" else "staging"
+
+DATABASE = "ktest"
+CONN_ID = f'google_cloud_sql_{DATABASE}'
+conn = CloudSQLHook(CONN_ID).get_conn()
+METADATA = MetaData(conn, schema=PROJECT)
+
 
 class TableDef:
     project = PROJECT
