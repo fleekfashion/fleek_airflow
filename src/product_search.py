@@ -112,7 +112,7 @@ autocomplete_upload = SparkScriptOperator(
 
 sleep_task_1 = TimeDeltaSensor(
     task_id="short_nap",
-    delta=timedelta(minutes=30),
+    delta=timedelta(minutes=60),
     mode='reschedule'
 )
 

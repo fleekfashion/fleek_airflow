@@ -65,7 +65,9 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             script="rakuten_download.py",
             init_scripts=["dbfs:/shared/init_scripts/install_xmltodict.sh"],
             local=True,
-            execution_timeout=timedelta(hours=1)
+            execution_timeout=timedelta(minutes=40),
+            machine_type='m5d.xlarge',
+            pool_id=None,
         )
         truncation >> downloads
         truncation >> rakuten_download

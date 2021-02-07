@@ -102,7 +102,8 @@ def get_operators(dag: DAG):
                 ) product_prices""",
                 key="product_id, execution_date",
                 columns=postdefs.get_columns(postdefs.PRODUCT_PRICE_HISTORY_TABLE),
-            )
+            ),
+            trigger_rule='all_done', # Run snapshot regardless of success
         )
 
         write_similar_items_staging= SparkSQLOperator(
