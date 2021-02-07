@@ -2,7 +2,9 @@ from __future__ import annotations
 import abc
 import os
 import typing as t
+from functools import partial 
 
+from sqlalchemy import Table
 from functional import seq
 from pyspark.sql.types import StructType
 
@@ -44,20 +46,14 @@ class DeltaTableDef(TableDef):
 
     def __hash__(self):
         return hash(self.table_name)
-    
-class PostgresTableDef(TableDef):
-    def __init__(self, schema: t.Dict[str, str], table_name: str):
-        self.schema = schema
-        self.table_name = table_name
 
-    def get_columns(self) -> seq:
-        return seq( [ c['name'] for c in self.schema ] )
-
-    def get_name(self) -> str:
-        return self.table_name
-
-    def get_full_name(self):
-        return f"{self.project}.{self.table_name}"
+def _get_schema(self):
+    return seq(self.c)
+def _get_columns(self):
+    return seq(self.c).map(lambda x: x.name)
+Table.get_columns = _get_columns
+Table.get_schema = _get_schema
+PostgreTable = Table
 
 def load_delta_schemas(tables: dict):
     for key, value in tables.items():
