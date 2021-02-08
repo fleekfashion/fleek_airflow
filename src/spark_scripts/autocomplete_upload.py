@@ -1,6 +1,7 @@
 import argparse
 import json
 import copy
+import re
 from typing import Set, List
 
 from pyspark.sql import SQLContext, SparkSession
@@ -120,7 +121,9 @@ df = df[df.apply(lambda x: x['secondary_attribute'] not in x['EXCLUDE'], axis=1)
 
 ## Build search columns
 def _build_suggestion(x):
-    return f"{x['secondary_attribute']} {x['primary_attribute']} {x['attribute_descriptor']} {x['product_label']}".replace("  ", " ").rstrip().lstrip()
+    suggestion = f"{x['secondary_attribute']} {x['primary_attribute']} {x['attribute_descriptor']} {x['product_label']}"
+    return re.sub('\s+',' ', suggestion).rstrip().lstrip()
+
 order_invariant_hash = lambda x: hash(tuple(sorted(x.split())))
 
 df['suggestion'] = df.apply(_build_suggestion, axis=1) # build suggestion string
