@@ -37,6 +37,7 @@ USER_PRODUCT_RECS_TABLE = PostgreTable(
         foreign_key=sa.ForeignKey(f"{pcdefs.PRODUCT_INFO_TABLE}.product_id")
         ),
     sa.PrimaryKeyConstraint("user_id", "index",),
-    sa.Index(f"{USER_PRODUCT_RECS_TABLE_NAME}_user_id_index_ix_", "user_id", "index")
+    sa.Index(f"{USER_PRODUCT_RECS_TABLE_NAME}_user_id_index_ix", "user_id", "index"),
+    extend_existing=True
 )
 USER_PRODUCT_RECS_TABLE_STAGING = build_staging_table(USER_PRODUCT_RECS_TABLE)

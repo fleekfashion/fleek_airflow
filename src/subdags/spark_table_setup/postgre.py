@@ -13,11 +13,14 @@ from airflow.contrib.operators.gcp_sql_operator import CloudSqlQueryOperator
 from src.airflow_tools.operators import cloudql_operators as csql
 from src.airflow_tools.queries import postgre_queries as pquery 
 from src.airflow_tools.databricks.databricks_operators import SparkSQLOperator
-from src.defs.postgre import utils as postutils
+from src.defs.utils import POSTGRES_METADATA 
+from src.defs.postgre import utils as postutils, PostgreTable
 from src.defs import postgre
 from src.defs.delta import postgres as spark_postgre
 
 POSTDEFS = [postgre.product_catalog, postgre.user_data, postgre.spark_personalization]
+
+def create_table(table: PostgreTable) -> str:
 
 def get_operators(dag: DAG) -> dict:
     f"""
@@ -25,6 +28,8 @@ def get_operators(dag: DAG) -> dict:
     """
     head = DummyOperator(task_id="postgre_table_setup_head", dag=dag)
     tail = DummyOperator(task_id="postgre_table_setup_tail", dag=dag)
+
+    for table in POSTGRES_METADATA.tables.items():
 
     for postdefs in POSTDEFS:
         for orig_table_name, table_info in postdefs.SCHEMAS.items():
