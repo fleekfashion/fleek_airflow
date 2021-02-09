@@ -43,7 +43,7 @@ def get_operators(dag: DAG):
             dag=dag,
             sql="template/std_insert.sql",
             params={
-                "target": postdefs.PRODUCT_INFO_TABLE.get_full_name(staging=True),
+                "target": postdefs.PRODUCT_INFO_TABLE.get_delta_name(staging=True),
                 "mode": "OVERWRITE TABLE",
                 "src": f"(SELECT *, true as is_active FROM {pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name()})",
                 "columns": postdefs.PRODUCT_INFO_TABLE.get_columns().make_string(", ")
