@@ -52,7 +52,7 @@ class Index:
 class ForeignKey:
     columns: t.List[str]
     ref_table: str
-    ref_columns: bool
+    ref_columns: t.List[str]
     name: t.Optional[str] = None
     def get_name(self, table_name: str):
         ref_table_name = self.ref_table.split(".")[-1]
