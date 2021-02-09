@@ -4,26 +4,9 @@ import typing as t
 
 from functional import seq
 
-from src.defs.utils import PROJECT, TABLES, CONN_ID, TableDef
-BQ_TO_PG = {
-        "REQUIRED": "NOT NULL",
-        "INTEGER": "bigint",
-        "DATE": "DATE",
-        "STRING": "TEXT",
-        "NULLABLE": "",
-        "FLOAT64": "double precision"
-}
-PG_TO_BQ = { v: k for k, v in BQ_TO_PG.items() }
-DENOMER = "_staging"
+from src.defs.utils import PROJECT, CONN_ID, TableDef
 
-def get_bq_schema(pg_schema):
-    schema = []
-    for col in pg_schema:
-        bq_col = {}
-        bq_col["name"] = PG_TO_BQ.get(col["name"])
-        bq_col["type"] = PG_TO_BQ.get(col["type"])
-        schema.append(bq_col)
-    return schema
+TABLES: t.List[PostgreTable] = list()
 
 @dataclass
 class Column:

@@ -15,7 +15,6 @@ PROJECT = PROJECT if PROJECT == "prod" else "staging"
 
 DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
-TABLES = list()
 
 
 class TableDef:
