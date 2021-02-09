@@ -29,8 +29,8 @@ def get_operators(dag: DAG) -> dict:
         gcp_cloudsql_conn_id=postdefs.CONN_ID,
         task_id="postgre_export_user_events_to_staging",
         sql=pquery.export_rows(
-            table_name=postdefs.get_full_name(postdefs.USER_EVENTS_TABLE),
-            export_table_name=postdefs.get_full_name(postdefs.USER_EVENTS_TABLE, staging=True),
+            table_name=postdefs.USER_EVENTS_TABLE.get_full_name(),
+            export_table_name=postdefs.USER_EVENTS_TABLE.get_full_name(staging=True),
             columns="*",
             delete=True,
             clear_export_table=True,
@@ -48,7 +48,7 @@ def get_operators(dag: DAG) -> dict:
         dag=dag,
         task_id=f"append_user_events_project_{project_output_table[0]}",
         params={
-            "SRC": delta_postgre.get_full_name(postdefs.USER_EVENTS_TABLE),
+            "SRC": delta_postgre.get_full_name(postdefs.USER_EVENTS_TABLE_NAME),
         },
         mode="WRITE_APPEND",
         output_table=project_output_table[1],

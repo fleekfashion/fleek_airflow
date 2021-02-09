@@ -5,6 +5,7 @@ TLDR: Set up Postgre Personalization Tables.
 
 import os
 from datetime import timedelta
+import typing as t
 
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
@@ -42,8 +43,11 @@ def create_table(table: u.PostgreTable) -> str:
         return f"""CREATE {desc} INDEX IF NOT EXISTS {index.get_name(table.name)}
         ON {table.get_full_name()} ({', '.join(index.columns)} )"""
 
-    def _create_pk_stmt(pk: u.PrimaryKey) -> str:
-        return f"constraint {pk.get_name(table.name)} primary key ({', '.join(pk.columns)})"
+    def _create_pk_stmt(pk: t.Optional[u.PrimaryKey]) -> str:
+        if pk is None:
+            return ""
+        else:
+            return f"constraint {pk.get_name(table.name)} primary key ({', '.join(pk.columns)})"
 
     def _create_fk_stmt(fk: u.ForeignKey) -> str:
         return f"""
@@ -57,7 +61,6 @@ def create_table(table: u.PostgreTable) -> str:
             WHEN duplicate_object THEN RAISE NOTICE 'Table constraint {fk.get_name(table.name)} already exits';
         END $$;
         """
-        
 
     fields = table.get_schema() \
             .map(_build_field) \
@@ -65,6 +68,7 @@ def create_table(table: u.PostgreTable) -> str:
     add_fields_stmt = table.get_schema() \
             .map(_add_column) \
             .make_string(";\n") or ""
+    pk_stmt = _create_pk_stmt(table.primary_key)
     create_indexes_stmt = table.indexes.map(_create_index) \
             .make_string(";\n") or ""
     create_fks_stmt = table.foreign_keys.map(_create_fk_stmt) \
@@ -82,12 +86,11 @@ def create_table(table: u.PostgreTable) -> str:
     nullability_stmt = table.get_schema() \
             .map(_set_nullability) \
             .make_string(";\n") or ""
-
     query = f"""
     BEGIN TRANSACTION;
     CREATE TABLE IF NOT EXISTS {table.get_full_name()} (
-        {fields},
-        {_create_pk_stmt(table.primary_key) or ""}
+        {fields}{',' if table.primary_key is not None else ''}
+        {pk_stmt}
     );
     {add_fields_stmt};
     {set_default_stmt};
