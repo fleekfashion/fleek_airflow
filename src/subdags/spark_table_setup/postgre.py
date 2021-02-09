@@ -110,14 +110,32 @@ def get_operators(dag: DAG) -> dict:
     tail = DummyOperator(task_id="postgre_table_setup_tail", dag=dag)
 
     for table in u.TABLES:
-        op1 = postgre_build_product_table = CloudSqlQueryOperator(
-            dag=dag,
-            gcp_cloudsql_conn_id=u.CONN_ID,
-            task_id=f"create_postgres_{table.name}_table",
-            sql=create_table(
-                table=table
+        prev_op = head
+        for t in [table, table.get_staging_table()]:
+            op = postgre_build_product_table = CloudSqlQueryOperator(
+                dag=dag,
+                gcp_cloudsql_conn_id=u.CONN_ID,
+                task_id=f"create_postgres_{t.name}_table",
+                sql=create_table(
+                    table=t
+                )
             )
-        )
-        head >> op1 >> tail
-
+            prev_op >> op
+            prev_op = op
+        
+        for t in [table, table.get_staging_table()]:
+            op = SparkSQLOperator(
+                        task_id=f"create_postgres_{t.name}_delta_hook",
+                        dag=dag,
+                        params={
+                            "table": t.get_delta_name(),
+                            "url": os.environ["SPARK_CLOUD_SQL_URL"],
+                            "dbtable": f"{t.get_full_name()}",
+                            "user": os.environ["CLOUD_SQL_USER"],
+                            "password": os.environ["CLOUD_SQL_PASSWORD"]
+                        },
+                        sql="template/jdbc_delta_hook.sql",
+                        local=True
+                    )
+            prev_op >> op >> tail
     return {"head": head, "tail": tail}

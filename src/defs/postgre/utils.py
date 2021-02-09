@@ -68,8 +68,8 @@ class PostgreTable(TableDef):
         return self.columns.map(lambda x: x.name)
 
     def get_staging_table(self) -> PostgreTable:
-        schema = self.get_columns() \
-                .map(lambda x: Column(x.name, x.type)) \
+        schema = self.get_schema() \
+                .map(lambda x: Column(x.name, x.type, nullable=True)) \
                 .to_list()
         return PostgreTable(
             "staging_" + self.name,
