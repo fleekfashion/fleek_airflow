@@ -5,10 +5,8 @@ tables.
 """
 import os
 
-import sqlalchemy as sa
-
 from src.defs.postgre import product_catalog as pcdefs
-from src.defs.utils import PostgreTable, POSTGRES_METADATA, build_staging_table
+from src.defs.postgre import utils as u
 
 PROJECT = os.environ.get("PROJECT", "staging")
 INSTANCE = "fleek-app-prod1"
@@ -17,27 +15,42 @@ CONN_ID = f'google_cloud_sql_{DATABASE}'
 
 USER_PRODUCT_RECS_TABLE_NAME = "user_product_recommendations"
 
-USER_PRODUCT_RECS_TABLE = PostgreTable(
-    USER_PRODUCT_RECS_TABLE_NAME,
-    POSTGRES_METADATA,
-    sa.Column(
-        "user_id",
-        sa.BIGINT,
-        nullable=False
+USER_PRODUCT_RECS_TABLE = u.PostgreTable(
+    name=USER_PRODUCT_RECS_TABLE_NAME,
+    columns=[
+        u.Column(
+            "user_id",
+            "BIGINT",
+            nullable=False
         ),
-    sa.Column(
-        "index",
-        sa.BIGINT,
-        nullable=False
+        u.Column(
+            "index",
+            "BIGINT",
+            nullable=False
         ),
-    sa.Column(
-        "product_id",
-        sa.BIGINT,
-        nullable=False,
-        foreign_key=sa.ForeignKey(f"{pcdefs.PRODUCT_INFO_TABLE}.product_id")
+        u.Column(
+            "product_id",
+            "BIGINT",
+            nullable=False,
         ),
-    sa.PrimaryKeyConstraint("user_id", "index",),
-    sa.Index(f"{USER_PRODUCT_RECS_TABLE_NAME}_user_id_index_ix", "user_id", "index"),
-    extend_existing=True
+    ],
+    primary_key=u.PrimaryKey(["user_id", "index"], name=f"pk_{PROJECT}_user_product_recs"),
+    indexes=[
+        u.Index(
+            ["user_id", "index"], 
+            name=f"{PROJECT}_user_product_recs_index"
+        )
+    ],
+    foreign_keys=[
+        u.ForeignKey(
+            columns=["product_id"],
+            ref_table=u.PROJECT + '.' + pcdefs.PRODUCT_INFO_TABLE,
+            ref_columns=["product_id"],
+            name=f"{USER_PRODUCT_RECS_TABLE_NAME}_product_id_fkey",
+        )
+    ]
 )
-USER_PRODUCT_RECS_TABLE_STAGING = build_staging_table(USER_PRODUCT_RECS_TABLE)
+
+u.TABLES.extend([
+    USER_PRODUCT_RECS_TABLE,
+])

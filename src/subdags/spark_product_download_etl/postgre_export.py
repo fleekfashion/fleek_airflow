@@ -140,10 +140,10 @@ def get_operators(dag: DAG):
             dag=dag,
             params={
                 "src": pdefs.USER_PRODUCT_RECS_TABLE.get_full_name(),
-                "target": phooks.get_full_name(persdefs.USER_PRODUCT_RECS_TABLE, staging=True),
-                "columns": ", ".join(
-                    persdefs.get_columns(persdefs.USER_PRODUCT_RECS_TABLE)
-                ),
+                "target": phooks.get_full_name(persdefs.USER_PRODUCT_RECS_TABLE.name, staging=True),
+                "columns": persdefs.USER_PRODUCT_RECS_TABLE \
+                        .get_columns() \
+                        .make_string(", "),
                 "mode": "OVERWRITE TABLE"
             },
             sql="template/std_insert.sql",
@@ -155,10 +155,10 @@ def get_operators(dag: DAG):
             gcp_cloudsql_conn_id=persdefs.CONN_ID,
             task_id="PROD_write_product_recs",
             sql=pquery.upsert(
-                table_name=persdefs.get_full_name(persdefs.USER_PRODUCT_RECS_TABLE),
-                staging_name=persdefs.get_full_name(persdefs.USER_PRODUCT_RECS_TABLE, staging=True),
+                table_name=persdefs.USER_PRODUCT_RECS_TABLE.get_full_name(),
+                staging_name=persdefs.USER_PRODUCT_RECS_TABLE.get_full_name(staging=True),
                 key="user_id, index",
-                columns=persdefs.get_columns(persdefs.USER_PRODUCT_RECS_TABLE),
+                columns=persdefs.USER_PRODUCT_RECS_TABLE.get_columns().to_list(),
             )
         )
 

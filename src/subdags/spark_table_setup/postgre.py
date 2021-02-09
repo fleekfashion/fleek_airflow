@@ -9,18 +9,95 @@ from datetime import timedelta
 from airflow.models import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.gcp_sql_operator import CloudSqlQueryOperator
+from functional import seq
 
 from src.airflow_tools.operators import cloudql_operators as csql
 from src.airflow_tools.queries import postgre_queries as pquery 
 from src.airflow_tools.databricks.databricks_operators import SparkSQLOperator
-from src.defs.utils import POSTGRES_METADATA 
-from src.defs.postgre import utils as postutils, PostgreTable
+from src.defs.postgre import utils as u
 from src.defs import postgre
 from src.defs.delta import postgres as spark_postgre
 
 POSTDEFS = [postgre.product_catalog, postgre.user_data, postgre.spark_personalization]
 
-def create_table(table: PostgreTable) -> str:
+def create_table(table: u.PostgreTable) -> str:
+
+    def _build_field(col: u.Column) -> str:
+        return f"{col.name} {col.type}"
+
+    def _add_column(col: u.Column) -> str:
+        return f"ALTER TABLE {table.get_full_name()} ADD COLUMN \
+                IF NOT EXISTS {_build_field(col)}"
+
+    def _set_default_vals(col: u.Column) -> str:
+        default = pquery._py_to_pg(col.default, col.type)
+        return f"{col.name} = coalesce({col.name}, {default})"
+
+    def _set_nullability(col: u.Column) -> str:
+        constraint = "SET NOT NULL" if not col.nullable else "DROP NOT NULL"
+        return f"ALTER TABLE {table.get_full_name()} ALTER COLUMN {col.name} {constraint}"
+
+    def _create_index(index: u.Index) -> str:
+        desc = "UNIQUE" if index.unique else ""
+        return f"""CREATE {desc} INDEX IF NOT EXISTS {index.get_name(table.name)}
+        ON {table.get_full_name()} ({', '.join(index.columns)} )"""
+
+    def _create_pk_stmt(pk: u.PrimaryKey) -> str:
+        return f"constraint {pk.get_name(table.name)} primary key ({', '.join(pk.columns)})"
+
+    def _create_fk_stmt(fk: u.ForeignKey) -> str:
+        return f"""
+        DO $$
+        BEGIN
+
+            ALTER TABLE {table.get_full_name()} ADD CONSTRAINT {fk.get_name(table.name)}
+            FOREIGN KEY ({', '.join(fk.columns)})
+            REFERENCES {fk.ref_table}({', '.join(fk.ref_columns)});
+        EXCEPTION
+            WHEN duplicate_object THEN RAISE NOTICE 'Table constraint {fk.get_name(table.name)} already exits';
+        END $$;
+        """
+        
+
+    fields = table.get_schema() \
+            .map(_build_field) \
+            .make_string(",\n")
+    add_fields_stmt = table.get_schema() \
+            .map(_add_column) \
+            .make_string(";\n") or ""
+    create_indexes_stmt = table.indexes.map(_create_index) \
+            .make_string(";\n") or ""
+    create_fks_stmt = table.foreign_keys.map(_create_fk_stmt) \
+            .make_string("") or ""
+
+    default_values = table.get_schema() \
+            .filter(lambda x: x.default is not None) \
+            .map(lambda x: _set_default_vals(x.default)) \
+            .make_string(", ")
+    set_default_stmt = f"""
+    UPDATE {table.get_full_name()}
+        SET {default_values};
+    """ if len(default_values) > 0 else ""
+
+    nullability_stmt = table.get_schema() \
+            .map(_set_nullability) \
+            .make_string(";\n") or ""
+
+    query = f"""
+    BEGIN TRANSACTION;
+    CREATE TABLE IF NOT EXISTS {table.get_full_name()} (
+        {fields},
+        {_create_pk_stmt(table.primary_key) or ""}
+    );
+    {add_fields_stmt};
+    {set_default_stmt};
+    {nullability_stmt};
+    {create_indexes_stmt};
+    {create_fks_stmt};
+    END TRANSACTION;"""
+
+    return query
+
 
 def get_operators(dag: DAG) -> dict:
     f"""
@@ -29,38 +106,15 @@ def get_operators(dag: DAG) -> dict:
     head = DummyOperator(task_id="postgre_table_setup_head", dag=dag)
     tail = DummyOperator(task_id="postgre_table_setup_tail", dag=dag)
 
-    for table in POSTGRES_METADATA.tables.items():
-
-    for postdefs in POSTDEFS:
-        for orig_table_name, table_info in postdefs.SCHEMAS.items():
-            for prefix in ["", "staging_"]:
-                table_name = prefix + orig_table_name
-
-                op1 = postgre_build_product_table = CloudSqlQueryOperator(
-                    dag=dag,
-                    gcp_cloudsql_conn_id=postdefs.CONN_ID,
-                    task_id=f"create_postgres_{table_name}_table",
-                    sql=pquery.create_table_query(
-                        table_name=postdefs.get_full_name(table_name),
-                        columns=table_info["schema"],
-                        tail=table_info.get("tail", "").replace(orig_table_name, table_name),
-                        is_prod=len(prefix) == 0,
-                    )
-                )
-
-                op2 = SparkSQLOperator(
-                    task_id=f"create_postgres_{table_name}_delta_hook",
-                    dag=dag,
-                    params={
-                        "table": spark_postgre.get_full_name(table_name),
-                        "url": os.environ["SPARK_CLOUD_SQL_URL"],
-                        "dbtable": f"{postdefs.get_full_name(table_name)}",
-                        "user": os.environ["CLOUD_SQL_USER"],
-                        "password": os.environ["CLOUD_SQL_PASSWORD"]
-                    },
-                    sql="template/jdbc_delta_hook.sql",
-                    local=True
-                )
-                head >> op1 >> op2 >> tail
+    for table in u.TABLES:
+        op1 = postgre_build_product_table = CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=u.CONN_ID,
+            task_id=f"create_postgres_{table.name}_table",
+            sql=create_table(
+                table=table
+            )
+        )
+        head >> op1 >> tail
 
     return {"head": head, "tail": tail}
