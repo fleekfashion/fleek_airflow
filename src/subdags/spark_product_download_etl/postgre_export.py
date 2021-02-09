@@ -31,11 +31,11 @@ from src.defs.delta import postgres as phooks
 def get_operators(dag: DAG):
     with TaskGroup(group_id="postgre_export", dag=dag) as group:
 
-        pinfo_table_name=postdefs.get_full_name(postdefs.PRODUCT_INFO_TABLE)
-        pinfo_staging_name=postdefs.get_full_name(postdefs.PRODUCT_INFO_TABLE, staging=True)
-        columns = ", ".join(
-                [ c for c in postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE)
-                if "is_active" not in c ])
+        pinfo_table_name=postdefs.PRODUCT_INFO_TABLE.get_full_name()
+        pinfo_staging_name=postdefs.PRODUCT_INFO_TABLE.get_full_name(staging=True)
+        columns = postdefs.PRODUCT_INFO_TABLE.get_columns() \
+                .filter(lambda x: 'is_active' not in x) \
+                .make_string(", ")
 
 
         insert_active_products = SparkSQLOperator(
@@ -43,10 +43,10 @@ def get_operators(dag: DAG):
             dag=dag,
             sql="template/std_insert.sql",
             params={
-                "target": spark_defs.get_full_name(postdefs.PRODUCT_INFO_TABLE, staging=True),
+                "target": postdefs.PRODUCT_INFO_TABLE.get_full_name(staging=True),
                 "mode": "OVERWRITE TABLE",
                 "src": f"(SELECT *, true as is_active FROM {pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name()})",
-                "columns": ", ".join([ c for c in postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE)]),
+                "columns": postdefs.PRODUCT_INFO_TABLE.get_columns().make_string(", ")
             },
             local=True
         )
@@ -60,7 +60,7 @@ def get_operators(dag: DAG):
                 staging_name=pinfo_staging_name,
                 mode="UPSERT",
                 key="product_id",
-                columns=postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE),
+                columns=postdefs.PRODUCT_INFO_TABLE.get_columns(),
                 tail=f""";
                     UPDATE {pinfo_table_name} SET 
                         is_active = false
@@ -75,14 +75,14 @@ def get_operators(dag: DAG):
             gcp_cloudsql_conn_id=postdefs.CONN_ID,
             task_id="PROD_write_top_products",
             sql=pquery.staging_to_live_query(
-                table_name=postdefs.get_full_name(postdefs.TOP_PRODUCTS_TABLE),
+                table_name=postdefs.TOP_PRODUCTS_TABLE.get_full_name(),
                 staging_name=f"""(
                 SELECT *
                 FROM {pinfo_table_name}
                 WHERE 'top_product'=ANY(product_tags) AND is_active
                 ) top_p""",
                 mode="WRITE_TRUNCATE",
-                columns=postdefs.get_columns(postdefs.TOP_PRODUCTS_TABLE),
+                columns=postdefs.TOP_PRODUCTS_TABLE.get_columns().to_list(),
             )
         )
 
@@ -91,7 +91,7 @@ def get_operators(dag: DAG):
             gcp_cloudsql_conn_id=postdefs.CONN_ID,
             task_id="PROD_write_product_price_history",
             sql=pquery.upsert(
-                table_name=postdefs.get_full_name(postdefs.PRODUCT_PRICE_HISTORY_TABLE),
+                table_name=postdefs.PRODUCT_PRICE_HISTORY_TABLE.get_full_name(),
                 staging_name=f"""(
                 SELECT 
                     product_id, 
@@ -101,7 +101,7 @@ def get_operators(dag: DAG):
                 WHERE is_active
                 ) product_prices""",
                 key="product_id, execution_date",
-                columns=postdefs.get_columns(postdefs.PRODUCT_PRICE_HISTORY_TABLE),
+                columns=postdefs.PRODUCT_PRICE_HISTORY_TABLE.get_columns().to_list(),
             ),
             trigger_rule='all_done', # Run snapshot regardless of success
         )
@@ -111,8 +111,8 @@ def get_operators(dag: DAG):
             dag=dag,
             params={
                 "src": pcdefs.SIMILAR_PRODUCTS_TABLE.get_full_name(),
-                "target": spark_defs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE, staging=True),
-                "columns": ", ".join(postdefs.get_columns(postdefs.SIMILAR_PRODUCTS_TABLE)),
+                "target": postdefs.SIMILAR_PRODUCTS_TABLE.get_delta_name(staging=True),
+                "columns": postdefs.SIMILAR_PRODUCTS_TABLE.get_columns().make_string(", "),
                 "mode": "OVERWRITE TABLE",
                 "partition_field": "execution_date"
             },
@@ -127,10 +127,10 @@ def get_operators(dag: DAG):
             gcp_cloudsql_conn_id=postdefs.CONN_ID,
             task_id="PROD_write_similar_items",
             sql=pquery.upsert(
-                table_name=postdefs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE),
-                staging_name=postdefs.get_full_name(postdefs.SIMILAR_PRODUCTS_TABLE, staging=True),
+                table_name=postdefs.SIMILAR_PRODUCTS_TABLE.get_full_name(),
+                staging_name=postdefs.SIMILAR_PRODUCTS_TABLE.get_full_name(staging=True),
                 key="product_id, index",
-                columns=postdefs.get_columns(postdefs.SIMILAR_PRODUCTS_TABLE),
+                columns=postdefs.SIMILAR_PRODUCTS_TABLE.get_columns().to_list()
             )
         )
 
@@ -140,7 +140,7 @@ def get_operators(dag: DAG):
             dag=dag,
             params={
                 "src": pdefs.USER_PRODUCT_RECS_TABLE.get_full_name(),
-                "target": phooks.get_full_name(persdefs.USER_PRODUCT_RECS_TABLE.name, staging=True),
+                "target": persdefs.USER_PRODUCT_RECS_TABLE.get_delta_name(staging=True),
                 "columns": persdefs.USER_PRODUCT_RECS_TABLE \
                         .get_columns() \
                         .make_string(", "),

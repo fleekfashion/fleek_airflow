@@ -44,7 +44,7 @@ USER_PRODUCT_RECS_TABLE = u.PostgreTable(
     foreign_keys=[
         u.ForeignKey(
             columns=["product_id"],
-            ref_table=u.PROJECT + '.' + pcdefs.PRODUCT_INFO_TABLE,
+            ref_table=pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
             ref_columns=["product_id"],
             name=f"{USER_PRODUCT_RECS_TABLE_NAME}_product_id_fkey",
         )

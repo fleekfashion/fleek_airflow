@@ -93,3 +93,6 @@ class PostgreTable(TableDef):
             schema
         )
 
+    def get_delta_name(self, staging=False) -> str:
+        name = "staging_" + self.name if staging else self.name
+        return f"{PROJECT}_postgres.{name}"
