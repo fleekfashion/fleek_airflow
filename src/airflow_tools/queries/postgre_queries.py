@@ -14,11 +14,8 @@ def _py_to_pg(val, dtype):
 def create_table_query(table_name: str, columns: list, is_prod: bool = False, tail: str=""):
     tail = tail if is_prod else ""
 
-    def _build_field(col, is_prod):
-        if is_prod:
-            return f"{col['name']} {col['type']} {col.get('mode', '')} {col.get('prod', '')}"
-        else:
-            return f"{col['name']} {col['type']}"
+    def _build_field(col):
+        return f"{col.name} {col.type} {col.get('mode', '')} {col.get('prod', '')}"
 
     def _add_column(col):
         return f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS {_build_field(col, False)};\n"

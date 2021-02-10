@@ -65,7 +65,7 @@ upload_products = SparkScriptOperator(
     script="product_search_upload.py",
     local=True,
     json_args={
-        "fields": seq(postdefs.get_columns(postdefs.PRODUCT_INFO_TABLE)) \
+        "fields": postdefs.PRODUCT_INFO_TABLE.get_columns() \
                 .filter(lambda x: x != "is_active")
                 .to_list() + ['swipe_rate', 'default_search_order'],
         "search_endpoint": search.PRODUCT_SEARCH_INDEX,

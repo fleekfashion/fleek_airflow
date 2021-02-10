@@ -2,12 +2,20 @@ from __future__ import annotations
 import abc
 import os
 import typing as t
+from functools import partial 
+from dataclasses import dataclass
 
 from functional import seq
 from pyspark.sql.types import StructType
+from airflow.contrib.hooks.gcp_sql_hook import CloudSQLHook
+
 
 PROJECT = os.environ.get("PROJECT", "staging")
 PROJECT = PROJECT if PROJECT == "prod" else "staging"
+
+DATABASE = "ktest"
+CONN_ID = f'google_cloud_sql_{DATABASE}'
+
 
 class TableDef:
     project = PROJECT
@@ -44,20 +52,6 @@ class DeltaTableDef(TableDef):
 
     def __hash__(self):
         return hash(self.table_name)
-    
-class PostgresTableDef(TableDef):
-    def __init__(self, schema: t.Dict[str, str], table_name: str):
-        self.schema = schema
-        self.table_name = table_name
-
-    def get_columns(self) -> seq:
-        return seq( [ c['name'] for c in self.schema ] )
-
-    def get_name(self) -> str:
-        return self.table_name
-
-    def get_full_name(self):
-        return f"{self.project}.{self.table_name}"
 
 def load_delta_schemas(tables: dict):
     for key, value in tables.items():

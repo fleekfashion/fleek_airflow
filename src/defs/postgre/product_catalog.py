@@ -5,184 +5,209 @@ tables.
 """
 import os
 
+from src.defs.postgre import product_catalog as pcdefs
+from src.defs.postgre.utils import *
+
 PROJECT = os.environ.get("PROJECT", "staging")
 INSTANCE = "fleek-app-prod1"
 DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
 
-PRODUCT_INFO_TABLE = "product_info"
-PRODUCT_PRICE_HISTORY_TABLE = "product_price_history"
-SIMILAR_PRODUCTS_TABLE = "similar_products_v2"
-TOP_PRODUCTS_TABLE = "top_products"
+PRODUCT_INFO_TABLE_NAME = "product_info"
+PRODUCT_PRICE_HISTORY_TABLE_NAME = "product_price_history"
+SIMILAR_PRODUCTS_TABLE_NAME = "similar_products_v2"
+TOP_PRODUCTS_TABLE_NAME = "top_products"
 
-def get_full_name(table_name, staging=False):
-    if staging:
-        table_name = "staging_" + table_name
-    return f"{PROJECT}.{table_name}"
+PRODUCT_INFO_TABLE = PostgreTable(
+    name=PRODUCT_INFO_TABLE_NAME,
+    columns=[
+        Column(
+            name="product_id",
+            type="bigint",
+            nullable=False
+        ),
+        Column(
+            name="product_name",
+            type="text",
+            nullable=False
+        ),
+        Column(
+            name="product_description",
+            type="text",
+            nullable=False
+        ),
+        Column(
+            name="product_labels",
+            type="text[]",
+            nullable=False
+        ),
+        Column(
+            name="product_tags",
+            type="text[]",
+            nullable=False
+        ),
+        Column(
+            name="product_price",
+            type="double precision",
+            nullable=False
+        ),
+        Column(
+            name="product_sale_price",
+            type="double precision",
+            nullable=False
+        ),
+        Column(
+            name="product_image_url",
+            type="text",
+            nullable=False
+        ),
+        Column(
+            name="product_additional_image_urls",
+            type="text[]",
+            nullable=True
+        ),
+        Column(
+            name="product_purchase_url",
+            type="text",
+            nullable=False
+        ),
+        Column(
+            name="product_brand",
+            type="text",
+            nullable=True
+        ),
+        Column(
+            name="advertiser_name",
+            type="text",
+            nullable=False
+        ),
+        Column(
+            name="n_views",
+            type="INTEGER",
+            nullable=False
+        ),
+        Column(
+            name="n_likes",
+            type="INTEGER",
+            nullable=False
+        ),
+        Column(
+            name="n_add_to_cart",
+            type="INTEGER",
+            nullable=False
+        ),
+        Column(
+            name="n_conversions",
+            type="INTEGER",
+            nullable=False
+        ),
+        Column(
+            name="is_active",
+            type="boolean",
+            nullable=False
+        ),
+        Column(
+            name="execution_date",
+            type="date",
+            nullable=False
+        ),
+    ],
+    primary_key=PrimaryKey(
+        columns=["product_id"],
+    ),
+    indexes=[
+        Index(
+            columns=["is_active", "product_id"],
+        ),
+    ]
+)
 
-def get_columns(table_name):
-    schema = SCHEMAS.get(table_name)['schema']
-    return [ c['name'] for c in schema ]
+PRODUCT_PRICE_HISTORY_TABLE = PostgreTable(
+    name=PRODUCT_PRICE_HISTORY_TABLE_NAME,
+    columns=[
+        Column(
+            name="product_id",
+            type="bigint",
+            nullable=False
+        ),
+        Column(
+            name="execution_date",
+            type="date",
+            nullable=False
+        ),
+        Column(
+            name="product_price",
+            type="double precision",
+            nullable=False
+        ),
+    ],
+    primary_key=PrimaryKey(
+        columns=["product_id", "execution_date"]
+    ),
+    foreign_keys=[
+        ForeignKey(
+            columns=["product_id"],
+            ref_table=PRODUCT_INFO_TABLE.get_full_name(),
+            ref_columns=["product_id"]
+        ),
+    ]
+)
+            
+SIMILAR_PRODUCTS_TABLE = PostgreTable(
+    name=SIMILAR_PRODUCTS_TABLE_NAME,
+    columns=[
+        Column(
+            name="product_id",
+            type="bigint",
+            nullable=False
+        ),
+        Column(
+            name="index",
+            type="bigint",
+            nullable=False
+        ),
+        Column(
+            name="similar_product_id",
+            type="bigint",
+            nullable=False
+        ),
+    ],
+    primary_key=PrimaryKey(
+        columns=["product_id", "index"]
+    ),
+    foreign_keys=[
+        ForeignKey(
+            columns=["similar_product_id"],
+            ref_table=PRODUCT_INFO_TABLE.get_full_name(),
+            ref_columns=["product_id"]
+        )
+    ]
+)
 
-SCHEMAS = {
-    PRODUCT_INFO_TABLE : {
-        "schema" : [
-            {
-                "name": "product_id",
-                "type": "bigint",
-                "mode": "PRIMARY KEY"
-            },
-            {
-                "name": "product_name",
-                "type": "TEXT",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "product_description",
-                "type": "TEXT",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "product_labels",
-                "type": "TEXT []",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "product_tags",
-                "type": "TEXT []",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "product_price",
-                "type": "double precision",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "product_sale_price",
-                "type": "double precision",
-                "mode": ""
-            },
-            {
-                "name": "product_image_url",
-                "type": "TEXT",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "product_additional_image_urls",
-                "type": "TEXT []",
-                "mode": ""
-            },
-            {
-                "name": "product_purchase_url",
-                "type": "TEXT",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "product_brand",
-                "type": "TEXT",
-                "mode": ""
-            },
-            {
-                "name": "advertiser_name",
-                "type": "TEXT",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "n_views",
-                "type": "INTEGER",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "n_likes",
-                "type": "INTEGER",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "n_add_to_cart",
-                "type": "INTEGER",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "n_conversions",
-                "type": "INTEGER",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "is_active",
-                "type": "BOOLEAN",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "execution_date",
-                "type": "DATE",
-                "mode": "NOT NULL"
-            },
-        ],
-        "tail": f";\nCREATE INDEX IF NOT EXISTS {PROJECT}_product_info_index ON {get_full_name(PRODUCT_INFO_TABLE)} (is_active, product_id)"
-    },
+TOP_PRODUCTS_TABLE = PostgreTable(
+    name=TOP_PRODUCTS_TABLE_NAME,
+    columns=[
+        Column(
+            name="product_id",
+            type="bigint",
+            nullable=False
+        ),
+    ],
+    primary_key=PrimaryKey(
+        columns=["product_id"]
+    ),
+    foreign_keys=[
+        ForeignKey(
+            columns=["product_id"],
+            ref_table=PRODUCT_INFO_TABLE.get_full_name(),
+            ref_columns=["product_id"]
+        )
+    ]
+)
 
-    PRODUCT_PRICE_HISTORY_TABLE: {
-        "schema": [
-            {
-                "name": "product_id",
-                "type": "bigint",
-                "mode": "NOT NULL",
-                "prod": (
-                    f"REFERENCES {get_full_name(PRODUCT_INFO_TABLE)} (product_id)"
-                )
-            },
-            {
-                "name": "execution_date",
-                "type": "DATE",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "product_price",
-                "type": "double precision",
-                "mode": "NOT NULL",
-                "prod": (
-                    f",\n constraint pk_{PROJECT}_{PRODUCT_PRICE_HISTORY_TABLE} primary key (product_id, execution_date)"
-                )
-            },
-        ]
-    },
-
-    SIMILAR_PRODUCTS_TABLE: {
-        "schema": [
-            {
-                "name": "product_id",
-                "type": "bigint",
-                "mode": "NOT NULL",
-            },
-            {
-                "name": "index",
-                "type": "bigint",
-                "mode": "NOT NULL"
-            },
-            {
-                "name": "similar_product_id",
-                "type": "bigint",
-                "mode": f"NOT NULL",
-                "prod": (
-                    f"REFERENCES {get_full_name(PRODUCT_INFO_TABLE)} (product_id),\n"
-                    f"constraint pk_{PROJECT}_{SIMILAR_PRODUCTS_TABLE} primary key (product_id, index)"
-                )
-            },
-        ],
-        "tail": f";\nCREATE INDEX IF NOT EXISTS {PROJECT}_user_product_recs_index ON {get_full_name(SIMILAR_PRODUCTS_TABLE)} (product_id, index)",
-    },
-
-    TOP_PRODUCTS_TABLE: {
-        "schema": [
-            {
-                "name": "product_id",
-                "type": "bigint",
-                "mode": "PRIMARY KEY",
-                "prod": (
-                    f"REFERENCES {get_full_name(PRODUCT_INFO_TABLE)} (product_id)\n"
-                )
-            }
-        ],
-        "tail": ""
-    }
-}
+TABLES.extend([
+    PRODUCT_INFO_TABLE,
+    PRODUCT_PRICE_HISTORY_TABLE,
+    SIMILAR_PRODUCTS_TABLE,
+    TOP_PRODUCTS_TABLE
+])
