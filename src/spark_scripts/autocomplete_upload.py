@@ -141,7 +141,7 @@ df = df.drop_duplicates(subset=['primary_key'])
 ################################################
 # Filter out autocomplete string with no items
 ################################################
-def _get_hits(doc) -> bool:
+def _get_hits(doc) -> int:
     query = f"{doc['secondary_attribute']} {doc['primary_attribute']} {doc['attribute_descriptor']}".rstrip().lstrip()
     label = doc.get('product_label', "")
     facetFilters = [f"product_labels:{label}"] if len(label) > 0 else None
