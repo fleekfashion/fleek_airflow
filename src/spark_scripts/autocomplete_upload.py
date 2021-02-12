@@ -141,7 +141,7 @@ df = df.drop_duplicates(subset=['primary_key'])
 ################################################
 # Filter out autocomplete string with no items
 ################################################
-def _has_hits(doc) -> bool:
+def _get_hits(doc) -> bool:
     query = f"{doc['secondary_attribute']} {doc['primary_attribute']} {doc['attribute_descriptor']}".rstrip().lstrip()
     label = doc.get('product_label', "")
     facetFilters = [f"product_labels:{label}"] if len(label) > 0 else None
@@ -151,10 +151,10 @@ def _has_hits(doc) -> bool:
         "attributesToRetrieve": ["product_id"],
         "facetFilters": facetFilters
     })
-    return len(res['hits']) > 0
+    return res['nbHits']
 exploded_docs = df.to_dict(orient='records')
 final_docs = seq(exploded_docs) \
-    .filter(_has_hits) \
+    .map(lambda x: {**x, 'n_hits':_get_hits(x)} ) \
     .to_list()
 
 ################################################
