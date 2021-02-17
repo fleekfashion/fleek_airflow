@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from pandas.io.json import json_normalize
 from pyspark.sql import SQLContext
-from pyspark.sql.types import StructType
+from pyspark.sql.types import *
 
 ## Hack for linter
 try:
@@ -142,16 +142,23 @@ def build_products_df(rakuten_df):
     final_df['size'] = rakuten_df.get('attributeClass.Size')
     return final_df
 
-def upload_df(df):
-    schema = sqlContext.table(OUTPUT_TABLE).schema
+def upload_df(df, output_table):
+    schema = sqlContext.table("staging_product_catalog.daily_product_dump").schema
+
+    ## Add unlisted fields to the schema
+    for name in df.columns:
+        if name not in schema.fieldNames():
+            schema.add(StructField(name, StringType()))
+
     for name in schema.fieldNames():
         if name not in df.columns:
             df[name] = None
-    schema = StructType(
+
+    ordered_schema= StructType(
         sorted(schema.fields, key=lambda x: df.columns.to_list().index(x.name))
     )
-    spark_df = sqlContext.createDataFrame(data=df, schema=schema)
-    spark_df.write.option("mergeSchema", "true").saveAsTable(OUTPUT_TABLE,
+    spark_df = sqlContext.createDataFrame(data=df, schema=ordered_schema)
+    spark_df.write.option("mergeSchema", "true").saveAsTable(output_table,
                         mode="append",
                         format="delta")
 
