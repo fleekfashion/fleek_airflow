@@ -33,6 +33,23 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
 
   UNION ALL
 
+  -- american eagle 
+  SELECT 
+    product_id,
+    TRANSFORM(
+      array('_ob\\?', '_os\\?', '_f\\?', '_b\\?', '_s\\?'),
+      x -> regexp_replace(
+        product_image_url,
+        '_of\\?',
+        x
+      )
+    ) as product_additional_image_urls
+  FROM pinfo
+  WHERE 
+    advertiser_name = 'American Eagle Outfitters'
+
+  UNION ALL
+
   -- forever 21 
   SELECT 
     product_id,

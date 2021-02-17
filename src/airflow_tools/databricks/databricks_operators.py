@@ -19,9 +19,9 @@ from airflow.utils.decorators import apply_defaults
 from airflow.providers.databricks.operators.databricks import  _handle_databricks_operator_execution, _deep_string_coerce
 from airflow.contrib.hooks.databricks_hook import DatabricksHook
 from pyspark.sql.types import StructType
-from functional import seq 
+from functional import seq
 from src.airflow_tools.airflow_variables import SRC_DIR
-from src.defs.delta.utils import DBFS_SCRIPT_DIR, SHARED_POOL_ID, DBFS_TMP_DIR, PROJECT, DBFS_INIT_SCRIPT_DIR, DEV_CLUSTER_ID
+from src.defs.delta.utils import DBFS_SCRIPT_DIR, SHARED_POOL_ID, DBFS_TMP_DIR, PROJECT, DBFS_INIT_SCRIPT_DIR, DEV_CLUSTER_ID, DEV_MODE
 
 def _cp_dbfs(src: str, dest: str,
         overwrite: bool = False) -> None:
@@ -96,7 +96,7 @@ class SparkScriptOperator(BaseOperator):
         self.databricks_retry_delay = databricks_retry_delay
         self.run_id = None
         self.dbfs_json_path = None
-        self.dev_mode = dev_mode
+        self.dev_mode = dev_mode or DEV_MODE
     
     def _upload_json_to_dbfs(self, json_dict: dict):
         json_filename = f"{random.randint(0, 2**48)}.json"

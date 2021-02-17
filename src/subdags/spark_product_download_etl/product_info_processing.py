@@ -24,7 +24,7 @@ COMBINED_TABLE = f"{PROJECT}_tmp.combined_product_info"
 
 DROP_KWARGS_PATH = f"{DBFS_DEFS_DIR}/product_download/global/drop_keywords.json"
 LABELS_PATH = f"{DBFS_DEFS_DIR}/product_download/global/product_labels.json"
-LABELS = dbfs_read_json(LABELS_PATH)
+LABELS : dict = dbfs_read_json(LABELS_PATH) # type: ignore
 DROP_KWARGS = dbfs_read_json(DROP_KWARGS_PATH)
 
 def _process_args(args):
@@ -128,7 +128,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             options={
                 "overwriteSchema": "true"
             },
-            local=True
+            local=True,
         )
 
         process_image_urls = SparkSQLOperator(
@@ -145,7 +145,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             },
             local=True,
             drop_duplicates=True,
-            duplicates_subset=['product_id']
+            duplicates_subset=['product_id'],
         )
 
         add_additional_image_urls = SparkSQLOperator(
@@ -164,7 +164,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             },
             local=True,
             drop_duplicates=True,
-            duplicates_subset=['product_id']
+            duplicates_subset=['product_id'],
         )
 
         combine_info = SparkSQLOperator(
@@ -193,7 +193,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             },
             local=True,
             drop_duplicates=True,
-            duplicates_subset=['product_id']
+            duplicates_subset=['product_id'],
         )
         
         write_to_product_info = SparkSQLOperator(
@@ -219,7 +219,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             },
             mode="WRITE_TRUNCATE",
             drop_duplicates=True,
-            duplicates_subset=['product_id']
+            duplicates_subset=['product_id'],
         )
 
         basic_processing >> [ apply_product_labels, process_image_urls] 
