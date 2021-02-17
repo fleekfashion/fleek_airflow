@@ -15,4 +15,4 @@ DBFS_TMP_DIR = f"{DBFS_AIRFLOW_DIR}/tmp"
 SHARED_POOL_ID = "1203-171041-peso28-pool-fy1Vjl3w"
 
 DEV_CLUSTER_ID = "1206-220043-fact841"
-DEV_MODE = True ## Change to True to use dev cluster globally
+DEV_MODE = False## Change to True to use dev cluster globally
