@@ -8,13 +8,23 @@ CREATE OR REPLACE TEMPORARY VIEW pinfo AS (
 
 CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
 
+  -- American Eagle 
+  SELECT 
+    product_id,
+    regexp_replace(product_image_url, '\\?.*', '\\?\\$\pdp-m-opt\\$\&fmt=webp') as product_image_url
+  FROM pinfo
+  WHERE 
+    advertiser_name = 'American Eagle Outfitters'
+
+    UNION ALL
+
   -- forever 21 
   SELECT 
     product_id,
     regexp_replace(product_image_url, 'default_330', 'default_750') as product_image_url
   FROM pinfo
   WHERE 
-    advertiser_name='Forever 21' 
+    advertiser_name = 'Forever 21' 
 
     UNION ALL
 
@@ -24,7 +34,7 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
     regexp_replace(product_image_url, '_large\\.jpg', '_750x\\.jpg') as product_image_url
   FROM pinfo
   WHERE 
-    advertiser_name='Princess Polly' 
+    advertiser_name = 'Princess Polly' 
 
 );
 
