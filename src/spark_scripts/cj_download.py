@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from pandas.io.json import json_normalize
 from pyspark.sql import SQLContext
-from pyspark.sql.types import StructType
+from pyspark.sql.types import *
 
 ## Hack for linter
 try:
@@ -35,6 +35,13 @@ def _build_query(company_id, website_id, limit, advertiser_id, keyword):
           availability
           isDeleted
           id
+          itemGroupId
+          material
+          sizeType
+          customLabel0
+          customLabel1
+          customLabel2
+          customLabel3
           mobileLink
           salePrice {{
             amount
@@ -71,19 +78,9 @@ def _get_cj_df(company_id, website_id, limit, advertiser_id, query_params):
                          advertiser_id=advertiser_id,
                          keyword=query_params['keyword']
                          )
-    try:
-        res = requests.post(url=url, data=query, headers=headers)
-    except Exception as e:
-        print("Failure to POST:", e, company_id, website_id, advertiser_id, query_params)
-        return pd.DataFrame()
-
-    try:
-        batch = json.loads(res.content.decode())
-        batch = batch['data']['shoppingProducts']["resultList"]
-        print("Success:", company_id, website_id, limit, advertiser_id, query_params)
-    except Exception as e:
-        print("Failure to Parse:", e, company_id, website_id, limit, advertiser_id, query_params, res.content)
-        return pd.DataFrame()
+    res = requests.post(url=url, data=query, headers=headers)
+    batch = json.loads(res.content.decode())
+    batch = batch['data']['shoppingProducts']["resultList"]
 
     ## Add Product Tag to DF
     cj_df = json_normalize(batch)
@@ -134,6 +131,14 @@ def _build_products_df(cj_df):
             x.get('availability', ""),
             x.get('gender', "")
         ], axis=1)
+    final_df['external_group_id'] = cj_df.itemGroupId
+    final_df['material'] = cj_df.material
+    final_df['sizeType'] = cj_df.sizeType
+    final_df['external_custom_labels'] = cj_df.apply(
+        lambda x: [
+            x.get(f'customLabel{i}', "")
+            for i in range(4)
+        ], axis=1)
     return final_df
 
 
@@ -145,13 +150,20 @@ def download_batch(query_data: dict):
 
 def upload_df(df, output_table):
     schema = sqlContext.table("staging_product_catalog.daily_product_dump").schema
+
+    ## Add unlisted fields to the schema
+    for name in df.columns:
+        if name not in schema.fieldNames():
+            schema.add(StructField(name, StringType()))
+
     for name in schema.fieldNames():
         if name not in df.columns:
             df[name] = None
-    schema = StructType(
+
+    ordered_schema= StructType(
         sorted(schema.fields, key=lambda x: df.columns.to_list().index(x.name))
     )
-    spark_df = sqlContext.createDataFrame(data=df, schema=schema)
+    spark_df = sqlContext.createDataFrame(data=df, schema=ordered_schema)
     spark_df.write.option("mergeSchema", "true").saveAsTable(output_table,
                         mode="append",
                         format="delta")
@@ -174,6 +186,3 @@ if __name__ == "__main__":
         dataframes.append(df)
     final_df = pd.concat(dataframes).reset_index(drop=True)
     upload_df(final_df, output_table)
-
-        
-
