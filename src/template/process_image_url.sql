@@ -11,7 +11,14 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   -- American Eagle 
   SELECT 
     product_id,
-    regexp_replace(product_image_url, '\\?.*', '\\?\\$\pdp-m-opt\\$\&fmt=webp') as product_image_url
+    regexp_replace(
+      regexp_replace(
+        product_image_url, 
+        '\\?.*', '\\?\\$\pdp-m-opt\\$\&fmt=webp'
+      ),
+      '_f\\?',
+      '_of\\?'
+    ) as product_image_url
   FROM pinfo
   WHERE 
     advertiser_name = 'American Eagle Outfitters'
