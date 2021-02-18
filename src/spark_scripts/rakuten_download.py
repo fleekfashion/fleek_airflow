@@ -174,4 +174,4 @@ if __name__ == "__main__":
             df = build_products_df(rakuten_df)
             dataframes.append(df)
     final_df = pd.concat(dataframes).reset_index(drop=True)
-    upload_df(final_df)
+    upload_df(final_df, OUTPUT_TABLE)
