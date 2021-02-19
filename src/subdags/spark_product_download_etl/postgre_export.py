@@ -51,30 +51,6 @@ def get_operators(dag: DAG):
             local=True
         )
 
-        insert_product_size_info = SparkSQLOperator(
-            task_id="STAGE_product_size_info",
-            dag=dag,
-            sql="template/std_insert.sql",
-            params={
-                "target": postdefs.PRODUCT_SIZE_INFO_TABLE.get_delta_name(staging=True),
-                "mode": "OVERWRITE TABLE",
-                "src": f"""(
-                    WITH t AS (
-                        SELECT product_id, explode(product_details) AS product_details
-                        FROM {pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name()}
-                    )
-                    SELECT product_id, 
-                        product_details.size, 
-                        product_details.product_purchase_url, 
-                        true AS in_stock
-                    FROM t
-                )""",
-                "columns": postdefs.PRODUCT_SIZE_INFO_TABLE.get_columns().make_string(", ")
-            },
-            local=True,
-            dev_mode=True
-        )
-
         merge_active_products = CloudSqlQueryOperator(
             dag=dag,
             gcp_cloudsql_conn_id=postdefs.CONN_ID,
@@ -186,8 +162,45 @@ def get_operators(dag: DAG):
             )
         )
 
-        insert_active_products >> merge_active_products >> [write_top_products, write_product_price_history]
+        insert_product_size_info = SparkSQLOperator(
+            task_id="STAGE_product_size_info",
+            dag=dag,
+            sql="template/std_insert.sql",
+            params={
+                "target": postdefs.PRODUCT_SIZE_INFO_TABLE.get_delta_name(staging=True),
+                "mode": "OVERWRITE TABLE",
+                "src": f"""(
+                    WITH t AS (
+                        SELECT product_id, explode(product_details) AS product_details
+                        FROM {pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name()}
+                    )
+                    SELECT product_id, 
+                        product_details.size, 
+                        product_details.product_purchase_url, 
+                        true AS in_stock
+                    FROM t
+                    WHERE product_details.size IS NOT NULL
+                )""",
+                "columns": postdefs.PRODUCT_SIZE_INFO_TABLE.get_columns().make_string(", ")
+            },
+            local=True,
+        )
+
+        prod_write_product_size_info = CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=postdefs.CONN_ID,
+            task_id="PROD_write_product_size_info",
+            sql=pquery.write_truncate(
+                table_name=postdefs.PRODUCT_SIZE_INFO_TABLE.get_full_name(),
+                staging_name=postdefs.PRODUCT_SIZE_INFO_TABLE.get_full_name(staging=True),
+                columns=postdefs.PRODUCT_SIZE_INFO_TABLE.get_columns().to_list(),
+                transaction_block=True
+            ),
+        )
+
+        insert_active_products >> merge_active_products >> [write_top_products, write_product_price_history, insert_product_size_info]
         write_similar_items_staging >> write_similar_items_prod
         write_product_recs_staging >> write_product_recs_prod
+        insert_product_size_info >> prod_write_product_size_info
 
     return group 
