@@ -111,6 +111,21 @@ PRODUCT_INFO_TABLE = PostgreTable(
             type="date",
             nullable=False
         ),
+        Column(
+            name="size",
+            type="text",
+            nullable=True
+        ),
+        Column(
+            name="color",
+            type="text",
+            nullable=True
+        ),
+        Column(
+            name="product_secondary_labels",
+            type="text[]",
+            nullable=True
+        ),
     ],
     primary_key=PrimaryKey(
         columns=["product_id"],
