@@ -1,3 +1,3 @@
-INSERT {{params.mode}}  {{params.target }}
+INSERT {{ params.mode }}  {{ params.target }}
 SELECT {{ params.columns }}
 FROM {{ params.src }}

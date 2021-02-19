@@ -51,6 +51,30 @@ def get_operators(dag: DAG):
             local=True
         )
 
+        insert_product_size_info = SparkSQLOperator(
+            task_id="STAGE_product_size_info",
+            dag=dag,
+            sql="template/std_insert.sql",
+            params={
+                "target": postdefs.PRODUCT_SIZE_INFO_TABLE.get_delta_name(staging=True),
+                "mode": "OVERWRITE TABLE",
+                "src": f"""(
+                    WITH t AS (
+                        SELECT product_id, explode(product_details) AS product_details
+                        FROM {pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name()}
+                    )
+                    SELECT product_id, 
+                        product_details.size, 
+                        product_details.product_purchase_url, 
+                        true AS in_stock
+                    FROM t
+                )""",
+                "columns": postdefs.PRODUCT_SIZE_INFO_TABLE.get_columns().make_string(", ")
+            },
+            local=True,
+            dev_mode=True
+        )
+
         merge_active_products = CloudSqlQueryOperator(
             dag=dag,
             gcp_cloudsql_conn_id=postdefs.CONN_ID,
