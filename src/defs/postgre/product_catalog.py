@@ -15,6 +15,7 @@ CONN_ID = f'google_cloud_sql_{DATABASE}'
 
 PRODUCT_INFO_TABLE_NAME = "product_info"
 PRODUCT_PRICE_HISTORY_TABLE_NAME = "product_price_history"
+PRODUCT_SIZE_INFO_TABLE_NAME = "product_size_info"
 SIMILAR_PRODUCTS_TABLE_NAME = "similar_products_v2"
 TOP_PRODUCTS_TABLE_NAME = "top_products"
 
@@ -167,6 +168,42 @@ PRODUCT_PRICE_HISTORY_TABLE = PostgreTable(
         ),
     ]
 )
+
+PRODUCT_SIZE_INFO_TABLE = PostgreTable(
+    name=PRODUCT_SIZE_INFO_TABLE_NAME,
+    columns=[
+        Column(
+            name="product_id",
+            type="bigint",
+            nullable=False
+        ),
+        Column(
+            name="size",
+            type="text",
+            nullable=False
+        ),
+        Column(
+            name="product_purchase_url",
+            type="text",
+            nullable=False
+        ),
+        Column(
+            name="in_stock",
+            type="boolean",
+            nullable=False
+        ),
+    ],
+    primary_key=PrimaryKey(
+        columns=["product_id", "size"]
+    ),
+    foreign_keys=[
+        ForeignKey(
+            columns=["product_id"],
+            ref_table=PRODUCT_INFO_TABLE.get_full_name(),
+            ref_columns=["product_id"]
+        ),
+    ]
+)
             
 SIMILAR_PRODUCTS_TABLE = PostgreTable(
     name=SIMILAR_PRODUCTS_TABLE_NAME,
@@ -223,6 +260,7 @@ TOP_PRODUCTS_TABLE = PostgreTable(
 TABLES.extend([
     PRODUCT_INFO_TABLE,
     PRODUCT_PRICE_HISTORY_TABLE,
+    PRODUCT_SIZE_INFO_TABLE,
     SIMILAR_PRODUCTS_TABLE,
     TOP_PRODUCTS_TABLE
 ])
