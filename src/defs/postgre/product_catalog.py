@@ -13,11 +13,29 @@ INSTANCE = "fleek-app-prod1"
 DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
 
+ADVERTISER_PRODUCT_COUNT_TABLE_NAME = "advertiser_product_count"
 PRODUCT_INFO_TABLE_NAME = "product_info"
 PRODUCT_PRICE_HISTORY_TABLE_NAME = "product_price_history"
 PRODUCT_SIZE_INFO_TABLE_NAME = "product_size_info"
 SIMILAR_PRODUCTS_TABLE_NAME = "similar_products_v2"
 TOP_PRODUCTS_TABLE_NAME = "top_products"
+
+ADVERTISER_PRODUCT_COUNT_TABLE = PostgreTable(
+    name=ADVERTISER_PRODUCT_COUNT_TABLE_NAME,
+    columns=[
+        Column(
+            name="advertiser_name",
+            type="text",
+            nullable=False
+        ),
+        Column(
+            name="n_products",
+            type="bigint",
+            nullable=False
+        )
+    ],
+    primary_key=PrimaryKey(columns=["advertiser_name"])
+)
 
 PRODUCT_INFO_TABLE = PostgreTable(
     name=PRODUCT_INFO_TABLE_NAME,
@@ -258,6 +276,7 @@ TOP_PRODUCTS_TABLE = PostgreTable(
 )
 
 TABLES.extend([
+    ADVERTISER_PRODUCT_COUNT_TABLE,
     PRODUCT_INFO_TABLE,
     PRODUCT_PRICE_HISTORY_TABLE,
     PRODUCT_SIZE_INFO_TABLE,

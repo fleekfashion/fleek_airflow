@@ -206,10 +206,28 @@ def get_operators(dag: DAG):
             ),
         )
 
+        write_advertiser_count_table = CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=postdefs.CONN_ID,
+            task_id="PROD_write_advertiser_counts",
+            sql=pquery.staging_to_live_query(
+                table_name=postdefs.ADVERTISER_PRODUCT_COUNT_TABLE.get_full_name(),
+                staging_name=f"""(
+                SELECT advertiser_name, count(*) as n_products
+                FROM {pinfo_table_name}
+                WHERE is_active
+                GROUP BY advertiser_name
+                ) ac""",
+                mode="WRITE_TRUNCATE",
+                columns=postdefs.ADVERTISER_PRODUCT_COUNT_TABLE.get_columns().to_list(),
+            )
+        )
+
+
         insert_active_products >> merge_active_products >> [ 
             write_top_products, write_product_price_history, 
             prod_write_product_size_info, write_similar_items_prod,
-            write_product_recs_prod
+            write_product_recs_prod, write_advertiser_count_table,
         ]
         write_similar_items_staging >> write_similar_items_prod
         write_product_recs_staging >> write_product_recs_prod
