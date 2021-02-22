@@ -192,8 +192,6 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 "overwriteSchema": "true"
             },
             local=True,
-            drop_duplicates=True,
-            duplicates_subset=['product_id'],
         )
         
         write_to_product_info = SparkSQLOperator(
