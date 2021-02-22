@@ -176,10 +176,11 @@ def get_operators(dag: DAG):
                     )
                     SELECT product_id, 
                         product_details.size, 
-                        product_details.product_purchase_url, 
+                        first(product_details.product_purchase_url) as product_purchase_url,
                         true AS in_stock
                     FROM t
                     WHERE product_details.size IS NOT NULL
+                    GROUP BY product_id, product_details.size
                 )""",
                 "columns": postdefs.PRODUCT_SIZE_INFO_TABLE.get_columns().make_string(", ")
             },
@@ -190,15 +191,26 @@ def get_operators(dag: DAG):
             dag=dag,
             gcp_cloudsql_conn_id=postdefs.CONN_ID,
             task_id="PROD_write_product_size_info",
-            sql=pquery.write_truncate(
+            sql=pquery.upsert(
                 table_name=postdefs.PRODUCT_SIZE_INFO_TABLE.get_full_name(),
                 staging_name=postdefs.PRODUCT_SIZE_INFO_TABLE.get_full_name(staging=True),
                 columns=postdefs.PRODUCT_SIZE_INFO_TABLE.get_columns().to_list(),
-                transaction_block=True
+                key="product_id, size",
+                tail=f"""
+                DELETE FROM {postdefs.PRODUCT_SIZE_INFO_TABLE.get_full_name()}
+                WHERE (product_id, size) NOT IN ( 
+                    SELECT product_id, size
+                    FROM {postdefs.PRODUCT_SIZE_INFO_TABLE.get_full_name(staging=True)}
+                );
+                """
             ),
         )
 
-        insert_active_products >> merge_active_products >> [write_top_products, write_product_price_history, insert_product_size_info]
+        insert_active_products >> merge_active_products >> [ 
+            write_top_products, write_product_price_history, 
+            prod_write_product_size_info, write_similar_items_prod,
+            write_product_recs_prod
+        ]
         write_similar_items_staging >> write_similar_items_prod
         write_product_recs_staging >> write_product_recs_prod
         insert_product_size_info >> prod_write_product_size_info

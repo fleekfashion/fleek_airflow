@@ -109,13 +109,14 @@ def replace_table(table_name, staging_name):
     return query
 
 
-def upsert(table_name, staging_name, key, columns):
+def upsert(table_name, staging_name, key, columns, tail=""):
     column_list = ", ".join(columns)
     upsert_columns = ", ".join([f"{c} = EXCLUDED.{c}" for c in columns])
     query = f"""
     INSERT INTO {table_name}({column_list})
     SELECT {column_list} FROM {staging_name}
     ON CONFLICT ({key}) DO UPDATE SET {upsert_columns};
+    {tail}
     """
     return query
 
