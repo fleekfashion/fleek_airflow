@@ -191,18 +191,11 @@ def get_operators(dag: DAG):
             dag=dag,
             gcp_cloudsql_conn_id=postdefs.CONN_ID,
             task_id="PROD_write_product_size_info",
-            sql=pquery.upsert(
-                table_name=postdefs.PRODUCT_SIZE_INFO_TABLE.get_full_name(),
-                staging_name=postdefs.PRODUCT_SIZE_INFO_TABLE.get_full_name(staging=True),
-                columns=postdefs.PRODUCT_SIZE_INFO_TABLE.get_columns().to_list(),
-                key="product_id, size",
-                tail=f"""
-                DELETE FROM {postdefs.PRODUCT_SIZE_INFO_TABLE.get_full_name()}
-                WHERE (product_id, size) NOT IN ( 
-                    SELECT product_id, size
-                    FROM {postdefs.PRODUCT_SIZE_INFO_TABLE.get_full_name(staging=True)}
-                );
-                """
+            sql="template/prod_write_size_info.sql",
+            params=dict(
+                prod_table=postdefs.PRODUCT_SIZE_INFO_TABLE.get_full_name(),
+                staging_table=postdefs.PRODUCT_SIZE_INFO_TABLE.get_full_name(staging=True),
+                columns=postdefs.PRODUCT_SIZE_INFO_TABLE.get_columns().make_string(",\n"),
             ),
         )
 
