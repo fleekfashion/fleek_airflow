@@ -155,6 +155,7 @@ def _get_hits(doc) -> int:
 exploded_docs = df.to_dict(orient='records')
 final_docs = seq(exploded_docs) \
     .map(lambda x: {**x, 'n_hits':_get_hits(x)} ) \
+    .filter(lambda x: x['n_hits'] > 2) \
     .to_list()
 
 ################################################
