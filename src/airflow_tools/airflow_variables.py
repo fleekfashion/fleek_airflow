@@ -15,6 +15,8 @@ DEFAULT_DAG_ARGS = {
         'retries': 2,
         'retry_delay': timedelta(minutes=10),
         'template_searchpath': ["/usr/local/airflow/dags/src/template/"],
+        'max_active_runs': 1,
+        'catchup': False,
         }
 
 DAGS_FOLDER = os.environ.get("DAGS_FOLDER")
