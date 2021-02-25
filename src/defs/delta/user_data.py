@@ -97,6 +97,15 @@ TABLES = {
                 metadata={
                 }
             ),
+            StructField(name="json_data",
+                dataType=StringType(),
+                nullable=True,
+                metadata={
+                    "comment": (
+                        "for any random unstructured data"
+                    )
+                }
+            ),
         ]),
         "partition": ["execution_date"],
         "comment": "Table of all user events: event is main event, method is how event occured"
