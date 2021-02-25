@@ -57,6 +57,11 @@ USER_EVENTS_TABLE = PostgreTable(
             "TEXT",
             nullable=True
         ),
+        Column(
+            "json_data",
+            "TEXT",
+            nullable=True
+        ),
     ]
 )
 
