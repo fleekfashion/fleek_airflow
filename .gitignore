@@ -3,3 +3,7 @@
 *.pylintrc
 aws_creds/
 *.env
+
+# VSCode
+.config/
+.vscode/

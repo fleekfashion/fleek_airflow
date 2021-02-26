@@ -15,8 +15,8 @@ BQ_EXTERNAL_CONN_ID = "fleek-prod.us.cloudsql_ktest"
 
 USER_EVENTS_TABLE_NAME = "user_events"
 USER_FAVES_TABLE_NAME = "user_faves"
-USER_BAG_TABLE_NAME = "user_bag"
-USER_TRASH_TABLE_NAME = "user_trash"
+USER_BAGS_TABLE_NAME = "user_bags"
+USER_TRASHES_TABLE_NAME = "user_trashes"
 
 USER_EVENTS_TABLE = PostgreTable(
     name=USER_EVENTS_TABLE_NAME,
@@ -100,8 +100,8 @@ USER_FAVES_TABLE = PostgreTable(
     ]
 )
 
-USER_BAG_TABLE = PostgreTable(
-    name=USER_BAG_TABLE_NAME,
+USER_BAGS_TABLE = PostgreTable(
+    name=USER_BAGS_TABLE_NAME,
     columns=[
         Column(
             "user_id",
@@ -136,8 +136,8 @@ USER_BAG_TABLE = PostgreTable(
     ]
 )
 
-USER_TRASH_TABLE = PostgreTable(
-    name=USER_TRASH_TABLE_NAME,
+USER_TRASHES_TABLE = PostgreTable(
+    name=USER_TRASHES_TABLE_NAME,
     columns=[
         Column(
             "user_id",
@@ -175,6 +175,6 @@ USER_TRASH_TABLE = PostgreTable(
 TABLES.extend([
     USER_EVENTS_TABLE,
     USER_FAVES_TABLE,
-    USER_BAG_TABLE,
-    USER_TRASH_TABLE
+    USER_BAGS_TABLE,
+    USER_TRASHES_TABLE
 ])
