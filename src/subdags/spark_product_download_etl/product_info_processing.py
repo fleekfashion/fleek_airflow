@@ -247,6 +247,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
 
         process_image_urls >> add_additional_image_urls >> combine_info
         basic_processing >> [ 
+            process_image_urls,
             apply_product_labels, 
             apply_product_secondary_labels,
         ] >> combine_info >> write_to_product_info 
