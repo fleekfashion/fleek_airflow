@@ -18,13 +18,16 @@ from src.defs.delta.utils import SHARED_POOL_ID, DBFS_DEFS_DIR, PROJECT
 
 TABLE1 = f"{PROJECT}_tmp.product_info_processing_step_1"
 LABELS_TABLE = f"{PROJECT}_tmp.product_labels"
+SECONDARY_LABELS_TABLE = f"{PROJECT}_tmp.product_secondary_labels"
 IMAGE_URL_TABLE = f"{PROJECT}_tmp.processed_urls"
 ADDITIONAL_IMAGE_URL_TABLE = f"{PROJECT}_tmp.additional_image_urls"
 COMBINED_TABLE = f"{PROJECT}_tmp.combined_product_info"
 
 DROP_KWARGS_PATH = f"{DBFS_DEFS_DIR}/product_download/global/drop_keywords.json"
 LABELS_PATH = f"{DBFS_DEFS_DIR}/product_download/global/product_labels.json"
+SECONDARY_LABELS_PATH = f"{DBFS_DEFS_DIR}/product_download/global/product_secondary_labels.json"
 LABELS : dict = dbfs_read_json(LABELS_PATH) # type: ignore
+SECONDARY_LABELS : dict = dbfs_read_json(SECONDARY_LABELS_PATH) # type: ignore
 DROP_KWARGS = dbfs_read_json(DROP_KWARGS_PATH)
 
 def _process_args(args):
@@ -64,6 +67,13 @@ def args_to_filter(args):
         return f"({_build_filter_string(args)} \n\tAND NOT\n {exclude_filter} )"
     else:
         return _build_filter_string(args)
+
+def build_labels_filter(labels_def: dict):
+    label_filters = dict()
+    for key, value in labels_def.items():
+        label_filters[key] = seq(value).map(args_to_filter).make_string("\n\nOR\n\n")
+    res = [ [k, v] for k, v in label_filters.items() ]
+    return res
 
 def get_operators(dag: DAG_TYPE) -> TaskGroup:
     f"{__doc__}"
@@ -108,22 +118,35 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             },
         )
 
-        label_filters = dict()
-        for key, value in LABELS.items():
-            label_filters[key] = seq(value).map(args_to_filter).make_string("\n\nOR\n\n")
-        res = [ [k, v] for k, v in label_filters.items() ]
         apply_product_labels = SparkSQLOperator(
             dag=dag,
             sql="template/apply_product_labels.sql",
             task_id="apply_product_labels",
             params={
                 "src": TABLE1,
-                "output": LABELS_TABLE,
-                "label_filters": label_filters,
-                "updates": res
+                "label_filters": build_labels_filter(LABELS),
+                "field_name": "product_label"
 
             },
             output_table=LABELS_TABLE,
+            mode="WRITE_TRUNCATE",
+            options={
+                "overwriteSchema": "true"
+            },
+            local=True,
+        )
+
+        apply_product_secondary_labels = SparkSQLOperator(
+            dag=dag,
+            sql="template/apply_product_labels.sql",
+            task_id="apply_product_secondary_labels",
+            params={
+                "src": TABLE1,
+                "label_filters": build_labels_filter(SECONDARY_LABELS),
+                "field_name": "product_secondary_label"
+
+            },
+            output_table=SECONDARY_LABELS_TABLE,
             mode="WRITE_TRUNCATE",
             options={
                 "overwriteSchema": "true"
@@ -173,6 +196,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             task_id="combine_product_info",
             params={
                 "labels": LABELS_TABLE,
+                "secondary_labels": SECONDARY_LABELS_TABLE,
                 "image_url_table": IMAGE_URL_TABLE,
                 "additional_image_urls_table": ADDITIONAL_IMAGE_URL_TABLE,
                 "src": TABLE1,
@@ -182,7 +206,8 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 "columns": pcdefs.PRODUCT_INFO_TABLE.get_columns() \
                         .filter(lambda x: x not in [
                             "product_id", "product_labels",
-                            "product_image_url", "product_additional_image_urls"
+                            "product_image_url", "product_additional_image_urls",
+                            "product_secondary_labels"
                         ]) \
                         .make_string(", ")
             },
@@ -220,8 +245,9 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             duplicates_subset=['product_id'],
         )
 
-        basic_processing >> [ apply_product_labels, process_image_urls] 
-        process_image_urls >> add_additional_image_urls
-        [ apply_product_labels, add_additional_image_urls ] >> combine_info >> \
-                write_to_product_info 
+        process_image_urls >> add_additional_image_urls >> combine_info
+        basic_processing >> [ 
+            apply_product_labels, 
+            apply_product_secondary_labels,
+        ] >> combine_info >> write_to_product_info 
     return group
