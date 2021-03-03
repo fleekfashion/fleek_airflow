@@ -117,7 +117,7 @@ autocomplete_upload = SparkScriptOperator(
     params={
         "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
         "product_hidden_labels_filter": " OR ".join([  
-            f"(array_contains(secondary_subset, '{key}') AND product_label != '{value}')"
+            f"( suggestion rlike '{key}' AND product_label = '{value}' )"
             for key, value in HIDDEN_LABEL_FIELDS.items()
         ]),
         "min_strong": 50,

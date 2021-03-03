@@ -44,18 +44,13 @@ CREATE OR REPLACE TEMPORARY VIEW parsedSubsets AS (
     secondary_subset,
     array_remove(
       if(
-        array_join(secondary_subset, ' ') rlike product_label OR
-        {{ params.product_hidden_labels_filter }},
+        array_join(secondary_subset, ' ') rlike product_label,
         secondary_subset,
         array_union(secondary_subset, ARRAY(product_label))
       ), 
       ''
     ) as suggestion_subset,
-    if(
-      {{ params.product_hidden_labels_filter }},
-      '',
-      product_label
-    ) as product_label
+    product_label
   FROM t
 );
 
@@ -115,3 +110,4 @@ CREATE OR REPLACE TEMPORARY VIEW suggestions AS (
 
 SELECT *
 FROM suggestions
+WHERE NOT ( {{ params.product_hidden_labels_filter }} )
