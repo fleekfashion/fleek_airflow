@@ -26,24 +26,20 @@ args = parser.parse_args()
 with open(args.json, "rb") as handle:
     json_args = json.load(handle)
 
-TAXONOMY_PATH = json_args['taxonomy_path']
+
+## Required args
+SQL = json_args["sql"]
 COLORS_PATH = json_args['colors_path']
-GLOBAL_ATTRIBUTES_PATH = json_args['global_attributes_path']
-LABELS_PATH = json_args['labels_path']
 SEARCH_URL = json_args['search_url']
 SEARCH_PASSWORD = json_args['search_password']
 AUTOCOMPLETE_INDEX = json_args['autocomplete_index']
-PRODUCT_SEARCH_INDEX = json_args['product_search_index']
 ACTIVE_PRODUCTS_TABLE = json_args['active_products_table']
 
-with open(TAXONOMY_PATH, 'r') as handle:
-    docs = json.load(handle)
-with open(GLOBAL_ATTRIBUTES_PATH, 'r') as handle:
-    global_attribute_map = json.load(handle)
-with open(LABELS_PATH, 'r') as handle:
-    LABELS = list(json.load(handle).keys())
+
 with open(COLORS_PATH, 'r') as handle:
     COLORS = json.load(handle)
+c = meilisearch.Client(SEARCH_URL, SEARCH_PASSWORD)
+index = c.get_index(AUTOCOMPLETE_INDEX)
 
 advertisers = spark \
     .sql(f"SELECT DISTINCT(advertiser_name) \
@@ -51,120 +47,20 @@ advertisers = spark \
     .collect()
 ADVERTISER_NAMES = seq(advertisers) \
     .map(lambda x: x.advertiser_name) \
-    .to_list()
+    .make_string(",_,")
+
+# Run SQL
+for query in SQL.split(";"):
+    df = sqlContext.sql(query)
+
+pdf = df.toPandas()
+pdf['advertiser_names'] = ADVERTISER_NAMES
+pdf['colors'] = ",_,".join(COLORS)
+pdf['primary_key'] = pdf.index
+final_docs = pdf.to_dict('records')
 
 
-c = meilisearch.Client(SEARCH_URL, SEARCH_PASSWORD)
-index = c.get_index(AUTOCOMPLETE_INDEX)
-product_search_index = c.get_index(PRODUCT_SEARCH_INDEX)
-SEARCHABLE_ATTRIBUTES = index.get_searchable_attributes()
-
-################################################
-# Process Each row: handle nulls, filters etc.
-################################################
-def _process_doc(doc):
-    doc = copy.copy(doc)
-    doc['attribute_descriptor'] = [""] + doc.get('attribute_descriptor', [])    
-    doc['product_hidden_label'] = doc.get('product_hidden_label', "")
-    doc['product_label'] = doc.get('product_label', [])
-    doc['advertiser_names'] = ",_,".join(ADVERTISER_NAMES)
-    doc['colors'] = ",_,".join(COLORS)
-    doc["is_base_label"] = doc.get("is_base_label", False)
-    doc["secondary_attributes"] = doc.get("secondary_attributes", [])
-    doc["primary_attribute"] = doc.get("primary_attribute", "")
-    doc["product_label"] = [""] + doc['product_label'] if not doc['is_base_label'] else doc["product_label"]
-    doc["EXCLUDE"] = set(doc.get('EXCLUDE', []))
-    return doc
-
-################################################
-# EXPLODE dataframe and Add global attributes 
-################################################
-processed_docs = (
-        seq(docs) + 
-        seq(LABELS).map(
-            lambda x: {
-                "product_label": [x],
-                "is_base_label": True
-            }
-        )
-    ) \
-    .map(_process_doc) \
-    .to_list()
-df = pd.DataFrame(processed_docs)
-
-def posexplode(df: pd.DataFrame, attribute: str) -> pd.DataFrame:
-    df = df.explode(attribute)
-    df[attribute + '_rank'] = df.groupby(df.index).cumcount()+1
-    df = df.reset_index(drop=True)
-    return df
-def _add_global_attributes(doc):
-    existing_attributes = doc['secondary_attributes'] 
-    other_fields = [doc['primary_attribute']] + doc['attribute_descriptor']
-    
-    global_attributes = seq(global_attribute_map.get(doc['product_label'], [])) \
-        .filter(lambda x: x not in existing_attributes + other_fields) \
-        .to_list()
-    doc['secondary_attribute'] = [""] + existing_attributes + global_attributes
-    return doc
-
-## Explode Relevant fields
-df = posexplode(df, "product_label") \
-    .apply(_add_global_attributes, axis=1) \
-    .drop(labels=['secondary_attributes'], axis=1)
-df = posexplode(df, "secondary_attribute")
-df = posexplode(df, "attribute_descriptor")
-
-## Drop excluded attributes
-df = df[df.apply(lambda x: x['secondary_attribute'] not in x['EXCLUDE'], axis=1)] \
-        .reset_index() \
-        .drop("EXCLUDE", axis=1)
-
-## Build search columns
-def _build_suggestion(x):
-    suggestion = f"{x['secondary_attribute']} {x['primary_attribute']} {x['attribute_descriptor']} {x['product_label']}"
-    return re.sub('\s+',' ', suggestion).rstrip().lstrip()
-
-order_invariant_hash = lambda x: hash(tuple(sorted(x.split())))
-
-df['suggestion'] = df.apply(_build_suggestion, axis=1) # build suggestion string
-df['suggestion_hash'] = df.suggestion.apply(order_invariant_hash)
-df['rank'] = (
-        (
-            1.2*df.product_label_rank +
-            1.1*df.attribute_descriptor_rank + 
-            df.secondary_attribute_rank
-        ) / 3.3
-    )
-df['primary_key'] = df[SEARCHABLE_ATTRIBUTES].apply(lambda x: hash(tuple(x)), axis = 1) ## only use searchable attributes
-df = df.drop_duplicates(subset=['primary_key'])
-
-################################################
-# Filter out autocomplete string with no items
-################################################
-def _get_hits(doc) -> int:
-    query = f"{doc['secondary_attribute']} {doc['primary_attribute']} {doc['attribute_descriptor']}".rstrip().lstrip()
-    label = doc.get('product_label', "")
-    facetFilters = [f"product_labels:{label}"] if len(label) > 0 else None
-    res = product_search_index.search(query, opt_params={
-        "offset":0,
-        "limit":1,
-        "attributesToRetrieve": ["product_id"],
-        "facetFilters": facetFilters
-    })
-    return res['nbHits']
-exploded_docs = df.to_dict(orient='records')
-final_docs = seq(exploded_docs) \
-    .map(lambda x: {**x, 'n_hits':_get_hits(x)} ) \
-    .filter(lambda x: x['n_hits'] > 2) \
-    .to_list()
-
-################################################
-# Delete and Upload documents
-################################################
 index.delete_all_documents()
 step = 1000
 for i in range(0, len(final_docs) , step):
     res = index.add_documents(final_docs[i: min(i+step, len(final_docs))])
-################################################
-# Delete inactive documents
-################################################
