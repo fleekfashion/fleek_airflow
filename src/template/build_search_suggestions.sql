@@ -43,11 +43,7 @@ CREATE OR REPLACE TEMPORARY VIEW parsedSubsets AS (
     product_id,
     secondary_subset,
     array_remove(
-      if(
-        array_join(secondary_subset, ' ') rlike product_label,
-        secondary_subset,
-        array_union(secondary_subset, ARRAY(product_label))
-      ), 
+      array_union(secondary_subset, ARRAY(product_label)),
       ''
     ) as suggestion_subset,
     product_label
@@ -91,7 +87,7 @@ CREATE OR REPLACE TEMPORARY VIEW suggestions AS (
       first(suggestion_hash) as suggestion_hash,
       first(product_label) as product_label
     FROM suggestionsV1
-    GROUP BY suggestion
+    GROUP BY suggestion, product_label
   )
 
   SELECT 
