@@ -25,10 +25,13 @@ CREATE OR REPLACE TEMPORARY VIEW pi AS (
       more_urls.product_additional_image_urls, 
       pi.product_additional_image_urls
     ) as product_additional_image_urls,
+    pn.product_name,
     {{ params.columns }}
   FROM {{params.src}} pi
   INNER JOIN labels l
     ON pi.product_id=l.product_id
+  INNER JOIN {{ params.product_name_table }} pn
+    ON pi.product_id=pn.product_id
   LEFT JOIN secondary_labels sl
     ON pi.product_id=sl.product_id
   LEFT JOIN {{ params.image_url_table }} urls

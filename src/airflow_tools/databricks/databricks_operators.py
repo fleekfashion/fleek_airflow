@@ -11,7 +11,7 @@ import subprocess
 import random
 import json
 import copy
-from typing import Dict, List, Union, Any
+from typing import Dict, List, Union, Any, Optional
 
 from airflow.models import DAG
 from airflow.models.baseoperator import BaseOperator, BaseOperatorLink
@@ -70,7 +70,7 @@ class SparkScriptOperator(BaseOperator):
             polling_period_seconds=15,
             databricks_retry_limit: int=3,
             databricks_retry_delay: int=1,
-            dev_mode: bool=False,
+            dev_mode: Optional[bool]=None,
             **kwargs
             ):
 
@@ -96,7 +96,9 @@ class SparkScriptOperator(BaseOperator):
         self.databricks_retry_delay = databricks_retry_delay
         self.run_id = None
         self.dbfs_json_path = None
-        self.dev_mode = dev_mode or DEV_MODE
+        self.dev_mode = DEV_MODE and self.pool_id == SHARED_POOL_ID \
+                if dev_mode is None else dev_mode 
+
     
     def _upload_json_to_dbfs(self, json_dict: dict):
         json_filename = f"{random.randint(0, 2**48)}.json"
