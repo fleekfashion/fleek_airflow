@@ -20,6 +20,8 @@ TABLE1 = f"{PROJECT}_tmp.product_info_processing_step_1"
 LABELS_TABLE = f"{PROJECT}_tmp.product_labels"
 SECONDARY_LABELS_TABLE = f"{PROJECT}_tmp.product_secondary_labels"
 IMAGE_URL_TABLE = f"{PROJECT}_tmp.processed_urls"
+PRODUCT_NAME_TABLE = f"{PROJECT}_tmp.product_name"
+INTERNAL_COLORS_TABLE = f"{PROJECT}_tmp.internal_colors"
 ADDITIONAL_IMAGE_URL_TABLE = f"{PROJECT}_tmp.additional_image_urls"
 COMBINED_TABLE = f"{PROJECT}_tmp.combined_product_info"
 
@@ -151,7 +153,24 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             options={
                 "overwriteSchema": "true"
             },
+            num_workers=3
+        )
+
+        process_product_name = SparkSQLOperator(
+            dag=dag,
+            task_id="process_product_name",
+            params={
+                "product_info_table": TABLE1,
+            },
+            sql="template/process_product_name.sql",
+            output_table=PRODUCT_NAME_TABLE,
+            mode="WRITE_TRUNCATE",
+            options={
+                "overwriteSchema": "true"
+            },
             local=True,
+            drop_duplicates=True,
+            duplicates_subset=['product_id'],
         )
 
         process_image_urls = SparkSQLOperator(
@@ -196,6 +215,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             task_id="combine_product_info",
             params={
                 "labels": LABELS_TABLE,
+                "product_name_table": PRODUCT_NAME_TABLE,
                 "secondary_labels": SECONDARY_LABELS_TABLE,
                 "image_url_table": IMAGE_URL_TABLE,
                 "additional_image_urls_table": ADDITIONAL_IMAGE_URL_TABLE,
@@ -207,7 +227,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                         .filter(lambda x: x not in [
                             "product_id", "product_labels",
                             "product_image_url", "product_additional_image_urls",
-                            "product_secondary_labels"
+                            "product_secondary_labels", "product_name"
                         ]) \
                         .make_string(", ")
             },
@@ -245,10 +265,10 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             duplicates_subset=['product_id'],
         )
 
-        process_image_urls >> add_additional_image_urls >> combine_info
+        basic_processing >> process_image_urls >> add_additional_image_urls >> combine_info
         basic_processing >> [ 
-            process_image_urls,
             apply_product_labels, 
             apply_product_secondary_labels,
+            process_product_name,
         ] >> combine_info >> write_to_product_info 
     return group

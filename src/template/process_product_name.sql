@@ -7,19 +7,20 @@ CREATE OR REPLACE TEMPORARY VIEW pinfo AS (
   FROM {{params.product_info_table}} 
 );
 
-SELECT
-  product_id,
-  regexp_replace(
+WITH t AS (
+  SELECT
+    product_id,
     regexp_replace(
       regexp_replace(
         product_name,
-        size,
+        COALESCE(size, 'absurd_impossible_string_tthat_means_nothing'), -- b/c size can be null
         ''
       ),
-      color,
+      ' - .*', 
       ''
-    )
-    ' - .*', 
-    ''
-  ) as product_name 
-FROM pinfo
+    ) as product_name 
+  FROM pinfo
+)
+
+SELECT *
+FROM t
