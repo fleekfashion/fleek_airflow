@@ -43,7 +43,11 @@ CREATE OR REPLACE TEMPORARY VIEW parsedSubsets AS (
     product_id,
     secondary_subset,
     array_remove(
-      array_union(secondary_subset, ARRAY(product_label)),
+      if(
+        {{ params.product_hidden_labels_filter }},
+        secondary_subset,
+        array_union(secondary_subset, ARRAY(product_label))
+      ),
       ''
     ) as suggestion_subset,
     product_label
@@ -59,7 +63,18 @@ CREATE OR REPLACE TEMPORARY VIEW suggestionsV1 AS (
         ' '
       )
     ) as suggestion,
-    abs(xxhash64(trim(array_join(array_sort(suggestion_subset), ' ')))) as suggestion_hash,
+    abs(
+      xxhash64(
+        trim(
+          array_join(
+            array_sort(
+              suggestion_subset
+            ), 
+            ' '
+          )
+        )
+      )
+    ) as suggestion_hash,
     secondary_subset,
     product_label
   FROM parsedSubsets
@@ -104,6 +119,6 @@ CREATE OR REPLACE TEMPORARY VIEW suggestions AS (
   ORDER BY c DESC
 );
 
-SELECT *
+SELECT
+  *
 FROM suggestions
-WHERE NOT ( {{ params.product_hidden_labels_filter }} )
