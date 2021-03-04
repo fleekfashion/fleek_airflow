@@ -89,6 +89,17 @@ update_autocomplete_settings = PythonOperator(
     }
 )
 
+HIDDEN_LABEL_FIELDS = {
+    "jeans": "pants",
+    "sweatpants": "pants",
+    "graphic tee": "shirt",
+    "t-shirt": "shirt",
+    "blouse": "shirt",
+    "cardigan": "sweater",
+    "leggings": "pants",
+    "bikini": "swimwear",
+    "romper": "jumpsuit"
+}
 
 AUTOCOMPLETE_DEFS_LOCAL_DIR = AUTOCOMPLETE_DEFS_DIR.replace('dbfs:/', '/dbfs/')
 autocomplete_upload = SparkScriptOperator(
@@ -99,15 +110,21 @@ autocomplete_upload = SparkScriptOperator(
     json_args={
         "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
         "autocomplete_index": search.AUTOCOMPLETE_INDEX,
-        "product_search_index": search.PRODUCT_SEARCH_INDEX,
         "search_url": search.URL,
         "search_password": search.PASSWORD,
-        "taxonomy_path": f"{AUTOCOMPLETE_DEFS_LOCAL_DIR}/taxonomy.json",
-        "global_attributes_path": f"{AUTOCOMPLETE_DEFS_LOCAL_DIR}/global_attributes.json",
         "colors_path": f"{AUTOCOMPLETE_DEFS_LOCAL_DIR}/colors.json",
-        "labels_path": f"{DBFS_DEFS_DIR.replace('dbfs:/', '/dbfs/')}/product_download/global/product_labels.json",
     },
-    init_scripts=["install_meilisearch.sh"]
+    params={
+        "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+        "product_hidden_labels_filter": " OR ".join([  
+            f"(array_contains(secondary_subset, '{key}') AND product_label = '{value}')"
+            for key, value in HIDDEN_LABEL_FIELDS.items()
+        ]),
+        "min_strong": 50,
+        "min_include": 5
+    },
+    init_scripts=["install_meilisearch.sh"],
+    sql="template/build_search_suggestions.sql"
 )
 
 sleep_task_1 = TimeDeltaSensor(
