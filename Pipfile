@@ -8,26 +8,28 @@ jedi = "*"
 delta = "*"
 pyspark-stubs = "*"
 pyflakes = "*"
+pylint = "*"
 meilisearch = "*"
 mypy = "*"
 
 [packages]
-apache-airflow = {extras = ["databricks", "postgres", "google", "mysql"],version = "==2.0.0"}
+apache-airflow = {extras = ["postgres", "mysql"],version = "==2.0.1"}
 mysqlclient = "*"
 dill = "*"
 awscli = {"version>" = "1.18.100"}
 boto3 = {"version>" = "1.14.23"}
 botocore = {"version>" = "1.17.23"}
-google-cloud-storage = {"version>" = "1.29.0"}
+google-cloud-storage = {"version>" = "*"}
 numpy = {"version>" = "1.19.0"}
 pandas = "==0.25.3"
 pyarrow = {"version>" = "0.17.1"}
 scipy = {"version>" = "1.5.1"}
 databricks-cli = "*"
-pyspark = {"version>" = "3.0.0"}
-pylint = "*"
+pyspark = "==3.1.1"
 paramiko = "*"
 apache-airflow-providers-ssh = "*"
+apache-airflow-providers-google = "*"
+apache-airflow-providers-databricks= "*"
 pyfunctional = "*"
 meilisearch = "*"
 
