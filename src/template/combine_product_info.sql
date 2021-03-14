@@ -12,6 +12,13 @@ CREATE OR REPLACE TEMPORARY VIEW pi AS (
       collect_set(product_secondary_label) as product_secondary_labels
     FROM {{ params.secondary_labels }}
     GROUP BY product_id
+  ),
+  internal_colors AS (
+    SELECT 
+      product_id,
+      first(internal_color) as internal_color
+    FROM {{ params.internal_colors_table }}
+    GROUP BY product_id
   )
   SELECT 
     l.product_id,
@@ -26,6 +33,7 @@ CREATE OR REPLACE TEMPORARY VIEW pi AS (
       pi.product_additional_image_urls
     ) as product_additional_image_urls,
     pn.product_name,
+    ic.internal_color,
     {{ params.columns }}
   FROM {{params.src}} pi
   INNER JOIN labels l
@@ -38,6 +46,8 @@ CREATE OR REPLACE TEMPORARY VIEW pi AS (
     ON pi.product_id = urls.product_id
   LEFT JOIN {{ params.additional_image_urls_table }} more_urls
     ON pi.product_id = more_urls.product_id
+  LEFT JOIN internal_colors ic
+    ON pi.product_id = ic.product_id
   WHERE size(l.product_labels) > 0
 );
 

@@ -5,6 +5,7 @@ Daily CJ Downloads
 
 import json
 import copy
+import typing as t
 from datetime import timedelta
 from functional import seq
 
@@ -30,6 +31,7 @@ LABELS_PATH = f"{DBFS_DEFS_DIR}/product_download/global/product_labels.json"
 SECONDARY_LABELS_PATH = f"{DBFS_DEFS_DIR}/product_download/global/product_secondary_labels.json"
 LABELS : dict = dbfs_read_json(LABELS_PATH) # type: ignore
 SECONDARY_LABELS : dict = dbfs_read_json(SECONDARY_LABELS_PATH) # type: ignore
+COLORS: t.List[str] = dbfs_read_json(f"{DBFS_DEFS_DIR}/search/autocomplete/colors.json") # type: ignore
 DROP_KWARGS = dbfs_read_json(DROP_KWARGS_PATH)
 
 def _process_args(args):
@@ -146,14 +148,42 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 "src": TABLE1,
                 "label_filters": build_labels_filter(SECONDARY_LABELS),
                 "field_name": "product_secondary_label"
-
             },
             output_table=SECONDARY_LABELS_TABLE,
             mode="WRITE_TRUNCATE",
             options={
                 "overwriteSchema": "true"
             },
-            num_workers=3
+            num_workers=3,
+            dev_mode=False
+        )
+
+        apply_internal_colors = SparkSQLOperator(
+            dag=dag,
+            sql="template/apply_product_labels.sql",
+            task_id="apply_internal_colors",
+            params={
+                "src": TABLE1,
+                "label_filters": build_labels_filter(
+                    seq(COLORS) \
+                        .map(lambda x:
+                            (
+                                x,
+                                [
+                                    { "color": x },
+                                    { "product_name": f"\\b{x}\\b"},
+                                ]
+                            )
+                        ).to_dict()
+                    ),
+                "field_name": "internal_color"
+            },
+            output_table=INTERNAL_COLORS_TABLE,
+            mode="WRITE_TRUNCATE",
+            options={
+                "overwriteSchema": "true"
+            },
+            local=True
         )
 
         process_product_name = SparkSQLOperator(
@@ -217,6 +247,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 "labels": LABELS_TABLE,
                 "product_name_table": PRODUCT_NAME_TABLE,
                 "secondary_labels": SECONDARY_LABELS_TABLE,
+                "internal_colors_table": INTERNAL_COLORS_TABLE,
                 "image_url_table": IMAGE_URL_TABLE,
                 "additional_image_urls_table": ADDITIONAL_IMAGE_URL_TABLE,
                 "src": TABLE1,
@@ -227,7 +258,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                         .filter(lambda x: x not in [
                             "product_id", "product_labels",
                             "product_image_url", "product_additional_image_urls",
-                            "product_secondary_labels", "product_name"
+                            "product_secondary_labels", "product_name", "internal_color"
                         ]) \
                         .make_string(", ")
             },
@@ -270,5 +301,6 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             apply_product_labels, 
             apply_product_secondary_labels,
             process_product_name,
+            apply_internal_colors,
         ] >> combine_info >> write_to_product_info 
     return group

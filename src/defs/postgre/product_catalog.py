@@ -145,6 +145,11 @@ PRODUCT_INFO_TABLE = PostgreTable(
             type="text[]",
             nullable=True
         ),
+        Column(
+            name="internal_color",
+            type="text",
+            nullable=True
+        ),
     ],
     primary_key=PrimaryKey(
         columns=["product_id"],
