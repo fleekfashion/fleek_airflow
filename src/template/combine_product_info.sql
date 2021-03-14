@@ -33,6 +33,7 @@ CREATE OR REPLACE TEMPORARY VIEW pi AS (
       pi.product_additional_image_urls
     ) as product_additional_image_urls,
     pn.product_name,
+    ic.internal_color,
     {{ params.columns }}
   FROM {{params.src}} pi
   INNER JOIN labels l
