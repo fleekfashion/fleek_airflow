@@ -13,6 +13,8 @@ CONN_ID = f'google_cloud_sql_{DATABASE}'
 BQ_EXTERNAL_CONN_ID = "fleek-prod.us.cloudsql_ktest"
 
 USER_EVENTS_TABLE_NAME = "user_events"
+USER_FAVED_BRANDS_TABLE_NAME = "user_faved_brands"
+USER_MUTED_BRANDS_TABLE_NAME = "user_muted_brands"
 
 USER_EVENTS_TABLE = PostgreTable(
     name=USER_EVENTS_TABLE_NAME,
@@ -65,6 +67,56 @@ USER_EVENTS_TABLE = PostgreTable(
     ]
 )
 
+USER_FAVED_BRANDS_TABLE = PostgreTable(
+    name=USER_FAVED_BRANDS_TABLE_NAME,
+    columns=[
+        Column(
+            "user_id",
+            "bigint",
+            nullable=False
+        ),
+        Column(
+            "advertiser_name",
+            "text",
+            nullable=False,
+        ),
+        Column(
+            "event_timestamp",
+            "bigint",
+            nullable=False
+        )
+    ],
+    primary_key=PrimaryKey(
+        ["user_id", "advertiser_name"],
+    ),
+)
+
+USER_MUTED_BRANDS_TABLE = PostgreTable(
+    name=USER_MUTED_BRANDS_TABLE_NAME,
+    columns=[
+        Column(
+            "user_id",
+            "bigint",
+            nullable=False
+        ),
+        Column(
+            "advertiser_name",
+            "text",
+            nullable=False,
+        ),
+        Column(
+            "event_timestamp",
+            "bigint",
+            nullable=False
+        )
+    ],
+    primary_key=PrimaryKey(
+        ["user_id", "advertiser_name"],
+    ),
+)
+
 TABLES.extend([
-    USER_EVENTS_TABLE
+    USER_EVENTS_TABLE,
+    USER_FAVED_BRANDS_TABLE,
+    USER_MUTED_BRANDS_TABLE
 ])
