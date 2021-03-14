@@ -277,6 +277,15 @@ TABLES = {
                         "default": []
                     }
                 ),
+                StructField(name="internal_color",
+                    dataType=StringType(),
+                    nullable=True,
+                    metadata={
+                        "comment": (
+                            "Interal color for unifying taxonomy"
+                        )
+                    }
+                ),
         ]),
         "comment": (
             "Current products available in catalog"
@@ -524,6 +533,15 @@ TABLES = {
                     nullable=False,
                     metadata={
                         "default": []
+                    }
+                ),
+                StructField(name="internal_color",
+                    dataType=StringType(),
+                    nullable=True,
+                    metadata={
+                        "comment": (
+                            "Interal color for unifying taxonomy"
+                        )
                     }
                 ),
         ]),
