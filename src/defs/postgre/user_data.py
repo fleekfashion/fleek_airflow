@@ -14,9 +14,9 @@ CONN_ID = f'google_cloud_sql_{DATABASE}'
 BQ_EXTERNAL_CONN_ID = "fleek-prod.us.cloudsql_ktest"
 
 USER_EVENTS_TABLE_NAME = "user_events"
-USER_FAVES_TABLE_NAME = "user_faves"
-USER_BAGS_TABLE_NAME = "user_bags"
-USER_TRASHES_TABLE_NAME = "user_trashes"
+USER_PRODUCT_FAVES_TABLE_NAME = "user_product_faves"
+USER_PRODUCT_BAGS_TABLE_NAME = "user_product_bags"
+USER_PRODUCT_SEENS_TABLE_NAME = "user_product_seens"
 
 USER_EVENTS_TABLE = PostgreTable(
     name=USER_EVENTS_TABLE_NAME,
@@ -64,8 +64,8 @@ USER_EVENTS_TABLE = PostgreTable(
     ]
 )
 
-USER_FAVES_TABLE = PostgreTable(
-    name=USER_FAVES_TABLE_NAME,
+USER_PRODUCT_FAVES_TABLE = PostgreTable(
+    name=USER_PRODUCT_FAVES_TABLE_NAME,
     columns=[
         Column(
             "user_id",
@@ -100,8 +100,8 @@ USER_FAVES_TABLE = PostgreTable(
     ]
 )
 
-USER_BAGS_TABLE = PostgreTable(
-    name=USER_BAGS_TABLE_NAME,
+USER_PRODUCT_BAGS_TABLE = PostgreTable(
+    name=USER_PRODUCT_BAGS_TABLE_NAME,
     columns=[
         Column(
             "user_id",
@@ -136,8 +136,8 @@ USER_BAGS_TABLE = PostgreTable(
     ]
 )
 
-USER_TRASHES_TABLE = PostgreTable(
-    name=USER_TRASHES_TABLE_NAME,
+USER_PRODUCT_SEENS_TABLE = PostgreTable(
+    name=USER_PRODUCT_SEENS_TABLE_NAME,
     columns=[
         Column(
             "user_id",
@@ -174,7 +174,7 @@ USER_TRASHES_TABLE = PostgreTable(
 
 TABLES.extend([
     USER_EVENTS_TABLE,
-    USER_FAVES_TABLE,
-    USER_BAGS_TABLE,
-    USER_TRASHES_TABLE
+    USER_PRODUCT_FAVES_TABLE,
+    USER_PRODUCT_BAGS_TABLE,
+    USER_PRODUCT_SEENS_TABLE
 ])
