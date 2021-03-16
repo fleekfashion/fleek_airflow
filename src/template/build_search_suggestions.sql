@@ -4,9 +4,11 @@ CREATE OR REPLACe TEMP VIEW secondary_subsets AS (
       product_id,
       array_union(product_labels, ARRAY('')) as product_labels,
       explode(
-        array_union(
-          product_secondary_labels, 
-          ARRAY('')
+        array_distinct(
+          array_union(
+            product_secondary_labels, 
+            ARRAY('', coalesce(internal_color, ''))
+          )
         )
       ) as sl
     FROM {{ params.active_products_table }} 

@@ -29,15 +29,12 @@ with open(args.json, "rb") as handle:
 
 ## Required args
 SQL = json_args["sql"]
-COLORS_PATH = json_args['colors_path']
 SEARCH_URL = json_args['search_url']
 SEARCH_PASSWORD = json_args['search_password']
 AUTOCOMPLETE_INDEX = json_args['autocomplete_index']
 ACTIVE_PRODUCTS_TABLE = json_args['active_products_table']
 
 
-with open(COLORS_PATH, 'r') as handle:
-    COLORS = json.load(handle)
 c = meilisearch.Client(SEARCH_URL, SEARCH_PASSWORD)
 index = c.get_index(AUTOCOMPLETE_INDEX)
 
@@ -55,7 +52,7 @@ for query in SQL.split(";"):
 
 pdf = df.toPandas()
 pdf['advertiser_names'] = ADVERTISER_NAMES
-pdf['colors'] = ",_,".join(COLORS)
+pdf['colors'] = ""
 pdf['primary_key'] = pdf.index
 final_docs = pdf.to_dict('records')
 
