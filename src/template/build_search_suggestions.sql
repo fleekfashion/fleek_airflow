@@ -3,11 +3,12 @@ CREATE OR REPLACe TEMP VIEW secondary_subsets AS (
     SELECT 
       product_id,
       array_union(product_labels, ARRAY('')) as product_labels,
-      ARRAY('', internal_color) as product_colors,
       explode(
-        array_union(
-          product_secondary_labels, 
-          ARRAY('')
+        array_distinct(
+          array_union(
+            product_secondary_labels, 
+            ARRAY('', coalesce(internal_color, ''))
+          )
         )
       ) as sl
     FROM {{ params.active_products_table }} 
@@ -16,7 +17,6 @@ CREATE OR REPLACe TEMP VIEW secondary_subsets AS (
   SELECT 
     t.product_id,
     t.product_labels,
-    explode(t.product_colors) as product_color,
     t.sl as sl1,
     t2.sl as sl2,
     t3.sl as sl3,
@@ -38,7 +38,7 @@ CREATE OR REPLACE TEMPORARY VIEW parsedSubsets AS (
   SELECT DISTINCT
       product_id,
       explode(product_labels) as product_label,
-      array_distinct(ARRAY(product_color, sl1, sl2, sl3, sl4, sl5)) as secondary_subset
+      array_distinct(ARRAY(sl1, sl2, sl3, sl4, sl5)) as secondary_subset
     FROM secondary_subsets
   )
   SELECT 
