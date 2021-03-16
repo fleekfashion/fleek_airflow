@@ -3,5 +3,5 @@ DELETE
   WHERE product_id NOT IN (
     SELECT product_id 
     FROM {{params.product_info_table}}
-    WHERE execution_date="{{ds}}"
-  )
+    WHERE execution_date="{{ds}}" 
+  ) AND lower(advertiser_name) not rlike 'madewell' 
