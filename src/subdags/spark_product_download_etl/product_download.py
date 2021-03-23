@@ -28,7 +28,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             max_workers=2
         )
 
-        parameters = dbfs_read_json(f"{DBFS_DEFS_DIR}/product_download/cj/final_cj_queries.json")
+        parameters: dict = dbfs_read_json(f"{DBFS_DEFS_DIR}/product_download/cj/final_cj_queries.json") # type: ignore
         advertiser_ids = parameters.pop("advertiser_ids")
         downloads = []
         for advertiser_id in advertiser_ids:
@@ -65,7 +65,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             script="rakuten_download.py",
             init_scripts=["dbfs:/shared/init_scripts/install_xmltodict.sh"],
             local=True,
-            execution_timeout=timedelta(minutes=40),
+            execution_timeout=timedelta(minutes=80),
             machine_type='m5d.xlarge',
             pool_id=None,
         )
