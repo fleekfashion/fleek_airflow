@@ -16,7 +16,7 @@ CONN_ID = f'google_cloud_sql_{DATABASE}'
 BOARD_INFO_TABLE_NAME = "board_info"
 BOARD_TYPE_TABLE_NAME = "board_type"
 BOARD_PRODUCTS_TABLE_NAME = "board_products"
-BOARD_USERS_TABLE_NAME = "board_users"
+USER_BOARDS_TABLE_NAME = "user_boards"
 REJECTED_BOARDS_TABLE_NAME = "rejected_boards"
 
 BOARD_INFO_TABLE = PostgreTable(
@@ -45,22 +45,17 @@ BOARD_INFO_TABLE = PostgreTable(
         Column(
             name="artwork_url",
             type="text",
-            nullable=False
+            nullable=True
         ),
         Column(
-            name="last_modified",
-            type="date",
+            name="last_modified_timestamp",
+            type="timestamp",
             nullable=False
         ),
     ],
     primary_key=PrimaryKey(
         columns=["board_id"],
     ),
-    indexes=[
-        Index(
-            columns=["board_id"],
-        ),
-    ]
 )
 
 BOARD_TYPE_TABLE = PostgreTable(
@@ -109,7 +104,19 @@ BOARD_TYPE_TABLE = PostgreTable(
     ],
     indexes=[
         Index(
-            columns=["board_id", "is_smart", "is_price_drop", "is_all_faves", "is_global", "is_daily_mix"],
+            columns=["is_smart"],
+        ),
+        Index(
+            columns=["is_price_drop"],
+        ),
+        Index(
+            columns=["is_all_faves"],
+        ),
+        Index(
+            columns=["is_global"],
+        ),
+        Index(
+            columns=["is_daily_mix"],
         ),
     ]
 )
@@ -128,8 +135,8 @@ BOARD_PRODUCTS_TABLE = PostgreTable(
             nullable=False
         ),
         Column(
-            name="date_added",
-            type="date",
+            name="last_modified_timestamp",
+            type="timestamp",
             nullable=False
         ),
     ],
@@ -148,15 +155,10 @@ BOARD_PRODUCTS_TABLE = PostgreTable(
             ref_columns=["product_id"]
         )
     ],
-    indexes=[
-        Index(
-            columns=["board_id"],
-        ),
-    ]
 )
 
-BOARD_USERS_TABLE = PostgreTable(
-    name=BOARD_USERS_TABLE_NAME,
+USER_BOARDS_TABLE = PostgreTable(
+    name=USER_BOARDS_TABLE_NAME,
     columns=[
         Column(
             name="board_id",
@@ -189,13 +191,13 @@ BOARD_USERS_TABLE = PostgreTable(
             nullable=False
         ),
         Column(
-            name="date_added",
-            type="date",
+            name="last_modified_timestamp",
+            type="timestamp",
             nullable=False
         ),
     ],
     primary_key=PrimaryKey(
-        columns=["board_id"],
+        columns=["user_id", "board_id"],
     ),
     foreign_keys=[
         ForeignKey(
@@ -206,7 +208,16 @@ BOARD_USERS_TABLE = PostgreTable(
     ],
     indexes=[
         Index(
-            columns=["board_id", "user_id", "is_owner", "is_collaborator", "is_following", "is_suggested"],
+            columns=["board_id", "user_id"],
+        ),
+        Index(
+            columns=["is_collaborator"],
+        ),
+        Index(
+            columns=["is_following"],
+        ),
+        Index(
+            columns=["is_suggested"],
         ),
     ]
 )
@@ -225,13 +236,13 @@ REJECTED_BOARDS_TABLE = PostgreTable(
             nullable=False
         ),
         Column(
-            name="date_rejected",
-            type="date",
+            name="last_modified_timestamp",
+            type="timestamp",
             nullable=False
         ),
     ],
     primary_key=PrimaryKey(
-        columns=["board_id"],
+        columns=["user_id", "board_id"],
     ),
     foreign_keys=[
         ForeignKey(
@@ -242,7 +253,13 @@ REJECTED_BOARDS_TABLE = PostgreTable(
     ],
     indexes=[
         Index(
-            columns=["board_id","user_id"],
+            columns=["board_id"],
+        ),
+        Index(
+            columns=["user_id"],
+        ),
+        Index(
+            columns=["last_modified_timestamp"],
         ),
     ]
 )
@@ -252,6 +269,6 @@ TABLES.extend([
     BOARD_INFO_TABLE,
     BOARD_TYPE_TABLE,
     BOARD_PRODUCTS_TABLE,
-    BOARD_USERS_TABLE,
+    USER_BOARDS_TABLE,
     REJECTED_BOARDS_TABLE
 ])
