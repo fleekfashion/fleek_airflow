@@ -19,7 +19,7 @@ from src.defs.postgre import utils as u
 from src.defs import postgre
 from src.defs.delta import postgres as spark_postgre
 
-POSTDEFS = [postgre.product_catalog, postgre.user_data, postgre.spark_personalization, postgre.boards]
+POSTDEFS = [postgre.product_catalog, postgre.user_data, postgre.spark_personalization]
 
 def create_table(table: u.PostgreTable) -> str:
 
