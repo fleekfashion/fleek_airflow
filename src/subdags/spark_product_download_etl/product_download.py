@@ -106,5 +106,4 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
 
         set_deps(downloads, 3)
         truncation >> downloads
-        truncation >> asos_download
     return group
