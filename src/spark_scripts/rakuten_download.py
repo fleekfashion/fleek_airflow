@@ -26,14 +26,15 @@ with open(args.json, "rb") as handle:
     json_args = json.load(handle)
 
 ## Required args
-VALID_ADVERTISERS = json_args['valid_advertisers']
+ADID = json_args['adid']
+ADVERTISER_NAME = json_args['advertiser_name']
 OUTPUT_TABLE = json_args['output_table']
 
 ## Remove rakuten xml files in current directory
 def clear_xml_files():
-    for file in os.listdir():
-        if file.endswith("_mp.xml"):
-            os.remove(file)
+    for f in os.listdir():
+        if f.endswith("_mp.xml") and str(ADID) in f:
+            os.remove(f)
 
 ## Download rakuten xml files into current directory
 def download_xml_files():
@@ -43,7 +44,7 @@ def download_xml_files():
     ftp.login('Fleek','Zhu89@rgn')
 
     # Download + unzip xml data from Rakuten
-    for filename in ftp.nlst('*_mp.xml.gz'):
+    for filename in ftp.nlst(f'{ADID}*_mp.xml.gz'):
         with open(filename, 'wb') as fhandle:
             print('Getting ' + filename)
             ftp.retrbinary('RETR ' + filename, fhandle.write)
@@ -52,32 +53,21 @@ def download_xml_files():
             with open(filename.replace(".gz", ""), 'wb') as f_unzip:
                 os.remove(filename)
                 shutil.copyfileobj(f_zip, f_unzip)
-
-# Lightweight method to pull advertiser name without needing to parse xml
-def get_advertiser_name(file):
-    with open(file) as handle:
-        header = handle.readline()
-    start = header.find('<merchantName>') + len('<merchantName>')
-    end = header.find('</merchantName>')
-    advertiser_name = header[start:end]
-    return advertiser_name
+    print(f"\nDONE {ADVERTISER_NAME}")
 
 ## Extract initial rakuten df from xml file
 def get_rakuten_df(file):
-    # Make sure advertiser is valid
-    advertiser_name = get_advertiser_name(file)
-    if advertiser_name not in VALID_ADVERTISERS.keys():
-        return None
-    advertiser_name = VALID_ADVERTISERS[advertiser_name]
-
     # Parse xml, check to see if advertiser name is valid
-    with open(file) as handle:
+    with open(file, 'r') as handle:
         res = handle.read()
 
     # Parse xml file and flatten data into pandas dataframe
+    print(f"\nStart xml parse {ADVERTISER_NAME}")
     data = xmltodict.parse(res)
+    print(f"\nFinish xml parse {ADVERTISER_NAME}")
     rakuten_df = pd.json_normalize(data['merchandiser']['product'])
-    rakuten_df['advertiser_name'] = advertiser_name
+    print(f"\nFinish json parse {ADVERTISER_NAME}")
+    rakuten_df['advertiser_name'] = ADVERTISER_NAME
     if 'category.secondary' not in rakuten_df.columns: 
         rakuten_df['category.secondary'] = None
 
@@ -165,11 +155,10 @@ def upload_df(df, output_table):
 if __name__ == "__main__":
     clear_xml_files()
     download_xml_files()
-    pd.set_option('display.max_columns', None)
-    files = list(filter(lambda x: "xml" in x, os.listdir()))
+    files = list(filter(lambda x: str(ADID) in x, os.listdir())) ## only read relevent files
     dataframes = []
-    for file in files:
-        rakuten_df = get_rakuten_df(file)
+    for f in files:
+        rakuten_df = get_rakuten_df(f)
         if rakuten_df is not None:
             df = build_products_df(rakuten_df)
             dataframes.append(df)

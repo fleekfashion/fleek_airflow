@@ -69,33 +69,42 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             )
             downloads.append(cj_to_delta )
 
-        for i in range(0, len(downloads)//2):
-            downloads[i] >> downloads[i+ len(downloads)//2]
+        rakuten_advertisers = {
+            35719: "ASOS",
+            42490: "NastyGal",
+            44648: "Princess Polly",
+            43177: "Free People",
+            39802: "People Tree",
+        }
 
-        ## Add 1 hour timeout for rakuten
-        rakuten_download = SparkScriptOperator(
-            dag=dag,
-            task_id="rakuten_download_products_great_success",
-            json_args={
-                "valid_advertisers": {
-                    "ASOS (USA)": "ASOS",
-                    "NastyGal (US)": "NastyGal",
-                    "Princess Polly US": "Princess Polly",
-                    "Topshop": "Topshop",
-                    "Free People": "Free People",
-                    "Cotton On (US)": "Cotton On",
-                    "People Tree": "People Tree",
+        for adid, name in rakuten_advertisers.items():
+            rakuten_download = SparkScriptOperator(
+                dag=dag,
+                task_id=f"rakuten_download_{name.replace(' ', '_')}",
+                json_args={
+                    "adid": adid,
+                    "advertiser_name": name,
+                    "output_table": pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name(),
                 },
-                "output_table": pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name(),
-            },
-            script="rakuten_download.py",
-            init_scripts=["dbfs:/shared/init_scripts/install_xmltodict.sh"],
-            local=True,
-            execution_timeout=timedelta(minutes=40),
-            machine_type='m5d.xlarge',
-            pool_id=None,
-            retries=5
-        )
+                script="rakuten_download.py",
+                init_scripts=["dbfs:/shared/init_scripts/install_xmltodict.sh"],
+                local=True,
+                execution_timeout=timedelta(minutes=20),
+                retries=5
+            )
+
+            if name == "ASOS":
+                rakuten_download.machine_type = "m5d.xlarge"
+                rakuten_download.pool_id = None
+                truncation >> rakuten_download
+            else:
+                downloads.append(rakuten_download)
+
+        def set_deps(downloads: list, d: int):
+            for i in range(0, len(downloads) - d):
+                downloads[i] >> downloads[i+ d]
+
+        set_deps(downloads, 3)
         truncation >> downloads
-        truncation >> rakuten_download
+        truncation >> asos_download
     return group
