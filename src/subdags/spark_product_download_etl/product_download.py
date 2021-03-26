@@ -45,6 +45,30 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 local=True
             )
             downloads.append(cj_to_delta )
+
+        BaseParameters = {
+                "company_id": 5261830,
+                "website_id": 9089281
+        }
+        ParterAdvertisers = {
+            13830631: "Zaful",
+            13276110: "Forever21",
+            13237228: "Revolve"
+        }
+        for adid, name in ParterAdvertisers.items():
+            cj_to_delta  = SparkScriptOperator(
+                task_id=f"daily_cj_download_{name}",
+                dag=dag,
+                json_args={
+                    **BaseParameters,
+                    "adid": adid,
+                    "output_table": pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name(),
+                },
+                script="catalog_download.py",
+                local=True
+            )
+            downloads.append(cj_to_delta )
+
         for i in range(0, len(downloads)//2):
             downloads[i] >> downloads[i+ len(downloads)//2]
 
@@ -58,16 +82,19 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                     "NastyGal (US)": "NastyGal",
                     "Princess Polly US": "Princess Polly",
                     "Topshop": "Topshop",
-                    "Free People": "Free People"
+                    "Free People": "Free People",
+                    "Cotton On (US)": "Cotton On",
+                    "People Tree": "People Tree",
                 },
                 "output_table": pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name(),
             },
             script="rakuten_download.py",
             init_scripts=["dbfs:/shared/init_scripts/install_xmltodict.sh"],
             local=True,
-            execution_timeout=timedelta(minutes=80),
+            execution_timeout=timedelta(minutes=40),
             machine_type='m5d.xlarge',
             pool_id=None,
+            retries=5
         )
         truncation >> downloads
         truncation >> rakuten_download
