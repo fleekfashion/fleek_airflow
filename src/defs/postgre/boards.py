@@ -24,7 +24,7 @@ BOARD_INFO_TABLE = PostgreTable(
     columns=[
         Column(
             name="board_id",
-            type="bigint",
+            type="uuid",
             nullable=False
         ),
         Column(
@@ -49,7 +49,7 @@ BOARD_INFO_TABLE = PostgreTable(
         ),
         Column(
             name="last_modified_timestamp",
-            type="timestamp",
+            type="bigint",
             nullable=False
         ),
     ],
@@ -63,7 +63,7 @@ BOARD_TYPE_TABLE = PostgreTable(
     columns=[
         Column(
             name="board_id",
-            type="bigint",
+            type="uuid",
             nullable=False
         ),
         Column(
@@ -126,7 +126,7 @@ BOARD_PRODUCTS_TABLE = PostgreTable(
     columns=[
         Column(
             name="board_id",
-            type="bigint",
+            type="uuid",
             nullable=False
         ),
         Column(
@@ -136,7 +136,7 @@ BOARD_PRODUCTS_TABLE = PostgreTable(
         ),
         Column(
             name="last_modified_timestamp",
-            type="timestamp",
+            type="bigint",
             nullable=False
         ),
     ],
@@ -162,7 +162,7 @@ USER_BOARDS_TABLE = PostgreTable(
     columns=[
         Column(
             name="board_id",
-            type="bigint",
+            type="uuid",
             nullable=False
         ),
         Column(
@@ -192,7 +192,7 @@ USER_BOARDS_TABLE = PostgreTable(
         ),
         Column(
             name="last_modified_timestamp",
-            type="timestamp",
+            type="bigint",
             nullable=False
         ),
     ],
@@ -227,7 +227,7 @@ REJECTED_BOARDS_TABLE = PostgreTable(
     columns=[
         Column(
             name="board_id",
-            type="bigint",
+            type="uuid",
             nullable=False
         ),
         Column(
@@ -237,7 +237,7 @@ REJECTED_BOARDS_TABLE = PostgreTable(
         ),
         Column(
             name="last_modified_timestamp",
-            type="timestamp",
+            type="bigint",
             nullable=False
         ),
     ],
