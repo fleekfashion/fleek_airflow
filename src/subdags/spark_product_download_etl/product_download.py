@@ -74,7 +74,6 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             42490: "NastyGal",
             44648: "Princess Polly",
             43177: "Free People",
-            39802: "People Tree",
         }
 
         for adid, name in rakuten_advertisers.items():
@@ -96,14 +95,12 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             if name == "ASOS":
                 rakuten_download.machine_type = "m5d.xlarge"
                 rakuten_download.pool_id = None
-                truncation >> rakuten_download
-            else:
-                downloads.append(rakuten_download)
+            downloads.append(rakuten_download)
 
         def set_deps(downloads: list, d: int):
             for i in range(0, len(downloads) - d):
                 downloads[i] >> downloads[i+ d]
 
-        set_deps(downloads, 3)
+        set_deps(downloads, 4)
         truncation >> downloads
     return group
