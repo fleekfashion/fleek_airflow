@@ -40,7 +40,7 @@ def create_table(table: u.PostgreTable) -> str:
 
     def _create_index(index: u.Index) -> str:
         desc = "UNIQUE" if index.unique else ""
-        return f"""CREATE {desc} INDEX CONCURRENTLY IF NOT EXISTS {index.get_name(table.name)}
+        return f"""CREATE {desc} INDEX IF NOT EXISTS {index.get_name(table.name)}
         ON {table.get_full_name()} ({', '.join(index.columns)} )"""
 
     def _create_pk_stmt(pk: t.Optional[u.PrimaryKey]) -> str:
