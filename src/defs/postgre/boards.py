@@ -13,14 +13,14 @@ INSTANCE = "fleek-app-prod1"
 DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
 
-BOARD_INFO_TABLE_NAME = "board_info"
+BOARD_TABLE_NAME = "board"
 BOARD_TYPE_TABLE_NAME = "board_type"
-BOARD_PRODUCTS_TABLE_NAME = "board_products"
-USER_BOARDS_TABLE_NAME = "user_boards"
-REJECTED_BOARDS_TABLE_NAME = "rejected_boards"
+BOARD_PRODUCT_TABLE_NAME = "board_product"
+USER_BOARD_TABLE_NAME = "user_board"
+REJECTED_BOARD_TABLE_NAME = "rejected_board"
 
-BOARD_INFO_TABLE = PostgreTable(
-    name=BOARD_INFO_TABLE_NAME,
+BOARD_TABLE = PostgreTable(
+    name=BOARD_TABLE_NAME,
     columns=[
         Column(
             name="board_id",
@@ -67,6 +67,11 @@ BOARD_TYPE_TABLE = PostgreTable(
             nullable=False
         ),
         Column(
+            name="is_user_generated",
+            type="boolean",
+            nullable=False
+        ),
+        Column(
             name="is_smart",
             type="boolean",
             nullable=False
@@ -98,11 +103,14 @@ BOARD_TYPE_TABLE = PostgreTable(
     foreign_keys=[
         ForeignKey(
             columns=["board_id"],
-            ref_table=BOARD_INFO_TABLE.get_full_name(),
+            ref_table=BOARD_TABLE.get_full_name(),
             ref_columns=["board_id"]
         )
     ],
     indexes=[
+        Index(
+            columns=["is_user_generated"],
+        ),
         Index(
             columns=["is_smart"],
         ),
@@ -121,8 +129,8 @@ BOARD_TYPE_TABLE = PostgreTable(
     ]
 )
 
-BOARD_PRODUCTS_TABLE = PostgreTable(
-    name=BOARD_PRODUCTS_TABLE_NAME,
+BOARD_PRODUCT_TABLE = PostgreTable(
+    name=BOARD_PRODUCT_TABLE_NAME,
     columns=[
         Column(
             name="board_id",
@@ -146,7 +154,7 @@ BOARD_PRODUCTS_TABLE = PostgreTable(
     foreign_keys=[
         ForeignKey(
             columns=["board_id"],
-            ref_table=BOARD_INFO_TABLE.get_full_name(),
+            ref_table=BOARD_TABLE.get_full_name(),
             ref_columns=["board_id"]
         ),
         ForeignKey(
@@ -157,8 +165,8 @@ BOARD_PRODUCTS_TABLE = PostgreTable(
     ],
 )
 
-USER_BOARDS_TABLE = PostgreTable(
-    name=USER_BOARDS_TABLE_NAME,
+USER_BOARD_TABLE = PostgreTable(
+    name=USER_BOARD_TABLE_NAME,
     columns=[
         Column(
             name="board_id",
@@ -202,7 +210,7 @@ USER_BOARDS_TABLE = PostgreTable(
     foreign_keys=[
         ForeignKey(
             columns=["board_id"],
-            ref_table=BOARD_INFO_TABLE.get_full_name(),
+            ref_table=BOARD_TABLE.get_full_name(),
             ref_columns=["board_id"]
         )
     ],
@@ -222,8 +230,8 @@ USER_BOARDS_TABLE = PostgreTable(
     ]
 )
 
-REJECTED_BOARDS_TABLE = PostgreTable(
-    name=REJECTED_BOARDS_TABLE_NAME,
+REJECTED_BOARD_TABLE = PostgreTable(
+    name=REJECTED_BOARD_TABLE_NAME,
     columns=[
         Column(
             name="board_id",
@@ -247,7 +255,7 @@ REJECTED_BOARDS_TABLE = PostgreTable(
     foreign_keys=[
         ForeignKey(
             columns=["board_id"],
-            ref_table=BOARD_INFO_TABLE.get_full_name(),
+            ref_table=BOARD_TABLE.get_full_name(),
             ref_columns=["board_id"]
         ),
     ],
@@ -266,9 +274,9 @@ REJECTED_BOARDS_TABLE = PostgreTable(
 
 
 TABLES.extend([
-    BOARD_INFO_TABLE,
+    BOARD_TABLE,
     BOARD_TYPE_TABLE,
-    BOARD_PRODUCTS_TABLE,
-    USER_BOARDS_TABLE,
-    REJECTED_BOARDS_TABLE
+    BOARD_PRODUCT_TABLE,
+    USER_BOARD_TABLE,
+    REJECTED_BOARD_TABLE
 ])
