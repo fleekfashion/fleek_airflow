@@ -7,3 +7,6 @@ aws_creds/
 # VSCode
 .config/
 .vscode/
+
+# Files
+*.xml

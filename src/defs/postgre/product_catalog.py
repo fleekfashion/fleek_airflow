@@ -158,6 +158,15 @@ PRODUCT_INFO_TABLE = PostgreTable(
         Index(
             columns=["is_active", "product_id"],
         ),
+        Index(
+            columns=["advertiser_name"],
+        ),
+        Index(
+            columns=["product_sale_price"],
+        ),
+        Index(
+            columns=["internal_color"],
+        )
     ]
 )
 
