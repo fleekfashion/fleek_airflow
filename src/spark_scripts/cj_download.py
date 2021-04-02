@@ -149,7 +149,7 @@ def download_batch(query_data: dict):
 
 
 def upload_df(df, output_table):
-    schema = sqlContext.table("staging_product_catalog.daily_product_dump").schema
+    schema = sqlContext.table(output_table).schema
 
     ## Add unlisted fields to the schema
     for name in df.columns:
