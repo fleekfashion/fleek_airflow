@@ -112,7 +112,6 @@ autocomplete_upload = SparkScriptOperator(
         "autocomplete_index": search.AUTOCOMPLETE_INDEX,
         "search_url": search.URL,
         "search_password": search.PASSWORD,
-        "colors_path": f"{AUTOCOMPLETE_DEFS_LOCAL_DIR}/colors.json",
     },
     params={
         "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),

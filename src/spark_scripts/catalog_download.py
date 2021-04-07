@@ -5,9 +5,10 @@ import requests
 import dateutil
 import copy
 
+from functional import seq
 import numpy as np
 import pandas as pd
-from pandas.io.json import json_normalize
+from pandas import json_normalize
 from pyspark.sql import SQLContext
 from pyspark.sql.types import *
 
@@ -17,70 +18,70 @@ try:
 except:
     pass
 
-def _build_query(company_id, website_id, limit, advertiser_id, keyword):
+def _build_shopping_products_call(company_id, adid) -> str:
+    args = seq(
+            f"companyId: \"{company_id}\"",
+            f"adId: \"{adid}\""
+        ).make_string(", ")
+    return f"shoppingProductCatalog({args})"
+
+def _build_query(company_id, website_id, adid):
     query = f"""
-    {{
-      shoppingProducts(companyId: "{company_id}", partnerIds: ["{advertiser_id}"], keywords: ["{keyword}"], limit:{limit}) {{
-        totalCount
-        count
-        resultList {{
-          advertiserName
-          advertiserCountry
-          targetCountry
-          lastUpdated
-          link
-          gender
-          size
-          color
-          availability
-          isDeleted
-          id
-          itemGroupId
-          material
-          sizeType
-          customLabel0
-          customLabel1
-          customLabel2
-          customLabel3
-          mobileLink
-          salePrice {{
-            amount
-            currency
-          }}
-          price {{
-            amount
-            currency
-          }}
-          googleProductCategory {{
-            name
-          }},
-          title
-          brand
-          description
-          imageLink
-          additionalImageLink
-          linkCode(pid: "{website_id}") {{
-            clickUrl
-            imageUrl
+
+    subscription
+        {{
+            {_build_shopping_products_call(company_id, adid=adid)}{{
+        
+            advertiserName
+            advertiserCountry
+            targetCountry
+            lastUpdated
+            link
+            gender
+            size
+            color
+            availability
+            isDeleted
+            id
+            itemGroupId
+            material
+            sizeType
+            customLabel0
+            customLabel1
+            customLabel2
+            customLabel3
+            mobileLink
+            salePrice {{
+              amount
+              currency
+            }}
+            price {{
+              amount
+              currency
+            }}
+            googleProductCategory {{
+              name
+            }}
+            title
+            brand
+            description
+            imageLink
+            additionalImageLink
+            linkCode(pid: "{website_id}") {{
+              clickUrl
+              imageUrl
+            }}
           }}
         }}
-      }}
-    }}
     """
     return query
 
-def _get_cj_df(company_id, website_id, limit, advertiser_id, query_params):
+def _get_cj_df(query: str, get_products_func) -> pd.DataFrame:
     url = "https://ads.api.cj.com/query"
     headers = {"Authorization": "Bearer 692245ytkcqqyq3k155pgyr53g"}
-    query = _build_query(company_id=company_id,
-                         website_id=website_id,
-                         limit=limit,
-                         advertiser_id=advertiser_id,
-                         keyword=query_params['keyword']
-                         )
     res = requests.post(url=url, data=query, headers=headers)
     batch = json.loads(res.content.decode())
-    batch = batch['data']['shoppingProducts']["resultList"]
+    batch = batch['data']['shoppingProductCatalog']
 
     ## Add Product Tag to DF
     cj_df = json_normalize(batch)
@@ -94,7 +95,7 @@ def _build_products_df(cj_df):
     def get_correct_link(row):
         if row.get('linkCode.clickUrl', None) is not None:
             return row['linkCode.clickUrl']
-        if row.get('mobileLink', None) is not  None: 
+        if row.get('mobileLink', None) is not  None:
             return row['mobileLink']
         return row['link']
 
@@ -142,14 +143,8 @@ def _build_products_df(cj_df):
     return final_df
 
 
-def download_batch(query_data: dict):
-    df = _get_cj_df(**query_data)
-    res = _build_products_df(df)
-    return res
-
-
 def upload_df(df, output_table):
-    schema = sqlContext.table(output_table).schema
+    schema = sqlContext.table("staging_product_catalog.daily_product_dump").schema
 
     ## Add unlisted fields to the schema
     for name in df.columns:
@@ -172,17 +167,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--json", type=str, required=True)
     args = parser.parse_args()
-
     with open(args.json, "rb") as handle:
         json_args = json.load(handle)
-    params = json_args["params"]
+
+    company_id = json_args["company_id"]
+    website_id = json_args["website_id"]
+    adid = json_args["adid"]
     output_table = json_args["output_table"]
 
-    dataframes = []
-    for query_param in params["query_params"]:
-        batch_params = copy.copy(params)
-        batch_params["query_params"] = query_param
-        df = download_batch(batch_params)
-        dataframes.append(df)
-    final_df = pd.concat(dataframes).reset_index(drop=True)
+    query = _build_query(company_id=company_id,
+                         website_id=website_id,
+                         adid=adid)
+    get_products_func = lambda batch: batch['data']['shoppingProductCatalog']
+    cj_df = _get_cj_df(query, get_products_func)
+    final_df = _build_products_df(cj_df)
     upload_df(final_df, output_table)
