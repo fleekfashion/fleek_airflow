@@ -175,12 +175,12 @@ if __name__ == "__main__":
 
     with open(args.json, "rb") as handle:
         json_args = json.load(handle)
-    params = json_args["params"]
+    query_data = json_args["query_data"]
     output_table = json_args["output_table"]
 
     dataframes = []
-    for query_param in params["query_params"]:
-        batch_params = copy.copy(params)
+    for query_param in query_data["query_params"]:
+        batch_params = copy.copy(query_data)
         batch_params["query_params"] = query_param
         df = download_batch(batch_params)
         dataframes.append(df)
