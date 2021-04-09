@@ -72,7 +72,6 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
 
         rakuten_advertisers = {
             35719: "ASOS",
-            42490: "NastyGal",
             44648: "Princess Polly",
             43177: "Free People",
         }
