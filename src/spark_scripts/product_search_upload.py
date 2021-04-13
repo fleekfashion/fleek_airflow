@@ -49,7 +49,8 @@ def get_keys_to_delete(active_ids: Set[int]) -> List[int]:
             .map(lambda x: x['product_id']) \
             .filter(lambda x: x not in active_ids) \
             .to_list()
-    return old_keys
+    top_keys = hits[:5000]
+    return old_keys + top_keys
     
 ## Load current data
 df = spark.sql(SQL) \

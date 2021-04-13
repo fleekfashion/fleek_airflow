@@ -27,8 +27,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             min_workers=1,
             max_workers=2
         )
-
-
+        
         with TaskGroup(group_id="cj_api_download", dag=dag) as subgroup:
             parameters: dict = dbfs_read_json(f"{DBFS_DEFS_DIR}/product_download/cj/final_cj_queries.json") # type: ignore
             advertiser_ids = parameters.pop("advertiser_ids")
@@ -46,6 +45,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                     local=True
                 )
             truncation >> subgroup
+
 
         with TaskGroup(group_id="cj_partner_download", dag=dag) as subgroup:
             BaseParameters = {

@@ -5,4 +5,3 @@ DELETE
     FROM {{params.product_info_table}}
     WHERE execution_date="{{ds}}"
   )
-  AND lower(advertiser_name) not rlike 'nastygal'
