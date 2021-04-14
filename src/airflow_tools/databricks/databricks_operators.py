@@ -63,7 +63,7 @@ class SparkScriptOperator(BaseOperator):
             machine_type: str = None,
             local: bool = False,
             pool_id: str = SHARED_POOL_ID,
-            spark_version: str = "7.4.x-cpu-ml-scala2.12",
+            spark_version: str = "8.1.x-cpu-ml-scala2.12",
             spark_conf: dict = {},
             libraries: list = [],
             init_scripts: list = [],
