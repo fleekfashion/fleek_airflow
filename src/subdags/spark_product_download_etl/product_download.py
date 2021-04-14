@@ -107,7 +107,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             json_args={
                 "output_table": pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name(),
                 "advertisers": {
-                    "Missguided (US & Canada)": "Missguided", 
+                    "Missguided (US & Canada)": "Missguided",
                     "PrettyLittleThing (US)": "PrettyLittleThing",
                 },
             },
