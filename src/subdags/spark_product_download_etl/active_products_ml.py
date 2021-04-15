@@ -38,7 +38,10 @@ def get_operators(dag: DAG_TYPE) -> dict:
             mode="WRITE_TRUNCATE",
             drop_duplicates=True,
             duplicates_subset=["product_id", "similar_product_id"],
-            num_workers=8,
+            machine_type = "m5d.2xlarge",
+            pool_id = None,
+            local=True,
+            dev_mode=False
         )
 
         process_similar_products = SparkScriptOperator(

@@ -108,7 +108,6 @@ CREATE OR REPLACE TEMPORARY VIEW processed_scores AS (
   SELECT 
     * 
   FROM similar_product_scores 
-  WHERE similarity_score > {{ params.min_score }}
 );
 
 
@@ -146,3 +145,4 @@ CREATE OR REPLACE TEMPORARY VIEW all_scores AS (
 SELECT
   *
 FROM all_scores
+WHERE similarity_score > {{ params.min_score }}
