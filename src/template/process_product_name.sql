@@ -8,7 +8,7 @@ CREATE OR REPLACE TEMPORARY VIEW pinfo AS (
       product_name,
       (acc, x) -> trim(regexp_replace(acc, x, ''))
     ) as product_name,
-    color,
+    regexp_replace(color, '[^0-9a-zA-Z:, ]+', '') as color, -- remove all special regex character from color (else errors)
     COALESCE(size, 'absurd_impossible_string_tthat_means_nothing') as size -- b/c size can be null
   FROM {{params.product_info_table}} 
 );
