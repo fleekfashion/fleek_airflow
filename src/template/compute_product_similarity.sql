@@ -39,22 +39,48 @@ CREATE OR REPLACE TEMPORARY VIEW new_products AS (
   )
 );
 
+CREATE OR REPLACE TEMPORARY VIEW old_products AS (
+  SELECT *
+  FROM all_products
+  WHERE product_id NOT IN (
+    SELECT product_id
+    FROM new_products
+  )
+);
+
 CREATE OR REPLACE TEMPORARY VIEW product_pairs AS (
-  WITH t AS (
+  WITH old_to_new_scores AS (
     SELECT 
-      ap.product_id, 
-      ap.product_image_embedding, 
+      op.product_id, 
+      op.product_image_embedding, 
       p.product_id as similar_product_id, 
       p.product_image_embedding as similar_product_image_embedding
-    FROM all_products ap
+    FROM old_products op
     INNER JOIN new_products p
-      ON ap.product_label=p.product_label
-      AND ap.product_id != p.product_id
+      ON op.product_label=p.product_label
+      AND op.product_id != p.product_id
+  ), new_to_all_scores AS (
+    SELECT 
+      np.product_id, 
+      np.product_image_embedding, 
+      ap.product_id as similar_product_id, 
+      ap.product_image_embedding as similar_product_image_embedding
+    FROM new_products np
+    INNER JOIN active_products ap
+      ON np.product_label=ap.product_label
+      AND np.product_id != ap.product_id
   )
   SELECT 
     *
-  FROM 
-    t
+  FROM (
+    SELECT *
+    FROM old_to_new_scores
+      
+      UNION ALL
+
+    SELECT * 
+    FROM new_to_all_scores
+  ) t
   WHERE similar_product_id IN (
     SELECT 
       product_id
@@ -82,7 +108,6 @@ CREATE OR REPLACE TEMPORARY VIEW processed_scores AS (
   SELECT 
     * 
   FROM similar_product_scores 
-  WHERE similarity_score > {{ params.min_score }}
 );
 
 
@@ -120,3 +145,4 @@ CREATE OR REPLACE TEMPORARY VIEW all_scores AS (
 SELECT
   *
 FROM all_scores
+WHERE similarity_score > {{ params.min_score }}
