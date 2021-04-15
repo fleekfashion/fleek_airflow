@@ -149,7 +149,7 @@ def download_batch(query_data: dict):
 
 
 def upload_df(df, output_table):
-    schema = sqlContext.table("staging_product_catalog.daily_product_dump").schema
+    schema = sqlContext.table(output_table).schema
 
     ## Add unlisted fields to the schema
     for name in df.columns:
@@ -175,12 +175,12 @@ if __name__ == "__main__":
 
     with open(args.json, "rb") as handle:
         json_args = json.load(handle)
-    params = json_args["params"]
+    query_data = json_args["query_data"]
     output_table = json_args["output_table"]
 
     dataframes = []
-    for query_param in params["query_params"]:
-        batch_params = copy.copy(params)
+    for query_param in query_data["query_params"]:
+        batch_params = copy.copy(query_data)
         batch_params["query_params"] = query_param
         df = download_batch(batch_params)
         dataframes.append(df)
