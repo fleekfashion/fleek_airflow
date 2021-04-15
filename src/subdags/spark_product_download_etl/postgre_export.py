@@ -118,8 +118,8 @@ def get_operators(dag: DAG):
             },
             sql="template/std_partitioned_insert.sql",
             local=True,
-
-
+            machine_type = "m5d.2xlarge",
+            pool_id = None
         )
 
         write_similar_items_prod = CloudSqlQueryOperator(

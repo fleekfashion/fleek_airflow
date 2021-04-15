@@ -16,20 +16,51 @@ WITH all_products AS (
 pinfo AS (
   SELECT 
     sp.*,
-    p.product_labels as root_label,
-    ap.product_labels as similar_label
+    array_intersect(root_p.product_secondary_labels, similar_p.product_secondary_labels) as shared_secondary_labels
   FROM {{params.product_similarity_table}} sp
-  INNER JOIN all_products p 
-  ON p.product_id=sp.product_id
-  INNER JOIN {{params.active_table}} ap
-  ON sp.similar_product_id=ap.product_id
+  INNER JOIN all_products root_p 
+  ON root_p.product_id=sp.product_id
+  INNER JOIN {{params.active_table}} similar_p
+  ON sp.similar_product_id=similar_p.product_id
 )
 
 SELECT 
   product_id, 
   similar_product_id,
-  CASE WHEN size(array_intersect(root_label, similar_label)) > 0
-    THEN 1.0*similarity_score
-    ELSE similarity_score
-  END AS similarity_score
+  similarity_score * ( 
+    1.0 + 
+    .8*size(shared_secondary_labels) +
+    .24*size(
+      array_intersect(
+        shared_secondary_labels,
+        ARRAY(
+          'jean',
+          'jeans',
+          'denim',
+          'leggings',
+          'cycling',
+          'yoga',
+          'biker',
+          'camo',
+          'button-down',
+          'long-sleeve',
+          'short-sleeve',
+          'turtleneck',
+          'bodysuit',
+          'blazer',
+          'sweatpants',
+          'pajama',
+          'fleece',
+          'bomber',
+          'puffer',
+          'active',
+          'running',
+          'leather',
+          'tie-dye',
+          'floral'
+
+        )
+      )
+    )
+  ) as similarity_score
 FROM pinfo
