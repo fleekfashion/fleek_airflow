@@ -57,7 +57,8 @@ def get_operators(dag: DAG_TYPE) -> dict:
                 "product_similarity_table": pcdefs.PRODUCT_SIMILARITY_SCORES_TABLE.get_full_name(),
                 "processed_similarity_table": pcdefs.SIMILAR_PRODUCTS_TABLE.get_full_name(),
             },
-            num_workers=4,
+            num_workers=6,
+            dev_mode=False
         )
 
         product_recs = SparkScriptOperator(

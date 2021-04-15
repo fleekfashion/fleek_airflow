@@ -58,4 +58,5 @@ SELECT
         )
       )
     )
+  ) as similarity_score
 FROM pinfo
