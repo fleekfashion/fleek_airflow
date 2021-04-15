@@ -29,8 +29,8 @@ SELECT
   similar_product_id,
   similarity_score * ( 
     1.0 + 
-    .05*size(shared_secondary_labels) +
-    .15*size(
+    .8*size(shared_secondary_labels) +
+    .24*size(
       array_intersect(
         shared_secondary_labels,
         ARRAY(
@@ -38,6 +38,7 @@ SELECT
           'jeans',
           'denim',
           'leggings',
+          'cycling',
           'yoga',
           'biker',
           'camo',
@@ -53,8 +54,11 @@ SELECT
           'bomber',
           'puffer',
           'active',
-          'cycling',
-          'running'
+          'running',
+          'leather',
+          'tie-dye',
+          'floral'
+
         )
       )
     )
