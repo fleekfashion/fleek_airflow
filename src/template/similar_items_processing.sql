@@ -16,12 +16,12 @@ WITH all_products AS (
 pinfo AS (
   SELECT 
     sp.*,
-    array_intersect(sp.product_secondary_labels, ap.product_secondary_labels) as shared_secondary_labels
+    array_intersect(root_p.product_secondary_labels, similar_p.product_secondary_labels) as shared_secondary_labels
   FROM {{params.product_similarity_table}} sp
-  INNER JOIN all_products p 
-  ON p.product_id=sp.product_id
-  INNER JOIN {{params.active_table}} ap
-  ON sp.similar_product_id=ap.product_id
+  INNER JOIN all_products root_p 
+  ON root_p.product_id=sp.product_id
+  INNER JOIN {{params.active_table}} similar_p
+  ON sp.similar_product_id=similar_p.product_id
 )
 
 SELECT 
