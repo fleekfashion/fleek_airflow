@@ -27,8 +27,35 @@ pinfo AS (
 SELECT 
   product_id, 
   similar_product_id,
-  CASE WHEN size(array_intersect(root_label, similar_label)) > 0
-    THEN 1.0*similarity_score
-    ELSE similarity_score
-  END AS similarity_score
+  similarity_score * ( 
+    1.0 + 
+    .05*size(shared_secondary_labels) +
+    .15*size(
+      array_intersect(
+        shared_secondary_labels,
+        ARRAY(
+          'jean',
+          'jeans',
+          'denim',
+          'leggings',
+          'yoga',
+          'biker',
+          'camo',
+          'button-down',
+          'long-sleeve',
+          'short-sleeve',
+          'turtleneck',
+          'bodysuit',
+          'blazer',
+          'sweatpants',
+          'pajama',
+          'fleece',
+          'bomber',
+          'puffer',
+          'active',
+          'cycling',
+          'running'
+        )
+      )
+    )
 FROM pinfo
