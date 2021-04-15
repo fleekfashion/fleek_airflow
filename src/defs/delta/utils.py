@@ -13,7 +13,7 @@ DBFS_INIT_SCRIPT_DIR = f"dbfs:/shared/init_scripts/"
 DBFS_SCRIPT_DIR = f"{DBFS_AIRFLOW_DIR}/spark_scripts"
 DBFS_TMP_DIR = f"{DBFS_AIRFLOW_DIR}/tmp"
 
-SHARED_POOL_ID = "0401-015755-ago7-pool-O2z0TE6o"
+SHARED_POOL_ID = "0415-010003-secs34-pool-jhQXT1aF"
 
-DEV_CLUSTER_ID = "0401-020050-muddy837"
+DEV_CLUSTER_ID = "0415-010158-moved706"
 DEV_MODE = Variable.get("dev_mode", False)## Change to True to use dev cluster globally
