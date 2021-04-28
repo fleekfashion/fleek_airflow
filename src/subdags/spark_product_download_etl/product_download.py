@@ -55,7 +55,8 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             PartnerAdvertisers = {
                 13830631: "Zaful",
                 13276110: "Forever21",
-                13237228: "Revolve"
+                13237228: "Revolve",
+                14463624: "NastyGal"
             }
             for adid, name in PartnerAdvertisers.items():
                 cj_to_delta  = SparkScriptOperator(
