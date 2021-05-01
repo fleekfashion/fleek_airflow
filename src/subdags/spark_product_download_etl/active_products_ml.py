@@ -64,17 +64,18 @@ def get_operators(dag: DAG_TYPE) -> dict:
             dev_mode=False
         )
 
-        product_recs = SparkSQLOperator(
+        product_recs = SparkScriptOperator(
             task_id="product_recommendations",
             dag=dag,
-            sql="template/product_recs_template.sql",
-            params={
+            script="product_recs.py",
+            json_args={
+                "active_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+                "historic_table": pcdefs.HISTORIC_PRODUCTS_TABLE.get_full_name(),
                 "events_table": user_delta.USER_EVENTS_TABLE.get_full_name(),
-                "n_days": 90
+                "output_table": pdefs.USER_PRODUCT_RECS_TABLE.get_full_name(),
+                "TOP_N": 500
             },
-            output_table=pdefs.USER_PRODUCT_RECS_TABLE.get_full_name(),
-            mode="WRITE_TRUNCATE",
-            local=True,
+            num_workers=4,
         )
 
         ##############################################
