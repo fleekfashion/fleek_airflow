@@ -69,6 +69,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             dag=dag,
             sql="template/product_recs_template.sql",
             params={
+                "active_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
                 "events_table": user_delta.USER_EVENTS_TABLE.get_full_name(),
                 "n_days": 90
             },
