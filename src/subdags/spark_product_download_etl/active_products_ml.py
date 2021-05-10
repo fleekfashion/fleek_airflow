@@ -64,6 +64,23 @@ def get_operators(dag: DAG_TYPE) -> dict:
             dev_mode=False
         )
 
+        generate_product_color_options = SparkSQLOperator(
+            task_id="generate_product_color_options",
+            dag=dag,
+            sql="template/generate_product_color_options.sql",
+            params={
+                "active_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+            },
+            output_table=pcdefs.PRODUCT_COLOR_OPTIONS_TABLE.get_full_name(),
+            mode="WRITE_TRUNCATE",
+            drop_duplicates=True,
+            duplicates_subset=["product_id", "alternate_color_product_id"],
+            local=True,
+            options={
+                "overwriteSchema": "true"
+            },
+        )
+
         product_recs = SparkSQLOperator(
             task_id="product_recommendations",
             dag=dag,
@@ -107,7 +124,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             local=True
         )
 
-        compute_product_similarity >> process_similar_products
+        compute_product_similarity >> process_similar_products >> generate_product_color_options
         product_recs
         daily_top_product_tag >> daily_new_product_tag
     return group

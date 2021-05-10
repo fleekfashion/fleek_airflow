@@ -13,29 +13,17 @@ INSTANCE = "fleek-app-prod1"
 DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
 
-ADVERTISER_PRODUCT_COUNT_TABLE_NAME = "advertiser_product_count"
+# Main table for FK
 PRODUCT_INFO_TABLE_NAME = "product_info"
+
+ADVERTISER_PRODUCT_COUNT_TABLE_NAME = "advertiser_product_count"
+PRODUCT_COLOR_OPTIONS_TABLE_NAME = "product_color_options"
 PRODUCT_PRICE_HISTORY_TABLE_NAME = "product_price_history"
 PRODUCT_SIZE_INFO_TABLE_NAME = "product_size_info"
 SIMILAR_PRODUCTS_TABLE_NAME = "similar_products_v2"
 TOP_PRODUCTS_TABLE_NAME = "top_products"
 
-ADVERTISER_PRODUCT_COUNT_TABLE = PostgreTable(
-    name=ADVERTISER_PRODUCT_COUNT_TABLE_NAME,
-    columns=[
-        Column(
-            name="advertiser_name",
-            type="text",
-            nullable=False
-        ),
-        Column(
-            name="n_products",
-            type="bigint",
-            nullable=False
-        )
-    ],
-    primary_key=PrimaryKey(columns=["advertiser_name"])
-)
+
 
 PRODUCT_INFO_TABLE = PostgreTable(
     name=PRODUCT_INFO_TABLE_NAME,
@@ -170,6 +158,49 @@ PRODUCT_INFO_TABLE = PostgreTable(
     ]
 )
 
+ADVERTISER_PRODUCT_COUNT_TABLE = PostgreTable(
+    name=ADVERTISER_PRODUCT_COUNT_TABLE_NAME,
+    columns=[
+        Column(
+            name="advertiser_name",
+            type="text",
+            nullable=False
+        ),
+        Column(
+            name="n_products",
+            type="bigint",
+            nullable=False
+        )
+    ],
+    primary_key=PrimaryKey(columns=["advertiser_name"])
+)
+
+PRODUCT_COLOR_OPTIONS_TABLE = PostgreTable(
+    name=PRODUCT_COLOR_OPTIONS_TABLE_NAME,
+    columns=[
+        Column(
+            name="product_id",
+            type="bigint",
+            nullable=False
+        ),
+        Column(
+            name="alternate_color_product_id",
+            type="bigint",
+            nullable=False
+        ),
+    ],
+    primary_key=PrimaryKey(
+        columns=["product_id", "alternate_color_product_id"]
+    ),
+    foreign_keys=[
+        ForeignKey(
+            columns=["alternate_color_product_id"],
+            ref_table=PRODUCT_INFO_TABLE.get_full_name(),
+            ref_columns=["product_id"]
+        )
+    ]
+)
+
 PRODUCT_PRICE_HISTORY_TABLE = PostgreTable(
     name=PRODUCT_PRICE_HISTORY_TABLE_NAME,
     columns=[
@@ -292,6 +323,7 @@ TOP_PRODUCTS_TABLE = PostgreTable(
 TABLES.extend([
     ADVERTISER_PRODUCT_COUNT_TABLE,
     PRODUCT_INFO_TABLE,
+    PRODUCT_COLOR_OPTIONS_TABLE,
     PRODUCT_PRICE_HISTORY_TABLE,
     PRODUCT_SIZE_INFO_TABLE,
     SIMILAR_PRODUCTS_TABLE,
