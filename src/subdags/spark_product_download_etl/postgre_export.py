@@ -122,6 +122,7 @@ def get_operators(dag: DAG):
             pool_id = None
         )
 
+
         write_similar_items_prod = CloudSqlQueryOperator(
             dag=dag,
             gcp_cloudsql_conn_id=postdefs.CONN_ID,
@@ -134,6 +135,30 @@ def get_operators(dag: DAG):
             )
         )
 
+        write_product_color_options_staging = SparkSQLOperator(
+            task_id="STAGING_write_product_color_options",
+            dag=dag,
+            params={
+                "src": pcdefs.PRODUCT_COLOR_OPTIONS_TABLE.get_full_name(),
+                "target": postdefs.PRODUCT_COLOR_OPTIONS_TABLE.get_delta_name(staging=True),
+                "columns": postdefs.PRODUCT_COLOR_OPTIONS_TABLE.get_columns().make_string(", "),
+                "mode": "OVERWRITE TABLE",
+            },
+            sql="template/std_insert.sql",
+            local=True,
+        )
+
+        write_product_color_options_prod= CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=postdefs.CONN_ID,
+            task_id="PROD_write_product_color_options",
+            sql=pquery.upsert(
+                table_name=postdefs.PRODUCT_COLOR_OPTIONS_TABLE.get_full_name(),
+                staging_name=postdefs.PRODUCT_COLOR_OPTIONS_TABLE.get_full_name(staging=True),
+                key="product_id, alternate_color_product_id",
+                columns=postdefs.PRODUCT_COLOR_OPTIONS_TABLE.get_columns().to_list()
+            )
+        )
 
         write_product_recs_staging = SparkSQLOperator(
             task_id="STAGING_write_product_recs",
@@ -221,9 +246,11 @@ def get_operators(dag: DAG):
             write_top_products, write_product_price_history, 
             prod_write_product_size_info, write_similar_items_prod,
             write_product_recs_prod, write_advertiser_count_table,
+            write_product_color_options_prod
         ]
         write_similar_items_staging >> write_similar_items_prod
         write_product_recs_staging >> write_product_recs_prod
         insert_product_size_info >> prod_write_product_size_info
+        write_product_color_options_staging >> write_product_color_options_prod
 
     return group 

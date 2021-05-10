@@ -71,11 +71,14 @@ def get_operators(dag: DAG_TYPE) -> dict:
             params={
                 "active_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
             },
-            output_table=pcdefs.PRODUCT_COLOR_OPTIONS.get_full_name(),
+            output_table=pcdefs.PRODUCT_COLOR_OPTIONS_TABLE.get_full_name(),
             mode="WRITE_TRUNCATE",
             drop_duplicates=True,
-            duplicates_subset=["product_id", "same_color_product_id"],
+            duplicates_subset=["product_id", "alternate_color_product_id"],
             local=True,
+            options={
+                "overwriteSchema": "true"
+            },
         )
 
         product_recs = SparkSQLOperator(
