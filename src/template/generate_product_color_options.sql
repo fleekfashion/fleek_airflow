@@ -86,7 +86,7 @@ CREATE OR REPLACE TEMPORARY VIEW final_colors AS (
 
   SELECT 
     product_id,
-    collect_set(similar_product_id) as same_color_product_ids
+    collect_set(similar_product_id) as alternate_color_product_ids
   FROM t4
   WHERE product_id != similar_product_id
   GROUP BY product_id
@@ -94,6 +94,6 @@ CREATE OR REPLACE TEMPORARY VIEW final_colors AS (
 
 SELECT 
   product_id,
-  explode(same_color_product_ids) as same_color_product_id
+  explode(alternate_color_product_ids) as alternate_color_product_id
 FROM final_colors
-WHERE size(same_color_product_ids) > 0
+WHERE size(alternate_color_product_ids) > 0
