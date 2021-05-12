@@ -53,11 +53,8 @@ CREATE OR REPLACE TEMPORARY VIEW similar_product_info AS (
       ON a1.advertiser_name = a2.advertiser_name
       AND a1.product_brand = a2.product_brand
       AND a1.product_id != a2.product_id
-      AND size(
-            array_intersect(a1.product_labels, a2.product_labels)
-          ) > 0
-      AND size(a1.split_product_name) = size(a2.split_product_name)
       AND a1.color != a2.color
+      AND size(a1.split_product_name) = size(a2.split_product_name)
   )
 
   SELECT 
