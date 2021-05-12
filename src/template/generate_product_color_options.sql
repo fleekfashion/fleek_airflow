@@ -1,8 +1,40 @@
 CREATE OR REPLACE TEMP VIEW parsed_active AS (
-  SELECT 
-    *,
-    split(product_name, ' ') as split_product_name
-  FROM {{ params.active_table }} 
+  WITH t AS (
+    SELECT
+      array_remove(
+        split(
+          regexp_replace(
+            lower(color),
+            '[^\\w\\s]',
+            ' '
+          ),
+          ' '
+        ),
+        ''
+      ) as parsed_color,
+      array_remove(
+        split(
+          regexp_replace(
+            lower(product_name), 
+            '[^\\w\\s]', 
+            ' '
+          ), 
+          ' '
+        ),
+        ''
+      ) as parsed_product_name,
+      *
+    FROM {{ params.active_table }}
+  )
+  
+  SELECT
+    AGGREGATE(
+      parsed_color,
+      parsed_product_name,
+      (acc, x) -> array_remove(acc, x)
+    ) as split_product_name,
+    *
+  FROM t
 );
 
 CREATE OR REPLACE TEMPORARY VIEW similar_product_info AS (
@@ -86,14 +118,11 @@ CREATE OR REPLACE TEMPORARY VIEW final_colors AS (
 
   SELECT 
     product_id,
-    collect_set(similar_product_id) as alternate_color_product_ids
+    similar_product_id as alternate_color_product_id
   FROM t4
   WHERE product_id != similar_product_id
-  GROUP BY product_id
 );
 
 SELECT 
-  product_id,
-  explode(alternate_color_product_ids) as alternate_color_product_id
+  *
 FROM final_colors
-WHERE size(alternate_color_product_ids) > 0
