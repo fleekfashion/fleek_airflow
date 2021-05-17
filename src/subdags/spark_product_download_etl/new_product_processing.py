@@ -27,13 +27,18 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             dag=dag,
             task_id="image_download",
             script="download_images.py",
+            init_scripts=[
+                "install_imagehash.sh",
+                "dbfs:/shared/init_scripts/install_opencv.sh"
+                ],
             json_args={
                 "ds": "{{ds}}",
                 "output_table": IMG_TABLE,
                 "src_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
-                "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name()
+                "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+                "invalid_images_table": pcdefs.INVALID_IMAGES_TABLE.get_full_name()
             },
-            num_workers=3
+            num_workers=3,
         )
 
         new_product_ml = SparkScriptOperator(
