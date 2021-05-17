@@ -8,6 +8,7 @@ DATASET = f"product_catalog"
 ACTIVE_PRODUCTS_TABLE = DeltaTableDef("active_products", DATASET)
 DAILY_PRODUCT_DUMP_TABLE = DeltaTableDef("daily_product_dump", DATASET)
 HISTORIC_PRODUCTS_TABLE = DeltaTableDef("historic_products", DATASET)
+INVALID_IMAGES_TABLE = DeltaTableDef("invalid_images", DATASET)
 NEW_PRODUCT_FEATURES_TABLE = DeltaTableDef("daily_product_ml_features", DATASET)
 PRODUCT_COLOR_OPTIONS_TABLE = DeltaTableDef("product_color_options", DATASET)
 PRODUCT_INFO_TABLE  = DeltaTableDef("product_info", DATASET)
