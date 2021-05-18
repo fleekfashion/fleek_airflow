@@ -36,9 +36,26 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 "output_table": IMG_TABLE,
                 "src_table": pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
                 "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
-                "invalid_images_table": pcdefs.INVALID_IMAGES_TABLE.get_full_name()
             },
             num_workers=3,
+            dev_mode=False
+        )
+
+        filter_images = SparkSQLOperator(
+            task_id="filter_images",
+            dag=dag,
+            params={
+                "image_download_table": IMG_TABLE, 
+                "invalid_images_table": pcdefs.INVALID_IMAGES_TABLE.get_full_name(),
+                },
+            sql="template/filter_images.sql",
+            local=True,
+            output_table=IMG_TABLE,
+            drop_duplicates=True,
+            duplicates_subset=['product_id'],
+            mode='WRITE_TRUNCATE',
+            num_workers=3,
+            dev_mode=False
         )
 
         new_product_ml = SparkScriptOperator(
@@ -72,5 +89,5 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             local=True,
         )
 
-        image_download >> new_product_ml >> append_new_products
+        image_download >> filter_images >> new_product_ml >> append_new_products
     return group
