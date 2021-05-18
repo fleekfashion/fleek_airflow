@@ -25,6 +25,8 @@ try:
 except:
     pass
 
+sc._jsc.hadoopConfiguration().set("mapred.max.split.size", "33554432")
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--json", type=str, required=True)
 args = parser.parse_args()
@@ -33,6 +35,7 @@ with open(args.json, "rb") as handle:
     json_args = json.load(handle)
 print(json_args)
 
+POST_PROCESSING_SQL = json_args['sql']
 DS = json_args["ds"]
 OUTPUT_TABLE= json_args["output_table"]
 SRC_TABLE = json_args["src_table"]
@@ -81,20 +84,13 @@ AND product_id NOT IN (
 """
 print(sql)
 
+## DO NOT ADD ANY JOINS
+## DESTROYS UDF PARALLELIZATION
 sqlContext.sql(sql) \
-    .drop_duplicates(subset=['product_id']) \
     .repartition(sc.defaultParallelism * 3) \
     .withColumn("image_data", downloadUDF(F.col("product_image_url"))) \
     .select(["product_id", "image_data.image_content", "image_data.image_hash", 'product_image_url']) \
-    .dropna() \
-    .where(
-        F.expr(f"""
-            image_hash not in (
-                SELECT image_hash
-                FROM {INVALID_IMAGES_TABLE}
-            )"""
-        )
-    ) \
     .write \
     .option("mergeSchema",True) \
     .saveAsTable(OUTPUT_TABLE, mode="overwrite", format="delta")
+
