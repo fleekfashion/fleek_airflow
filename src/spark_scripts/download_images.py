@@ -40,7 +40,6 @@ DS = json_args["ds"]
 OUTPUT_TABLE= json_args["output_table"]
 SRC_TABLE = json_args["src_table"]
 ACTIVE_PRODUCTS_TABLE = json_args["active_products_table"]
-INVALID_IMAGES_TABLE = json_args['invalid_images_table']
 
 HEADERS = {'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7)'}
 
