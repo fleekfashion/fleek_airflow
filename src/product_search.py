@@ -69,7 +69,7 @@ upload_products = SparkScriptOperator(
                 .filter(lambda x: x != "is_active")
                 .to_list() + [
                     'swipe_rate', 'default_search_order',
-                    
+                    'sizes', 'product_color_options'
                 ],
         "search_endpoint": search.PRODUCT_SEARCH_INDEX,
         "search_url": search.URL,
@@ -176,5 +176,5 @@ upload_label_searches = PythonOperator(
 trigger >> head
 head >> [ update_product_search_settings, update_label_settings, 
         update_trending_settings, update_autocomplete_settings ]
-upload_products  >> [ upload_trending_searches, upload_label_searches ] >> tail
+head >> upload_products  >> [ upload_trending_searches, upload_label_searches ] >> tail
 head >> autocomplete_upload >> tail
