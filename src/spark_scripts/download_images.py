@@ -58,11 +58,11 @@ def downloader(url: str) -> t.Optional[dict]:
         image_content = res.read()
     except:
         return None
-    
-    image_hash = hash_binary_image(image_content)
+    if image_content is None:
+        return None
     return {
         "image_content": image_content,
-        "image_hash": image_hash
+        "image_hash": hash_binary_image(image_content)
     }
 
 downloadUDF = F.udf(
