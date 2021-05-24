@@ -44,12 +44,15 @@ ACTIVE_PRODUCTS_TABLE = json_args["active_products_table"]
 HEADERS = {'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7)'}
 
 def hash_binary_image(content):
-    b_data = io.BytesIO(content)
-    file_bytes = np.asarray(bytearray(b_data.read()), dtype=np.uint8)
-    img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR, )[:, :, ::-1]
-    pil_image = Image.fromarray(img)
-    image_hash = imagehash.dhash(pil_image, hash_size=5).hash.tobytes()
-    return image_hash
+    try:
+        b_data = io.BytesIO(content)
+        file_bytes = np.asarray(bytearray(b_data.read()), dtype=np.uint8)
+        img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR, )[:, :, ::-1]
+        pil_image = Image.fromarray(img)
+        image_hash = imagehash.dhash(pil_image, hash_size=5).hash.tobytes()
+        return image_hash
+    except:
+        return None
 
 def downloader(url: str) -> t.Optional[dict]:
     try:
