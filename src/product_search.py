@@ -67,13 +67,17 @@ upload_products = SparkScriptOperator(
     json_args={
         "fields": postdefs.PRODUCT_INFO_TABLE.get_columns() \
                 .filter(lambda x: x != "is_active")
-                .to_list() + ['swipe_rate', 'default_search_order'],
+                .to_list() + [
+                    'swipe_rate', 'default_search_order',
+                    'sizes', 'product_color_options'
+                ],
         "search_endpoint": search.PRODUCT_SEARCH_INDEX,
         "search_url": search.URL,
         "search_password": search.PASSWORD
     },
     params={
-        "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name()
+        "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+        "color_options_table": pcdefs.PRODUCT_COLOR_OPTIONS_TABLE.get_full_name(),
     },
     init_scripts=["install_meilisearch.sh"]
 )
@@ -126,12 +130,6 @@ autocomplete_upload = SparkScriptOperator(
     sql="template/build_search_suggestions.sql"
 )
 
-sleep_task_1 = TimeDeltaSensor(
-    task_id="short_nap",
-    delta=timedelta(minutes=60),
-    mode='reschedule'
-)
-
 update_trending_settings = PythonOperator(
     task_id="update_trending_settings",
     dag=dag,
@@ -175,9 +173,8 @@ upload_label_searches = PythonOperator(
     }
 )
 
-trigger >> head >> update_product_search_settings >> upload_products  >> \
-    sleep_task_1 >> update_trending_settings >> upload_trending_searches \
-    >> tail
-sleep_task_1 >> update_label_settings >> upload_label_searches \
-    >> tail
-head >> update_autocomplete_settings >> autocomplete_upload >> tail
+trigger >> head
+head >> [ update_product_search_settings, update_label_settings, 
+        update_trending_settings, update_autocomplete_settings ]
+head >> upload_products  >> [ upload_trending_searches, upload_label_searches ] >> tail
+head >> autocomplete_upload >> tail
