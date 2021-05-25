@@ -31,7 +31,7 @@ FIELDS = json_args["fields"]
 SEARCH_URL = json_args["search_url"]
 SEARCH_PASSWORD = json_args["search_password"]
 
-c = meilisearch.Client('http://161.35.113.38/', 'fleek-app-prod1')
+c = meilisearch.Client(SEARCH_URL, SEARCH_PASSWORD)
 index = c.get_index(SEARCH_ENDPOINT)
 
 def rows_to_dicts(l: list) -> list:
