@@ -7,9 +7,9 @@ WITH advertiser_count AS (
     co.product_id,
     collect_set(
       struct(
-        color, 
-        alternate_color_product_id as product_id, 
-        ap.product_image_url
+        color as color, 
+        alternate_color_product_id as product_id,
+        ap.product_image_url as product_image_url
       )
     ) as product_color_options
   FROM {{ params.color_options_table}} co
@@ -20,7 +20,10 @@ WITH advertiser_count AS (
 
 SELECT 
   ap.*,
-  random()*sqrt(ac.n_products)*cbrt(ac.n_products)*cbrt(sqrt(sqrt(ac.n_products))) as default_search_order,
+  random()*sqrt(ac.n_products)
+    *cbrt(ac.n_products)
+    *cbrt(sqrt(sqrt(ac.n_products))) 
+    as default_search_order,
   TRANSFORM(
     product_details,
     x -> struct( 

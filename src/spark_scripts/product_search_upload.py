@@ -34,9 +34,19 @@ SEARCH_PASSWORD = json_args["search_password"]
 c = meilisearch.Client(SEARCH_URL, SEARCH_PASSWORD)
 index = c.get_index(SEARCH_ENDPOINT)
 
+def rows_to_dicts(l: list) -> list:
+    if l is None:
+        return None
+    res = seq(l) \
+      .map(lambda x: x.asDict()) \
+      .to_list()
+    return res
+
 def _process_entry(e):
     e = copy.copy(e)
     e['execution_date'] = e['execution_date'].strftime('%Y-%m-%d')
+    e['sizes'] = rows_to_dicts(e['sizes'])
+    e['product_color_options'] = rows_to_dicts(e['product_color_options'])
     return e
 
 def get_keys_to_delete(active_ids: Set[int]) -> List[int]:
@@ -65,8 +75,11 @@ active_product_ids = seq(data) \
         .map(lambda x: x['product_id']) \
         .to_set()
 
-## Delete products that are no longer active
-index.delete_documents(get_keys_to_delete(active_product_ids))
+try:
+    ## Delete products that are no longer active
+    index.delete_documents(get_keys_to_delete(active_product_ids))
+except:
+    print("FAILED TO DELETE DOCS")
 
 ## Upload Products
 step = 300
