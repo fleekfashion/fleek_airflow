@@ -112,7 +112,6 @@ def _build_products_df(cj_df):
 
     ## Create final df to upload
     final_df = pd.DataFrame()
-    final_df['advertiser_name'] = cj_df['advertiserName']
     final_df['advertiser_country'] = cj_df['advertiserCountry']
     final_df['product_brand'] = cj_df['brand']
     final_df['product_name'] = cj_df.title
@@ -173,6 +172,7 @@ if __name__ == "__main__":
     company_id = json_args["company_id"]
     website_id = json_args["website_id"]
     adid = json_args["adid"]
+    advertiser_name = json_args["advertiser_name"]
     output_table = json_args["output_table"]
 
     query = _build_query(company_id=company_id,
@@ -181,4 +181,5 @@ if __name__ == "__main__":
     get_products_func = lambda batch: batch['data']['shoppingProductCatalog']
     cj_df = _get_cj_df(query, get_products_func)
     final_df = _build_products_df(cj_df)
+    final_df['advertiser_name'] = advertiser_name 
     upload_df(final_df, output_table)
