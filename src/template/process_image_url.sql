@@ -21,7 +21,7 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
     ) as product_image_url
   FROM pinfo
   WHERE 
-    advertiser_name = 'American Eagle Outfitters'
+    advertiser_name = 'American Eagle'
 
     UNION ALL
 
