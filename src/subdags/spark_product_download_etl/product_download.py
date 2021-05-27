@@ -31,21 +31,31 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
         with TaskGroup(group_id="cj_api_download", dag=dag) as subgroup:
             parameters: dict = dbfs_read_json(f"{DBFS_DEFS_DIR}/product_download/cj/final_cj_queries.json") # type: ignore
             advertiser_ids = parameters.pop("advertiser_ids")
-            for advertiser_id in advertiser_ids:
+            cjIdToName = {
+                4445720: "American Eagle",
+                3848495: "boohoo.com",
+                4746561: "Carbon38",
+                5045850: "Madewell US",
+                3350021: "MANGO",
+                5378111: "PacSun",
+                5242840: "Superdown",
+            }
+
+            for advertiser_id, advertiser_name in cjIdToName.items():
                 query_data = copy.deepcopy(parameters)
                 query_data['advertiser_id'] = advertiser_id
                 cj_to_delta  = SparkScriptOperator(
-                    task_id=f"daily_cj_download_{advertiser_id}",
+                    task_id=f"daily_cj_download_{advertiser_name.replace(' ', '_')}",
                     dag=dag,
                     json_args={
                         "query_data": query_data,
                         "output_table": pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name(),
+                        "advertiser_name": advertiser_name
                     },
                     script="cj_download.py",
                     local=True
                 )
             truncation >> subgroup
-
 
         with TaskGroup(group_id="cj_partner_download", dag=dag) as subgroup:
             BaseParameters = {
@@ -54,18 +64,19 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             }
             PartnerAdvertisers = {
                 13830631: "Zaful",
-                13276110: "Forever21",
-                13237228: "Revolve",
+                13276110: "Forever 21",
+                13237228: "REVOLVE",
                 14463624: "NastyGal"
             }
             for adid, name in PartnerAdvertisers.items():
                 cj_to_delta  = SparkScriptOperator(
-                    task_id=f"daily_cj_download_{name}",
+                    task_id=f"daily_cj_download_{name.replace(' ', '_')}",
                     dag=dag,
                     json_args={
                         **BaseParameters,
                         "adid": adid,
                         "output_table": pcdefs.DAILY_PRODUCT_DUMP_TABLE.get_full_name(),
+                        "advertiser_name": name,
                     },
                     script="catalog_download.py",
                     local=True

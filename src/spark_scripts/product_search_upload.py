@@ -75,11 +75,11 @@ active_product_ids = seq(data) \
         .map(lambda x: x['product_id']) \
         .to_set()
 
-try:
-    ## Delete products that are no longer active
-    index.delete_documents(get_keys_to_delete(active_product_ids))
-except:
-    print("FAILED TO DELETE DOCS")
+## Delete products that are no longer active
+step = 5000
+pids = get_keys_to_delete(active_product_ids)
+for i in range(0, len(pids), step):
+    res = index.delete_documents(pids[i: min(i+step, len(pids) - 1)])
 
 ## Upload Products
 step = 300
