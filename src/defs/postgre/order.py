@@ -118,13 +118,6 @@ ORDER_TABLE = PostgreTable(
     primary_key=PrimaryKey(
         columns=["order_id"],
     ),
-    foreign_keys=[
-        ForeignKey(
-            columns=["product_id"],
-            ref_table=pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
-            ref_columns=["product_id"]
-        ),
-    ],
     indexes=[
         Index(
             columns=["user_id"],
