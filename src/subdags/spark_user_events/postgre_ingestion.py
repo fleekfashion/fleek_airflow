@@ -38,7 +38,7 @@ def get_operators(dag: DAG) -> dict:
         )
     )
 
-    append_user_events_func = lambda project_output_table: SparkSQLOperator(
+    append_user_events = SparkSQLOperator(
         sql="""
         SELECT 
             *, 
@@ -46,31 +46,20 @@ def get_operators(dag: DAG) -> dict:
             cast({{ execution_date.int_timestamp }} as bigint) as airflow_execution_timestamp
         FROM {{params.SRC}}""",
         dag=dag,
-        task_id=f"append_user_events_project_{project_output_table[0]}",
+        task_id=f"append_user_events",
         params={
-            "SRC": delta_postgre.get_full_name(postdefs.USER_EVENTS_TABLE_NAME),
+            "SRC": postdefs.USER_EVENTS_TABLE.get_full_name(staging=True),
         },
         mode="WRITE_APPEND",
-        output_table=project_output_table[1],
+        output_table=delta_user_data.USER_EVENTS_TABLE.get_full_name(),
         local=True
     )
 
-
-    main_user_events_table = delta_user_data.USER_EVENTS_TABLE.get_full_name()
-    if PROJECT == "staging":
-        secondary_project = "prod"
-        secondary_user_events_table = main_user_events_table.replace("staging", "prod")
-    else:
-        secondary_project = "staging"
-        secondary_user_events_table = main_user_events_table.replace("prod", "staging")
-
-    append_user_events = append_user_events_func((PROJECT, main_user_events_table))
-    append_user_events_secondary = append_user_events_func((secondary_project, secondary_user_events_table))
      
 
 
     head >> postgre_export_user_events_to_staging
-    postgre_export_user_events_to_staging >> [ append_user_events, append_user_events_secondary]
+    postgre_export_user_events_to_staging >> append_user_events
     append_user_events >> tail
 
     return {"head": head, "tail": tail}
