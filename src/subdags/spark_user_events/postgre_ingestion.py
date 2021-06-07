@@ -48,7 +48,7 @@ def get_operators(dag: DAG) -> dict:
         dag=dag,
         task_id=f"append_user_events",
         params={
-            "SRC": postdefs.USER_EVENTS_TABLE.get_full_name(staging=True),
+            "SRC": postdefs.USER_EVENTS_TABLE.get_delta_name(staging=True),
             "columns": postdefs.USER_EVENTS_TABLE.get_columns().make_string(", ")
         },
         mode="WRITE_APPEND",
