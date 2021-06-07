@@ -31,7 +31,7 @@ def get_operators(dag: DAG) -> dict:
         sql=pquery.export_rows(
             table_name=postdefs.USER_EVENTS_TABLE.get_full_name(),
             export_table_name=postdefs.USER_EVENTS_TABLE.get_full_name(staging=True),
-            columns="*",
+            columns=postdefs.USER_EVENTS_TABLE.get_columns().make_string(", "),
             delete=True,
             clear_export_table=True,
             FILTER=FILTER,
@@ -41,7 +41,7 @@ def get_operators(dag: DAG) -> dict:
     append_user_events = SparkSQLOperator(
         sql="""
         SELECT 
-            *, 
+            {{ params.columns }},
             DATE(from_unixtime(event_timestamp, 'yyyy-MM-dd')) as execution_date,
             cast({{ execution_date.int_timestamp }} as bigint) as airflow_execution_timestamp
         FROM {{params.SRC}}""",
@@ -49,6 +49,7 @@ def get_operators(dag: DAG) -> dict:
         task_id=f"append_user_events",
         params={
             "SRC": postdefs.USER_EVENTS_TABLE.get_full_name(staging=True),
+            "columns": postdefs.USER_EVENTS_TABLE.get_columns().make_string(", ")
         },
         mode="WRITE_APPEND",
         output_table=delta_user_data.USER_EVENTS_TABLE.get_full_name(),

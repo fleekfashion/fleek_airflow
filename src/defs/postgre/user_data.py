@@ -44,6 +44,11 @@ USER_EVENTS_TABLE = PostgreTable(
             nullable=False
         ),
         Column(
+            "product_id",
+            "bigint",
+            nullable=True
+        ),
+        Column(
             "tags",
             "TEXT[]",
             nullable=True

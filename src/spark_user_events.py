@@ -43,11 +43,6 @@ tail = DummyOperator(task_id=f"{DAG_ID}_dag_tail", dag=dag)
 
 postgre_ingestion = subdags.postgre_ingestion.get_operators(dag)
 production_stats = subdags.production_stats.get_operators(dag)
- 
-
-
 head >> postgre_ingestion["head"]
-
 postgre_ingestion['tail'] >> production_stats['head']
-
 production_stats["tail"] >> tail
