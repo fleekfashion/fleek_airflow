@@ -15,5 +15,5 @@ CACHE TABLE temp_{{ kv[0].replace("-", "_").replace(" ", "_") }}_view;
 UNION ALL
 {% endfor %} 
   SELECT * 
-  FROM temp_{{ params.label_filters[-1][0]}}_view
+  FROM temp_{{ params.label_filters[-1][0].replace("-", "_").replace(" ", "_") }}_view
   
