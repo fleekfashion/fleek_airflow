@@ -1,7 +1,7 @@
 import os
 from src.defs.delta.utils import PROJECT
 
-URL = 'http://159.89.82.234'
+URL = 'http://174.138.109.133/'
 PASSWORD = os.environ["SEARCH_PASSWORD"]
 PRODUCT_SEARCH_INDEX = f"{PROJECT}_products"
 AUTOCOMPLETE_INDEX = f"{PROJECT}_autocomplete"
