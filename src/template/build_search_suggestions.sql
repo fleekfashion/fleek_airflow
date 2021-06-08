@@ -19,18 +19,12 @@ CREATE OR REPLACe TEMP VIEW secondary_subsets AS (
     t.product_labels,
     t.sl as sl1,
     t2.sl as sl2,
-    t3.sl as sl3,
-    t4.sl as sl4,
-    t5.sl as sl5
+    t3.sl as sl3
   FROM t
   INNER JOIN t as t2
     ON t.product_id = t2.product_id
   INNER JOIN t as t3
     ON t.product_id = t3.product_id
-  INNER JOIN t as t4
-    ON t.product_id = t4.product_id
-  INNER JOIN t as t5
-    ON t.product_id = t5.product_id
 );
 
 CREATE OR REPLACE TEMPORARY VIEW parsedSubsets AS (
@@ -38,7 +32,7 @@ CREATE OR REPLACE TEMPORARY VIEW parsedSubsets AS (
   SELECT DISTINCT
       product_id,
       explode(product_labels) as product_label,
-      array_distinct(ARRAY(sl1, sl2, sl3, sl4, sl5)) as secondary_subset
+      array_distinct(ARRAY(sl1, sl2, sl3)) as secondary_subset
     FROM secondary_subsets
   )
   SELECT 
