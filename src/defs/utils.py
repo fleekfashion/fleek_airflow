@@ -8,13 +8,38 @@ from dataclasses import dataclass
 from functional import seq
 from pyspark.sql.types import StructType
 from airflow.contrib.hooks.gcp_sql_hook import CloudSQLHook
-
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.engine import Engine
+from sqlalchemy.pool import QueuePool
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.automap import automap_base, name_for_collection_relationship
 
 PROJECT = os.environ.get("PROJECT", "staging")
 PROJECT = PROJECT if PROJECT == "prod" else "staging"
 
 DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
+DATABASE_USER = "postgres"
+PASSWORD = os.environ["CLOUD_SQL_PASSWORD"]
+
+conn_str = f"postgresql://{DATABASE_USER}:{PASSWORD}@localhost:5431/{DATABASE}"
+engine: Engine = create_engine(conn_str)
+metadata = MetaData(engine, schema=PROJECT,)
+sessionMaker = sessionmaker(bind=engine)
+
+def _name_for_collection_relationship(base, local_cls, referred_cls, constraint):
+    if constraint.name:
+        return constraint.name.lower()
+    # if this didn't work, revert to the default behavior
+    return name_for_collection_relationship(base, local_cls, referred_cls, constraint)
+
+## Map tables to objects
+Base = automap_base(metadata=metadata)
+Base.prepare(
+    reflect=True,
+    name_for_collection_relationship=_name_for_collection_relationship
+)
 
 
 class TableDef:

@@ -4,7 +4,7 @@ import typing as t
 
 from functional import seq
 
-from src.defs.utils import PROJECT, CONN_ID, TableDef
+from src.defs.utils import PROJECT, CONN_ID, TableDef, Base
 
 TABLES: t.List[PostgreTable] = list()
 
@@ -79,3 +79,8 @@ class PostgreTable(TableDef):
     def get_delta_name(self, staging=False) -> str:
         name = "staging_" + self.name if staging else self.name
         return f"{PROJECT}_postgres.{name}"
+
+    def get_orm(self, staging=False):
+        name = "staging_" + self.name if staging else self.name
+        return Base.classes[name]
+

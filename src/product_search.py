@@ -21,6 +21,7 @@ from src.airflow_tools.utils import get_dag_sensor
 from src.callable import search_settings, upload_trending_documents
 from src.defs.delta import product_catalog as pcdefs
 from src.defs.postgre import product_catalog as postdefs
+from src.defs.postgre import static
 from src.defs.delta.utils import DBFS_DEFS_DIR
 from src.defs import search
 
@@ -130,36 +131,14 @@ autocomplete_upload = SparkScriptOperator(
     sql="template/build_search_suggestions.sql"
 )
 
-update_trending_settings = PythonOperator(
-    task_id="update_trending_settings",
-    dag=dag,
-    python_callable=search_settings.update_settings,
-    op_kwargs={
-        "synonyms_filepath": f"{DBFS_DEFS_DIR}/search/global/synonyms.json",
-        "settings_filepath": f"{DBFS_DEFS_DIR}/search/trending/settings.json",
-        "index_name": search.TRENDING_INDEX
-    }
-)
-
 upload_trending_searches = PythonOperator(
     task_id="upload_trending_searches",
     dag=dag,
     python_callable=upload_trending_documents.add_documents,
     op_kwargs={
         "def_filepath": f"{DBFS_DEFS_DIR}/search/trending/searches.json",
-        "index_name": search.TRENDING_INDEX,
+        "pg_table": static.TRENDING_SEARCHES_TABLE,
         "random_order": True,
-    }
-)
-
-update_label_settings = PythonOperator(
-    task_id="update_label_settings",
-    dag=dag,
-    python_callable=search_settings.update_settings,
-    op_kwargs={
-        "synonyms_filepath": f"{DBFS_DEFS_DIR}/search/global/synonyms.json",
-        "settings_filepath": f"{DBFS_DEFS_DIR}/search/trending/settings.json",
-        "index_name": search.LABELS_INDEX
     }
 )
 
@@ -169,12 +148,11 @@ upload_label_searches = PythonOperator(
     python_callable=upload_trending_documents.add_documents,
     op_kwargs={
         "def_filepath": f"{AUTOCOMPLETE_DEFS_DIR}/labels.json",
-        "index_name": search.LABELS_INDEX
+        "pg_table": static.LABEL_SEARCHES_TABLE 
     }
 )
 
 trigger >> head
-head >> [ update_product_search_settings, update_label_settings, 
-        update_trending_settings, update_autocomplete_settings ]
+head >> [ update_product_search_settings, update_autocomplete_settings ]
 head >> upload_products  >> [ upload_trending_searches, upload_label_searches ] >> tail
 head >> autocomplete_upload >> tail
