@@ -21,7 +21,8 @@ from src.airflow_tools.utils import get_dag_sensor
 from src.callable import search_settings, upload_trending_documents
 from src.defs.delta import product_catalog as pcdefs
 from src.defs.postgre import product_catalog as postdefs
-from src.defs.delta.utils import DBFS_DEFS_DIR
+from src.defs.postgre import static
+from src.defs.delta.utils import DBFS_DEFS_DIR, LARGE_CLUSTER_ID
 from src.defs import search
 
 DAG_ID = dag_defs.PRODUCT_SEARCH
@@ -119,6 +120,7 @@ autocomplete_upload = SparkScriptOperator(
     },
     params={
         "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+        "synonyms_table": static.SYNONYMS_TABLE.get_delta_name(),
         "product_hidden_labels_filter": " OR ".join([  
             f"(array_contains(secondary_subset, '{key}') AND product_label = '{value}')"
             for key, value in HIDDEN_LABEL_FIELDS.items()
@@ -127,7 +129,8 @@ autocomplete_upload = SparkScriptOperator(
         "min_include": 5
     },
     init_scripts=["install_meilisearch.sh"],
-    sql="template/build_search_suggestions.sql"
+    sql="template/build_search_suggestions.sql",
+    cluster_id=LARGE_CLUSTER_ID
 )
 
 update_trending_settings = PythonOperator(
