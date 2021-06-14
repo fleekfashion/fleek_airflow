@@ -150,11 +150,11 @@ CREATE OR REPLACE TEMPORARY VIEW suggestions AS (
     s.suggestion_hash,
     s.product_label,
     s.suggestion = s.product_label as is_base_label,
-    c.c > 50 as is_strong_suggestion
+    c.c > {{ params.min_strong }} as is_strong_suggestion
   FROM hash_counts c
   INNER JOIN distinctSuggestions s
   ON c.suggestion = s.suggestion
-  WHERE char_length(s.suggestion) > 0 AND c.c > 50
+  WHERE char_length(s.suggestion) > 0 AND c.c > {{ params.min_include }}
   ORDER BY c DESC
 );
 
