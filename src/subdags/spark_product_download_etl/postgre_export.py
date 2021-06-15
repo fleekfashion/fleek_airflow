@@ -224,6 +224,35 @@ def get_operators(dag: DAG):
             ),
         )
 
+        prod_write_product_labels = CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=postdefs.CONN_ID,
+            task_id="PROD_write_product_labels",
+            sql="template/prod_write_product_labels.sql",
+            params=dict(
+                product_info=postdefs.PRODUCT_INFO_TABLE.get_full_name(),
+                prod_table=postdefs.PRODUCT_LABELS_TABLE.get_full_name(),
+                columns=postdefs.PRODUCT_LABELS_TABLE.get_columns().make_string(",\n"),
+                label_column="product_labels"
+            ),
+        )
+
+        prod_write_secondary_labels = CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=postdefs.CONN_ID,
+            task_id="PROD_write_secondary_labels",
+            sql="template/prod_write_product_labels.sql",
+            params=dict(
+                product_info=postdefs.PRODUCT_INFO_TABLE.get_full_name(),
+                prod_table=postdefs.PRODUCT_SECONDARY_LABELS_TABLE \
+                        .get_full_name(),
+                columns=postdefs.PRODUCT_SECONDARY_LABELS_TABLE \
+                        .get_columns() \
+                        .make_string(",\n"),
+                label_column="product_secondary_labels"
+            ),
+        )
+
         write_advertiser_count_table = CloudSqlQueryOperator(
             dag=dag,
             gcp_cloudsql_conn_id=postdefs.CONN_ID,
@@ -246,7 +275,8 @@ def get_operators(dag: DAG):
             write_top_products, write_product_price_history, 
             prod_write_product_size_info, write_similar_items_prod,
             write_product_recs_prod, write_advertiser_count_table,
-            write_product_color_options_prod
+            write_product_color_options_prod, prod_write_product_labels,
+            prod_write_secondary_labels,
         ]
         write_similar_items_staging >> write_similar_items_prod
         write_product_recs_staging >> write_product_recs_prod
