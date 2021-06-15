@@ -19,6 +19,8 @@ PRODUCT_INFO_TABLE_NAME = "product_info"
 ADVERTISER_PRODUCT_COUNT_TABLE_NAME = "advertiser_product_count"
 PRODUCT_COLOR_OPTIONS_TABLE_NAME = "product_color_options"
 PRODUCT_PRICE_HISTORY_TABLE_NAME = "product_price_history"
+PRODUCT_LABELS_TABLE_NAME= "product_labels"
+PRODUCT_SECONDARY_LABELS_TABLE_NAME= "product_secondary_labels"
 PRODUCT_SIZE_INFO_TABLE_NAME = "product_size_info"
 SIMILAR_PRODUCTS_TABLE_NAME = "similar_products_v2"
 TOP_PRODUCTS_TABLE_NAME = "top_products"
@@ -232,6 +234,68 @@ PRODUCT_PRICE_HISTORY_TABLE = PostgreTable(
     ]
 )
 
+PRODUCT_LABELS_TABLE = PostgreTable(
+    name=PRODUCT_LABELS_TABLE_NAME,
+    columns=[
+        Column(
+            name="product_id",
+            type="bigint",
+            nullable=False
+        ),
+        Column(
+            name="product_label",
+            type="text",
+            nullable=False
+        ),
+    ],
+    primary_key=PrimaryKey(
+        columns=["product_id", "product_label"]
+    ),
+    foreign_keys=[
+        ForeignKey(
+            columns=["product_id"],
+            ref_table=PRODUCT_INFO_TABLE.get_full_name(),
+            ref_columns=["product_id"]
+        )
+    ],
+    indexes=[
+        Index(
+            columns=["product_label", "product_id"],
+        ),
+    ]
+)
+
+PRODUCT_SECONDARY_LABELS_TABLE = PostgreTable(
+    name=PRODUCT_SECONDARY_LABELS_TABLE_NAME,
+    columns=[
+        Column(
+            name="product_id",
+            type="bigint",
+            nullable=False
+        ),
+        Column(
+            name="product_secondary_label",
+            type="text",
+            nullable=False
+        ),
+    ],
+    primary_key=PrimaryKey(
+        columns=["product_id", "product_secondary_label"]
+    ),
+    foreign_keys=[
+        ForeignKey(
+            columns=["product_id"],
+            ref_table=PRODUCT_INFO_TABLE.get_full_name(),
+            ref_columns=["product_id"]
+        )
+    ],
+    indexes=[
+        Index(
+            columns=["product_secondary_label", "product_id"],
+        ),
+    ]
+)
+
 PRODUCT_SIZE_INFO_TABLE = PostgreTable(
     name=PRODUCT_SIZE_INFO_TABLE_NAME,
     columns=[
@@ -325,6 +389,8 @@ TABLES.extend([
     PRODUCT_INFO_TABLE,
     PRODUCT_COLOR_OPTIONS_TABLE,
     PRODUCT_PRICE_HISTORY_TABLE,
+    PRODUCT_LABELS_TABLE,
+    PRODUCT_SECONDARY_LABELS_TABLE,
     PRODUCT_SIZE_INFO_TABLE,
     SIMILAR_PRODUCTS_TABLE,
     TOP_PRODUCTS_TABLE

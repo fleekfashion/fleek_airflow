@@ -40,7 +40,7 @@ services:
     ports:
       # Don't conflict with local postgres
       # Only affects port used when connecting from host, not between containers
-      - "5433:5432"
+      - "5437:5432"
     environment:
       - POSTGRES_PASSWORD=airflow
       - POSTGRES_USER=airflow
