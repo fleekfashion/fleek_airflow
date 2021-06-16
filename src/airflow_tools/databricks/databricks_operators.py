@@ -62,7 +62,7 @@ class SparkScriptOperator(BaseOperator):
             max_workers: int = None,
             machine_type: str = None,
             local: bool = False,
-            pool_id: str = SHARED_POOL_ID,
+            pool_id: Optional[str] = SHARED_POOL_ID,
             spark_version: str = "8.1.x-cpu-ml-scala2.12",
             spark_conf: dict = {},
             libraries: list = [],
@@ -76,7 +76,7 @@ class SparkScriptOperator(BaseOperator):
 
         super(SparkScriptOperator, self).__init__(**kwargs)
         self.script = script
-        self.json_args = { **json_args, 'params': params }
+        self.json_args: dict = { **json_args, 'params': params }
         self.sql = sql
         self.cluster_id = cluster_id
         self.local = local

@@ -66,7 +66,10 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 13830631: "Zaful",
                 13276110: "Forever 21",
                 13237228: "REVOLVE",
-                14463624: "NastyGal"
+                14463624: "NastyGal",
+                14487611: "Warp + Weft",
+                13311199: "SHEIN",
+                13311514: "ROMWE"
             }
             for adid, name in PartnerAdvertisers.items():
                 cj_to_delta  = SparkScriptOperator(
@@ -88,6 +91,8 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 35719: "ASOS",
                 44648: "Princess Polly",
                 43177: "Free People",
+                43176: "Urban Outfitters",
+                3156: "Champion"
             }
 
             for adid, name in rakuten_advertisers.items():
