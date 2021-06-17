@@ -14,7 +14,6 @@ DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
 
 BOARD_TABLE_NAME = "board"
-BOARD_TYPE_TABLE_NAME = "board_type"
 BOARD_PRODUCT_TABLE_NAME = "board_product"
 USER_BOARD_TABLE_NAME = "user_board"
 REJECTED_BOARD_TABLE_NAME = "rejected_board"
@@ -52,81 +51,15 @@ BOARD_TABLE = PostgreTable(
             type="bigint",
             nullable=False
         ),
-    ],
-    primary_key=PrimaryKey(
-        columns=["board_id"],
-    ),
-)
-
-BOARD_TYPE_TABLE = PostgreTable(
-    name=BOARD_TYPE_TABLE_NAME,
-    columns=[
         Column(
-            name="board_id",
-            type="uuid",
-            nullable=False
-        ),
-        Column(
-            name="is_user_generated",
-            type="boolean",
-            nullable=False
-        ),
-        Column(
-            name="is_smart",
-            type="boolean",
-            nullable=False
-        ),
-        Column(
-            name="is_price_drop",
-            type="boolean",
-            nullable=False
-        ),
-        Column(
-            name="is_all_faves",
-            type="boolean",
-            nullable=False
-        ),
-        Column(
-            name="is_global",
-            type="boolean",
-            nullable=False
-        ),
-        Column(
-            name="is_daily_mix",
-            type="boolean",
+            name="board_type",
+            type="text",
             nullable=False
         ),
     ],
     primary_key=PrimaryKey(
         columns=["board_id"],
     ),
-    foreign_keys=[
-        ForeignKey(
-            columns=["board_id"],
-            ref_table=BOARD_TABLE.get_full_name(),
-            ref_columns=["board_id"]
-        )
-    ],
-    indexes=[
-        Index(
-            columns=["is_user_generated"],
-        ),
-        Index(
-            columns=["is_smart"],
-        ),
-        Index(
-            columns=["is_price_drop"],
-        ),
-        Index(
-            columns=["is_all_faves"],
-        ),
-        Index(
-            columns=["is_global"],
-        ),
-        Index(
-            columns=["is_daily_mix"],
-        ),
-    ]
 )
 
 BOARD_PRODUCT_TABLE = PostgreTable(
@@ -275,7 +208,6 @@ REJECTED_BOARD_TABLE = PostgreTable(
 
 TABLES.extend([
     BOARD_TABLE,
-    BOARD_TYPE_TABLE,
     BOARD_PRODUCT_TABLE,
     USER_BOARD_TABLE,
     REJECTED_BOARD_TABLE
