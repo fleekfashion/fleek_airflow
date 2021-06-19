@@ -62,13 +62,24 @@ def get_operators(dag: DAG):
                 key="product_id",
                 columns=postdefs.PRODUCT_INFO_TABLE.get_columns(),
                 tail=f""";
-                    UPDATE {pinfo_table_name} SET 
-                        is_active = false
-                    WHERE product_id NOT IN (
-                        SELECT product_id FROM {pinfo_staging_name}
-                    );"""
+                DROP TABLE IF EXISTS {postdefs.NEWLY_INACTIVE_PIDS_TABLE.get_full_name()};
+                CREATE TABLE {postdefs.NEWLY_INACTIVE_PIDS_TABLE.get_full_name()} AS 
+                SELECT
+                    product_id,
+                    false as is_active
+                    FROM {pinfo_table_name} 
+                WHERE is_active AND product_id NOT IN (
+                    SELECT product_id 
+                    FROM {postdefs.PRODUCT_INFO_TABLE.get_full_name(staging=True)} 
+                    ORDER BY product_id);
+                UPDATE {pinfo_table_name} pi
+                SET is_active=false
+                FROM {postdefs.NEWLY_INACTIVE_PIDS_TABLE.get_full_name()} as ni
+                WHERE pi.product_id=ni.product_id;
+                """
             )
         )
+
 
         write_top_products = CloudSqlQueryOperator(
             dag=dag,
