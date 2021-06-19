@@ -81,7 +81,7 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
     'small', 
     '1200x'
   ) as product_image_url
-  FROM staging_tmp.combined_product_info
+  FROM pinfo 
   WHERE 
     advertiser_name = 'Warp + Weft'
 );
