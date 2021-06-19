@@ -63,5 +63,5 @@ def add_documents(
                     .to_set(),
             primary_key="primary_key"
         )
-    index.delete_documents(old_keys)
+    index.delete_documents(old_keys) if len(old_keys) > 0 and old_keys else None
     index.add_documents(docs)

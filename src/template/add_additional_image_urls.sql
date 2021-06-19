@@ -197,7 +197,7 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
 SELECT 
   urls.product_id,
   array_remove(
-    urls.product_additional_image_urls, 
+    array_distinct(urls.product_additional_image_urls), 
     pi.product_image_url
   ) as product_additional_image_urls
 FROM processed_urls urls
