@@ -43,6 +43,47 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   WHERE 
     advertiser_name = 'Princess Polly' 
 
+    UNION ALL
+
+  -- ROMWE and SHEIN
+  SELECT 
+    product_id,
+  regexp_replace(
+    product_image_url, 
+    'thumbnail_.*', 
+    'thumbnail_600x\\.jpg'
+  ) as product_image_url
+  FROM pinfo 
+  WHERE 
+    advertiser_name = 'ROMWE' or advertiser_name = 'SHEIN'
+
+    UNION ALL
+
+  -- Urban 
+  SELECT 
+    product_id,
+  regexp_replace(
+    product_image_url, 
+    '\\?.*', 
+    '\\?\\$\xlarge\\$'
+  ) as product_image_url
+  FROM pinfo 
+  WHERE 
+    advertiser_name = 'Urban Outfitters'
+
+    UNION ALL
+
+  -- Warp + Weft
+  SELECT 
+    product_id,
+  regexp_replace(
+    product_image_url, 
+    'small', 
+    '1200x'
+  ) as product_image_url
+  FROM staging_tmp.combined_product_info
+  WHERE 
+    advertiser_name = 'Warp + Weft'
 );
 
 SELECT *

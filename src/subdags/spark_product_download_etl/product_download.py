@@ -73,7 +73,7 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
             }
             for adid, name in PartnerAdvertisers.items():
                 cj_to_delta  = SparkScriptOperator(
-                    task_id=f"daily_cj_download_{name.replace(' ', '_')}",
+                    task_id=f"daily_cj_download_{name.replace(' ', '_').replace('+', 'and')}",
                     dag=dag,
                     json_args={
                         **BaseParameters,
@@ -84,6 +84,11 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                     script="catalog_download.py",
                     local=True
                 )
+
+                if name == "SHEIN":
+                    cj_to_delta.machine_type = "m5d.xlarge"
+                    cj_to_delta.pool_id = None
+                    cj_to_delta.dev_mode = False
             truncation >> subgroup
 
         with TaskGroup(group_id="rakuten_download", dag=dag) as subgroup:
