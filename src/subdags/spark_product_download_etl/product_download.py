@@ -66,11 +66,13 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 13830631: "Zaful",
                 13276110: "Forever 21",
                 13237228: "REVOLVE",
-                14463624: "NastyGal"
+                14463624: "NastyGal",
+                14487611: "Warp + Weft",
+                13311514: "ROMWE",
             }
             for adid, name in PartnerAdvertisers.items():
                 cj_to_delta  = SparkScriptOperator(
-                    task_id=f"daily_cj_download_{name.replace(' ', '_')}",
+                    task_id=f"daily_cj_download_{name.replace(' ', '_').replace('+', 'and')}",
                     dag=dag,
                     json_args={
                         **BaseParameters,
@@ -81,6 +83,11 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                     script="catalog_download.py",
                     local=True
                 )
+
+                if name == "SHEIN":
+                    cj_to_delta.machine_type = "m5d.xlarge"
+                    cj_to_delta.pool_id = None
+                    cj_to_delta.dev_mode = False
             truncation >> subgroup
 
         with TaskGroup(group_id="rakuten_download", dag=dag) as subgroup:
@@ -88,6 +95,8 @@ def get_operators(dag: DAG_TYPE) -> TaskGroup:
                 35719: "ASOS",
                 44648: "Princess Polly",
                 43177: "Free People",
+                43176: "Urban Outfitters",
+                3156: "Champion"
             }
 
             for adid, name in rakuten_advertisers.items():

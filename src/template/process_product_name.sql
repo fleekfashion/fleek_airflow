@@ -11,6 +11,7 @@ CREATE OR REPLACE TEMPORARY VIEW pinfo AS (
     regexp_replace(color, '[^0-9a-zA-Z:, ]+', '') as color, -- remove all special regex character from color (else errors)
     COALESCE(size, 'absurd_impossible_string_tthat_means_nothing') as size -- b/c size can be null
   FROM {{params.product_info_table}} 
+  WHERE advertiser_name != 'Warp + Weft' -- do not proccess these
 );
 
 WITH t AS (

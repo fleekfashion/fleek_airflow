@@ -384,6 +384,12 @@ TOP_PRODUCTS_TABLE = PostgreTable(
     ]
 )
 
+NEWLY_INACTIVE_PIDS_TABLE = PostgreTable(
+    name='newly_inactive_pids',
+    columns=[
+    ]
+)
+
 TABLES.extend([
     ADVERTISER_PRODUCT_COUNT_TABLE,
     PRODUCT_INFO_TABLE,

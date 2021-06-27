@@ -119,6 +119,65 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
 
   UNION ALL
 
+  -- ROMWE and SHEIN
+  SELECT 
+    product_id,
+    TRANSFORM( 
+      product_additional_image_urls, 
+      x -> regexp_replace(
+        x,
+        'thumbnail_.*',
+        'thumbnail_600x\\.jpg'
+      )
+    ) as product_additional_image_urls
+  FROM pinfo 
+  WHERE 
+    advertiser_name = 'ROMWE' or advertiser_name = 'SHEIN'
+
+  UNION ALL
+
+  -- Urban 
+  SELECT 
+    product_id,
+    TRANSFORM( 
+      if(
+        product_image_url rlike '_[ab]\\?',
+        ARRAY('d', 'e', 'f'),
+        ARRAY('e', 'f', 'g', 'h')
+      ),
+      x -> regexp_replace(
+        product_image_url,
+        '_[abcd]\\?',
+        format_string('_%s?', x)
+      )
+    ) as product_additional_image_urls
+  FROM pinfo 
+  WHERE 
+    advertiser_name = 'Urban Outfitters'
+
+  UNION ALL
+
+  -- Champion 
+  SELECT 
+    product_id,
+    TRANSFORM( 
+      if(
+        product_image_url rlike '(_Front|_Coed)',
+        ARRAY('Front', 'Back', 'Side'),
+        ARRAY('back', 'side')
+      ),
+      x -> regexp_replace(
+        product_image_url,
+        '(?i)(_Front|_Coed)',
+        format_string('_%s', x)
+      )
+    ) as product_additional_image_urls
+  FROM pinfo 
+  WHERE 
+    advertiser_name = 'Champion'
+
+  UNION ALL
+
   -- madewell
   SELECT 
     product_id,
@@ -138,7 +197,7 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
 SELECT 
   urls.product_id,
   array_remove(
-    urls.product_additional_image_urls, 
+    array_distinct(urls.product_additional_image_urls), 
     pi.product_image_url
   ) as product_additional_image_urls
 FROM processed_urls urls
