@@ -94,7 +94,8 @@ CREATE OR REPLACE TEMP VIEW suggestion_subsets AS (
         secondary_subset
       ),
       ARRAY(coalesce(syn, pl))
-    ) as suggestion_subset
+    ) as suggestion_subset,
+    secondary_subset
   FROM t_filter 
 );
 
@@ -116,7 +117,8 @@ CREATE OR REPLACE TEMPORARY VIEW parsedSubsets AS (
         ), 
         ' '
       )
-    ))) as suggestion_hash
+    ))) as suggestion_hash,
+    secondary_subset
   FROM suggestion_subsets
 );
 
@@ -140,6 +142,7 @@ CREATE OR REPLACE TEMPORARY VIEW suggestions AS (
       suggestion,
       max(product_label) as product_label,
       first(suggestion_hash) as suggestion_hash
+      first(secondary_subset) as secondary_subset
     FROM parsedSubsets
     GROUP BY suggestion
   
@@ -150,7 +153,8 @@ CREATE OR REPLACE TEMPORARY VIEW suggestions AS (
     s.suggestion_hash,
     s.product_label,
     s.suggestion = s.product_label as is_base_label,
-    c.c > {{ params.min_strong }} as is_strong_suggestion
+    c.c > {{ params.min_strong }} as is_strong_suggestion,
+    secondary_subset as secondary_labels
   FROM hash_counts c
   INNER JOIN distinctSuggestions s
   ON c.suggestion = s.suggestion

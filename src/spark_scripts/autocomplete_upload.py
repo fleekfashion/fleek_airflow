@@ -33,6 +33,7 @@ SEARCH_URL = json_args['search_url']
 SEARCH_PASSWORD = json_args['search_password']
 AUTOCOMPLETE_INDEX = json_args['autocomplete_index']
 ACTIVE_PRODUCTS_TABLE = json_args['active_products_table']
+OUTPUT_TABLE = json_args['output_table']
 
 
 c = meilisearch.Client(SEARCH_URL, SEARCH_PASSWORD)
@@ -49,8 +50,9 @@ ADVERTISER_NAMES = seq(advertisers) \
 # Run SQL
 for query in SQL.split(";"):
     df = sqlContext.sql(query)
+df.write.option('overwriteSchema', 'true').saveAsTable(OUTPUT_TABLE, format='delta', mode='overwrite')
 
-pdf = df.toPandas()
+pdf = spark.table(OUTPUT_TABLE).toPandas()
 pdf['advertiser_names'] = ADVERTISER_NAMES
 pdf['colors'] = ""
 pdf['primary_key'] = pdf.index
