@@ -13,7 +13,7 @@ NEW_PRODUCT_FEATURES_TABLE = DeltaTableDef("daily_product_ml_features", DATASET)
 PRODUCT_COLOR_OPTIONS_TABLE = DeltaTableDef("product_color_options", DATASET)
 PRODUCT_INFO_TABLE  = DeltaTableDef("product_info", DATASET)
 PRODUCT_SIMILARITY_SCORES_TABLE = DeltaTableDef("product_similarity_scores", DATASET)
-SEARCH_SUGGESTIONS = DeltaTableDef('search_suggestions', DATASET)
+SEARCH_SUGGESTIONS_TABLE = DeltaTableDef('search_suggestions', DATASET)
 SIMILAR_PRODUCTS_TABLE = DeltaTableDef("similar_products_v2", DATASET)
 
 TABLES = {

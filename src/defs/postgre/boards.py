@@ -14,7 +14,10 @@ DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
 
 BOARD_TABLE_NAME = "board"
+SMART_TAG_TABLE_NAME = "smart_tag"
+BOARD_SMART_TAG_TABLE_NAME = "board_smart_tag"
 BOARD_PRODUCT_TABLE_NAME = "board_product"
+PRODUCT_SMART_TAG_TABLE_NAME = 'product_smart_tag'
 USER_BOARD_TABLE_NAME = "user_board"
 REJECTED_BOARD_TABLE_NAME = "rejected_board"
 
@@ -60,6 +63,92 @@ BOARD_TABLE = PostgreTable(
     primary_key=PrimaryKey(
         columns=["board_id"],
     ),
+)
+
+SMART_TAG_TABLE = PostgreTable(
+    name=SMART_TAG_TABLE_NAME,
+    columns=[
+        Column(
+            name="smart_tag_id",
+            type="bigint",
+            nullable=False
+        ),
+        Column(
+            name="product_label",
+            type="text",
+            nullable=True
+        ),
+        Column(
+            name="product_secondary_labels",
+            type="text[]",
+            nullable=True
+        ),
+    ],
+    primary_key=PrimaryKey(
+        columns=["smart_tag_id"],
+    ),
+)
+
+BOARD_SMART_TAG_TABLE = PostgreTable(
+    name=BOARD_SMART_TAG_TABLE_NAME,
+    columns=[
+        Column(
+            name="board_id",
+            type="uuid",
+            nullable=False
+        ),
+        Column(
+            name="smart_tag_id",
+            type="bigint",
+            nullable=False
+        ),
+    ],
+    primary_key=PrimaryKey(
+        columns=["board_id", "smart_tag_id"],
+    ),
+    foreign_keys=[
+        ForeignKey(
+            columns=["board_id"],
+            ref_table=BOARD_TABLE.get_full_name(),
+            ref_columns=["board_id"]
+        ),
+        ForeignKey(
+            columns=["smart_tag_id"],
+            ref_table=SMART_TAG_TABLE.get_full_name(),
+            ref_columns=["smart_tag_id"]
+        ),
+    ],
+)
+
+PRODUCT_SMART_TAG_TABLE = PostgreTable(
+    name=PRODUCT_SMART_TAG_TABLE_NAME,
+    columns=[
+        Column(
+            name="product_id",
+            type="bigint",
+            nullable=False
+        ),
+        Column(
+            name="smart_tag_id",
+            type="bigint",
+            nullable=False
+        ),
+    ],
+    primary_key=PrimaryKey(
+        columns=["product_id", "smart_tag_id"],
+    ),
+    foreign_keys=[
+        ForeignKey(
+            columns=["product_id"],
+            ref_table=pcdefs.PRODUCT_INFO_TABLE.get_full_name(),
+            ref_columns=["product_id"]
+        ),
+        ForeignKey(
+            columns=["smart_tag_id"],
+            ref_table=SMART_TAG_TABLE.get_full_name(),
+            ref_columns=["smart_tag_id"]
+        )
+    ],
 )
 
 BOARD_PRODUCT_TABLE = PostgreTable(
@@ -208,7 +297,10 @@ REJECTED_BOARD_TABLE = PostgreTable(
 
 TABLES.extend([
     BOARD_TABLE,
+    SMART_TAG_TABLE,
+    BOARD_SMART_TAG_TABLE,
     BOARD_PRODUCT_TABLE,
+    PRODUCT_SMART_TAG_TABLE,
     USER_BOARD_TABLE,
     REJECTED_BOARD_TABLE
 ])

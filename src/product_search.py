@@ -105,6 +105,7 @@ autocomplete_upload = SparkScriptOperator(
         "autocomplete_index": search.AUTOCOMPLETE_INDEX,
         "search_url": search.URL,
         "search_password": search.PASSWORD,
+        "output_table": pcdefs.SEARCH_SUGGESTIONS_TABLE.get_full_name()
     },
     params={
         "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),

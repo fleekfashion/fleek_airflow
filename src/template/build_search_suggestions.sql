@@ -20,7 +20,8 @@ CREATE OR REPLACE TEMP VIEW secondary_subsets AS (
             ARRAY('', coalesce(internal_color, ''))
           )
         )
-      ) as sl
+      ) as sl,
+      internal_color
     FROM {{ params.active_products_table }}
   ), t_syn AS (
     SELECT 
@@ -34,7 +35,8 @@ CREATE OR REPLACE TEMP VIEW secondary_subsets AS (
     t.product_id,
     array_distinct(
       ARRAY(t.sl, t2.sl, t3.sl)
-    ) as secondary_subset
+    ) as secondary_subset,
+    t.internal_color
   FROM t_syn as t
   INNER JOIN t_syn as t2
     ON t.product_id = t2.product_id
@@ -76,7 +78,8 @@ CREATE OR REPLACE TEMP VIEW suggestion_subsets AS (
         x -> array_contains(labelSyn.synonyms, x)
       )[0] as syn,
       labelSyn.pl,
-      ss.secondary_subset
+      ss.secondary_subset,
+      internal_color
     FROM labelSyn
     INNER JOIN secondary_subsets ss
       ON labelSyn.product_id = ss.product_id
@@ -95,7 +98,8 @@ CREATE OR REPLACE TEMP VIEW suggestion_subsets AS (
       ),
       ARRAY(coalesce(syn, pl))
     ) as suggestion_subset,
-    secondary_subset
+    secondary_subset,
+    internal_color
   FROM t_filter 
 );
 
@@ -118,7 +122,8 @@ CREATE OR REPLACE TEMPORARY VIEW parsedSubsets AS (
         ' '
       )
     ))) as suggestion_hash,
-    secondary_subset
+    secondary_subset,
+    internal_color
   FROM suggestion_subsets
 );
 
@@ -141,8 +146,9 @@ CREATE OR REPLACE TEMPORARY VIEW suggestions AS (
     SELECT 
       suggestion,
       max(product_label) as product_label,
-      first(suggestion_hash) as suggestion_hash
-      first(secondary_subset) as secondary_subset
+      first(suggestion_hash) as suggestion_hash,
+      first(secondary_subset) as secondary_subset,
+      first(internal_color) as internal_color
     FROM parsedSubsets
     GROUP BY suggestion
   
@@ -154,7 +160,8 @@ CREATE OR REPLACE TEMPORARY VIEW suggestions AS (
     s.product_label,
     s.suggestion = s.product_label as is_base_label,
     c.c > {{ params.min_strong }} as is_strong_suggestion,
-    secondary_subset as secondary_labels
+    secondary_subset as secondary_labels,
+    internal_color
   FROM hash_counts c
   INNER JOIN distinctSuggestions s
   ON c.suggestion = s.suggestion
