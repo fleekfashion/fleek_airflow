@@ -75,7 +75,9 @@ CREATE OR REPLACE TEMP VIEW suggestion_subsets AS (
       labelSyn.product_id,
       filter(
         ss.secondary_subset,
-        x -> array_contains(labelSyn.pl,
+        x -> array_contains(labelSyn.synonyms, x)
+      )[0] as syn,
+      labelSyn.pl,
       ss.secondary_subset,
       internal_color
     FROM labelSyn
