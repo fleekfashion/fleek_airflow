@@ -52,7 +52,12 @@ for query in SQL.split(";"):
     df = sqlContext.sql(query)
 df.write.option('overwriteSchema', 'true').saveAsTable(OUTPUT_TABLE, format='delta', mode='overwrite')
 
-pdf = spark.table(OUTPUT_TABLE).toPandas()
+pdf = spark.table(OUTPUT_TABLE) \
+    .select('suggestion', 'suggestion_hash', 
+            'is_base_label', 'n_hits',
+            'product_label', 'is_strong_suggestion'
+    ) \
+    .toPandas()
 pdf['advertiser_names'] = ADVERTISER_NAMES
 pdf['colors'] = ""
 pdf['primary_key'] = pdf.index
