@@ -247,6 +247,28 @@ def get_operators(dag: DAG):
             local=True
         )
 
+        prod_write_product_smart_tags = CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=persdefs.CONN_ID,
+            task_id="PROD_write_product_smart_tags",
+            sql=f"""
+            BEGIN;
+            DELETE FROM {postboards.PRODUCT_SMART_TAG_TABLE.get_full_name()}
+            WHERE product_id in (
+                SELECT product_id
+                FROM {postdefs.PRODUCT_INFO_TABLE.get_full_name()}
+                WHERE is_active
+            );
+            """ +
+            pquery.upsert(
+                table_name=postboards.PRODUCT_SMART_TAG_TABLE.get_full_name(),
+                staging_name=postboards.PRODUCT_SMART_TAG_TABLE.get_full_name(staging=True),
+                key="product_id, smart_tag_id",
+                columns=postboards.PRODUCT_SMART_TAG_TABLE.get_columns().to_list(),
+            ) +
+            ";END;"
+        )
+
         insert_product_size_info = SparkSQLOperator(
             task_id="STAGE_product_size_info",
             dag=dag,
@@ -336,12 +358,14 @@ def get_operators(dag: DAG):
             prod_write_product_size_info, write_similar_items_prod,
             write_product_recs_prod, write_advertiser_count_table,
             write_product_color_options_prod, prod_write_product_labels,
-            prod_write_secondary_labels,
+            prod_write_secondary_labels, prod_write_product_smart_tags 
         ]
         write_similar_items_staging >> write_similar_items_prod
         write_product_recs_staging >> write_product_recs_prod
         insert_product_size_info >> prod_write_product_size_info
         write_product_color_options_staging >> write_product_color_options_prod
-        write_smart_tags_staging >> prod_write_smart_tags
+        write_smart_tags_staging >> prod_write_smart_tags >> prod_write_product_smart_tags
+        write_product_smart_tags_staging >> prod_write_product_smart_tags
+
 
     return group 
