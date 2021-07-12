@@ -1,7 +1,8 @@
 CREATE OR REPLACE TEMP VIEW parsedSubsets AS (
   SELECT *
-  FROM {{ params.product_suggestions_table }}
-)
+  FROM {{ params.product_smart_tag_table }}
+);
+
 CREATE OR REPLACE TEMP VIEW hash_counts AS (
   WITH t AS (
     SELECT DISTINCT

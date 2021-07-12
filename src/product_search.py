@@ -20,6 +20,7 @@ from src.airflow_tools.databricks.databricks_operators import SparkScriptOperato
 from src.airflow_tools.utils import get_dag_sensor
 from src.callable import search_settings, upload_trending_documents
 from src.defs.delta import product_catalog as pcdefs
+from src.defs.delta import boards 
 from src.defs.postgre import product_catalog as postdefs
 from src.defs.postgre import static
 from src.defs.delta.utils import DBFS_DEFS_DIR, LARGE_CLUSTER_ID
@@ -109,9 +110,9 @@ autocomplete_upload = SparkScriptOperator(
     },
     params={
         "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
-        "synonyms_table": static.SYNONYMS_TABLE.get_delta_name(),
         "min_strong": 150,
-        "min_include": 50
+        "min_include": 50,
+        "product_smart_tag_table": boards.PRODUCT_SMART_TAG_TABLE.get_full_name(),
     },
     init_scripts=["install_meilisearch.sh"],
     sql="template/build_search_suggestions.sql"
