@@ -74,11 +74,6 @@ SMART_TAG_TABLE = PostgreTable(
             nullable=False
         ),
         Column(
-            name="suggestion",
-            type="text",
-            nullable=False
-        ),
-        Column(
             name="product_label",
             type="text",
             nullable=True
@@ -87,6 +82,11 @@ SMART_TAG_TABLE = PostgreTable(
             name="product_secondary_labels",
             type="text[]",
             nullable=True
+        ),
+        Column(
+            name="suggestion",
+            type="text",
+            nullable=False
         ),
         Column(
             name="n_hits",

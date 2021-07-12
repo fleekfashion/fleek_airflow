@@ -18,9 +18,11 @@ from src.airflow_tools.databricks.databricks_operators import SparkSQLOperator
 from src.airflow_tools.queries import postgre_queries as pquery
 from src.defs.delta import personalization as pdefs
 from src.defs.postgre import product_catalog as postdefs
+from src.defs.postgre import boards as postboards 
 from src.defs.postgre import spark_personalization as persdefs
 from src.defs.delta import postgres as spark_defs
 from src.defs.delta import product_catalog as pcdefs
+from src.defs.delta import boards 
 from src.defs.delta import postgres as phooks
 
 ################################
@@ -198,6 +200,53 @@ def get_operators(dag: DAG):
             )
         )
 
+        write_smart_tags_staging = SparkSQLOperator(
+            task_id="STAGING_write_smart_tags",
+            dag=dag,
+            params={
+                "src": boards.SMART_TAG_TABLE.get_full_name(),
+                "target": postboards.SMART_TAG_TABLE.get_delta_name(staging=True),
+                "columns": postboards.SMART_TAG_TABLE \
+                        .get_columns() \
+                        .make_string(", "),
+                "mode": "OVERWRITE TABLE"
+            },
+            sql="template/std_insert.sql",
+            local=True
+        )
+
+        prod_write_smart_tags = CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=persdefs.CONN_ID,
+            task_id="PROD_write_smart_tags",
+            sql=pquery.upsert(
+                table_name=postboards.SMART_TAG_TABLE.get_full_name(),
+                staging_name=postboards.SMART_TAG_TABLE.get_full_name(staging=True),
+                key="smart_tag_id",
+                columns=postboards.SMART_TAG_TABLE.get_columns().to_list(),
+            )
+        )
+
+        write_product_smart_tags_staging = SparkSQLOperator(
+            task_id="STAGING_write_product_smart_tags",
+            dag=dag,
+            params={
+                "src": f"""(
+                    SELECT distinct product_id, suggestion_hash as smart_tag_id
+                    FROM staging_boards.product_smart_tag
+                    WHERE suggestion_hash in (SELECT smart_tag_id FROM staging_boards.smart_tag)
+                )
+                """,
+                "target": postboards.PRODUCT_SMART_TAG_TABLE.get_delta_name(staging=True),
+                "columns": postboards.PRODUCT_SMART_TAG_TABLE \
+                        .get_columns() \
+                        .make_string(", "),
+                "mode": "OVERWRITE TABLE"
+            },
+            sql="template/std_insert.sql",
+            local=True
+        )
+
         insert_product_size_info = SparkSQLOperator(
             task_id="STAGE_product_size_info",
             dag=dag,
@@ -293,5 +342,6 @@ def get_operators(dag: DAG):
         write_product_recs_staging >> write_product_recs_prod
         insert_product_size_info >> prod_write_product_size_info
         write_product_color_options_staging >> write_product_color_options_prod
+        write_smart_tags_staging >> prod_write_smart_tags
 
     return group 

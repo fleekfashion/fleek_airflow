@@ -157,6 +157,8 @@ def get_operators(dag: DAG_TYPE) -> dict:
             options={
                 "overwriteSchema": "true" 
             },
+            drop_duplicates=True,
+            duplicates_subset=['smart_tag_id'],
             mode="WRITE_TRUNCATE"
         )
         
