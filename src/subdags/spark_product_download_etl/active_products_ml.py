@@ -18,6 +18,8 @@ from src.defs.delta import personalization as pdefs
 from src.defs.delta import product_catalog as pcdefs
 from src.defs.delta.utils import SHARED_POOL_ID, DBFS_DEFS_DIR, DBFS_AIRFLOW_DIR
 from src.defs.delta import user_data as user_delta
+from src.defs.delta import boards
+from src.defs.postgre import static
 
 def get_operators(dag: DAG_TYPE) -> dict:
     f"{__doc__}"
@@ -124,7 +126,28 @@ def get_operators(dag: DAG_TYPE) -> dict:
             local=True
         )
 
-        compute_product_similarity >> process_similar_products >> generate_product_color_options
+        product_smart_tags = SparkSQLOperator(
+            task_id="product_smart_tags",
+            dag=dag,
+            sql="template/build_product_smart_tags.sql",
+            params={
+                "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+                "synonyms_table": static.SYNONYMS_TABLE.get_delta_name(),
+                "min_strong": 150,
+                "min_include": 50
+            },
+            local=True,
+            output_table=boards.PRODUCT_SMART_TAG_TABLE.get_full_name(),
+            options={
+                "overwriteSchema": True
+            },
+            mode="WRITE_TRUNCATE"
+        )
+        
+
+        compute_product_similarity >> process_similar_products 
         product_recs
+        generate_product_color_options
         daily_top_product_tag >> daily_new_product_tag
+        product_smart_tags
     return group
