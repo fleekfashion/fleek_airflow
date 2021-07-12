@@ -139,7 +139,23 @@ def get_operators(dag: DAG_TYPE) -> dict:
             local=True,
             output_table=boards.PRODUCT_SMART_TAG_TABLE.get_full_name(),
             options={
-                "overwriteSchema": True
+                "overwriteSchema": "true"
+            },
+            mode="WRITE_TRUNCATE"
+        )
+
+        smart_tags = SparkSQLOperator(
+            task_id="smart_tags",
+            dag=dag,
+            sql="template/build_smart_tags.sql",
+            params={
+                "product_smart_tag_table": boards.PRODUCT_SMART_TAG_TABLE.get_full_name(),
+                "min_include": 150
+            },
+            local=True,
+            output_table=boards.SMART_TAG_TABLE.get_full_name(),
+            options={
+                "overwriteSchema": "true" 
             },
             mode="WRITE_TRUNCATE"
         )
@@ -149,5 +165,5 @@ def get_operators(dag: DAG_TYPE) -> dict:
         product_recs
         generate_product_color_options
         daily_top_product_tag >> daily_new_product_tag
-        product_smart_tags
+        product_smart_tags >> smart_tags
     return group
