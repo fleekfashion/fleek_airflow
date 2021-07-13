@@ -112,6 +112,11 @@ BOARD_SMART_TAG_TABLE = PostgreTable(
             type="bigint",
             nullable=False
         ),
+        Column(
+            name='useless',
+            type='bool',
+            nullable=True
+        )
     ],
     primary_key=PrimaryKey(
         columns=["board_id", "smart_tag_id"],
@@ -143,6 +148,12 @@ PRODUCT_SMART_TAG_TABLE = PostgreTable(
             type="bigint",
             nullable=False
         ),
+        Column(
+            name='useless',
+            type='bool',
+            nullable=True
+        )
+
     ],
     primary_key=PrimaryKey(
         columns=["product_id", "smart_tag_id"],
