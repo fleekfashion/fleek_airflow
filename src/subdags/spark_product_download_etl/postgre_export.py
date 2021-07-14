@@ -20,6 +20,7 @@ from src.defs.delta import personalization as pdefs
 from src.defs.postgre import product_catalog as postdefs
 from src.defs.postgre import boards as postboards 
 from src.defs.postgre import spark_personalization as persdefs
+from src.defs.postgre import user_data
 from src.defs.delta import postgres as spark_defs
 from src.defs.delta import product_catalog as pcdefs
 from src.defs.delta import boards 
@@ -352,13 +353,29 @@ def get_operators(dag: DAG):
             )
         )
 
+        build_price_drop_boards = CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=postdefs.CONN_ID,
+            task_id="PROD_build_price_drop_boards",
+            sql="template/build_price_drop_boards.sql",
+            params=dict(
+                board_table=postboards.BOARD_TABLE.get_full_name(),
+                board_product_table=postboards.BOARD_PRODUCT_TABLE.get_full_name(),
+                user_board_table=postboards.USER_BOARD_TABLE.get_full_name(),
+                product_info_table=postdefs.PRODUCT_INFO_TABLE.get_full_name(),
+                price_history_table=postdefs.PRODUCT_PRICE_HISTORY_TABLE.get_full_name(),
+                user_product_faves_table=user_data.USER_PRODUCT_FAVES_TABLE.get_full_name(),
+            )
+        )
+
 
         insert_active_products >> merge_active_products >> [ 
             write_top_products, write_product_price_history, 
             prod_write_product_size_info, write_similar_items_prod,
             write_product_recs_prod, write_advertiser_count_table,
             write_product_color_options_prod, prod_write_product_labels,
-            prod_write_secondary_labels, prod_write_product_smart_tags 
+            prod_write_secondary_labels, prod_write_product_smart_tags, 
+            build_price_drop_boards
         ]
         write_similar_items_staging >> write_similar_items_prod
         write_product_recs_staging >> write_product_recs_prod
@@ -367,5 +384,6 @@ def get_operators(dag: DAG):
         write_smart_tags_staging >> prod_write_smart_tags >> prod_write_product_smart_tags
         write_product_smart_tags_staging >> prod_write_product_smart_tags
 
+        write_product_price_history >> build_price_drop_boards
 
     return group 
