@@ -1,19 +1,19 @@
 -- Delete all products in price drop boards
-DELETE FROM prod.board_product 
+DELETE FROM {{ params.board_product_table }} 
 WHERE board_id IN
 (
 	SELECT board_id
-	FROM prod.board
+	FROM {{ params.board_table }}
 	WHERE board_type = 'price_drop'
 );
 
 -- Compute and insert new price drop products into price drop boards
 WITH PROD_FAVE_IDS AS (
     SELECT *
-	FROM prod.user_product_faves
+	FROM {{ params.user_product_faves_table  }}
     WHERE product_id IN (
         SELECT product_id
-        FROM prod.product_info
+        FROM {{ params.product_info_table }}
         WHERE is_active
     )
 ), 
@@ -22,10 +22,10 @@ FAVE_DAY_PRICE AS (
         pfi.*, 
         pph.product_price AS fave_product_price
 	FROM PROD_FAVE_IDS pfi
-	JOIN prod.product_price_history pph
+	JOIN {{ params.price_history_table }} pph
     ON pfi.product_id = pph.product_id 
     AND to_timestamp(pfi.event_timestamp - 86400)::date = pph.execution_date -- solve one day error
-    WHERE execution_date > '2021-06-14'
+    WHERE execution_date > '{{macros.ds_add(ds, -params.max_days)}}'
 ),
 PRICE_DROP_PRODUCTS AS (
 	SELECT 
@@ -34,22 +34,22 @@ PRICE_DROP_PRODUCTS AS (
         fdp.event_timestamp, 
         pi.product_sale_price AS current_product_price
 	FROM FAVE_DAY_PRICE fdp 
-	INNER JOIN prod.product_info pi
+	INNER JOIN {{ params.product_info_table }} pi
     ON pi.product_id = fdp.product_id
   WHERE
     (
-      fdp.fave_product_price >= pi.product_sale_price + 10 
+      fdp.fave_product_price >= pi.product_sale_price + {{params.min_decrease_total}}
       OR
-      fdp.fave_product_price * 0.9 >= pi.product_sale_price
+      fdp.fave_product_price * (1 - {{params.min_decrease_pct}}) >= pi.product_sale_price
     )
-    AND fdp.fave_product_price >= pi.product_sale_price + 2
+    AND fdp.fave_product_price >= pi.product_sale_price + {{params.min_decrease_required}}
 ),
 USER_IDS_TO_BOARD_IDS AS (
 	SELECT 
         b.board_id,
         ub.user_id
-	FROM prod.board b 
-	INNER JOIN prod.user_board ub 
+	FROM {{ params.board_table }} b 
+	INNER JOIN {{ params.user_board_table }} ub 
     ON ub.board_id = b.board_id
 	WHERE b.board_type = 'price_drop'
 ),
@@ -65,7 +65,7 @@ ADD_PRICE_DROP_TIMESTAMP AS (
     jbi.board_id, 
     min((pph.execution_date - '1970-01-01') * 24 * 60 * 60) AS last_modified_timestamp -- convert execution date to unix time
 	FROM BOARD_IDS_TO_PRODUCTS jbi
-	JOIN prod.product_price_history pph
+	JOIN {{ params.price_history_table }} pph
 	ON (
 		jbi.product_id = pph.product_id
 		AND
@@ -73,7 +73,7 @@ ADD_PRICE_DROP_TIMESTAMP AS (
 	)
 	GROUP BY jbi.product_id, jbi.board_id
 )
-INSERT INTO prod.board_product (
+INSERT INTO {{ params.board_product_table }} (
 	board_id,
 	product_id,
 	last_modified_timestamp
@@ -85,19 +85,19 @@ SELECT
 FROM ADD_PRICE_DROP_TIMESTAMP;
 
 -- Update price drop board last_modified_timestamp to most recently updated product
-DROP TABLE IF EXISTS temp_price_drop;
-CREATE TABLE temp_price_drop AS (
+DROP TABLE IF EXISTS {{ params.temp_table }};
+CREATE TABLE {{ params.temp_table }} AS (
 	SELECT 
 		b.board_id, 
 		max(bp.last_modified_timestamp) as last_modified_timestamp
-	FROM prod.board b
-	INNER JOIN prod.board_product bp
+	FROM {{ params.board_table }} b
+	INNER JOIN {{ params.board_product_table }} bp
 		ON b.board_id = bp.board_id
 	WHERE b.board_type = 'price_drop'
 	GROUP BY b.board_id
 );
-UPDATE prod.board b
+UPDATE {{ params.board_table }} b
 SET last_modified_timestamp = t.last_modified_timestamp
-FROM temp_price_drop t
+FROM {{ params.temp_table }} t
 WHERE b.board_id = t.board_id;
 

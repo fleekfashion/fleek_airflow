@@ -25,6 +25,7 @@ from src.defs.delta import postgres as spark_defs
 from src.defs.delta import product_catalog as pcdefs
 from src.defs.delta import boards 
 from src.defs.delta import postgres as phooks
+from src.defs.utils import PROJECT
 
 ################################
 ## PRODUCT TABLE
@@ -365,6 +366,11 @@ def get_operators(dag: DAG):
                 product_info_table=postdefs.PRODUCT_INFO_TABLE.get_full_name(),
                 price_history_table=postdefs.PRODUCT_PRICE_HISTORY_TABLE.get_full_name(),
                 user_product_faves_table=user_data.USER_PRODUCT_FAVES_TABLE.get_full_name(),
+                max_days=45,
+                min_decrease_pct=0.1,
+                min_decrease_total=10,
+                min_decrease_required=2,
+                temp_table='temp_price_drop_' + PROJECT
             )
         )
 
