@@ -234,7 +234,7 @@ def get_operators(dag: DAG):
             dag=dag,
             params={
                 "src": f"""(
-                    SELECT distinct product_id, suggestion_hash as smart_tag_id
+                    SELECT distinct product_id, suggestion_hash as smart_tag_id, null as useless
                     FROM staging_boards.product_smart_tag
                     WHERE suggestion_hash in (SELECT smart_tag_id FROM staging_boards.smart_tag)
                 )
