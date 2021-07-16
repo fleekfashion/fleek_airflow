@@ -50,7 +50,7 @@ WITH t AS (
     product_label,
     array_remove(secondary_labels, '') as product_secondary_labels,
     n_hits
-  FROM test.tmp_suggestions
+  FROM Suggestions 
   WHERE suggestion not rlike internal_color
 )
 SELECT
