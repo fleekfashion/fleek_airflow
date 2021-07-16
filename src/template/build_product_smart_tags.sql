@@ -130,3 +130,4 @@ CREATE OR REPLACE TEMPORARY VIEW parsedSubsets AS (
 
 SELECT *
 FROM parsedSubsets
+WHERE suggestion not rlike '-colored'
