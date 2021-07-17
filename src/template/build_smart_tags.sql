@@ -20,12 +20,12 @@ CREATE OR REPLACE TEMPORARY VIEW Suggestions AS (
   WITH distinctSuggestions AS (
     SELECT 
       suggestion,
-      max(product_label) as product_label,
       first(suggestion_hash) as suggestion_hash,
+      max(product_label) as product_label,
       first(secondary_subset) as secondary_labels,
       first(internal_color) as internal_color
     FROM parsedSubsets
-    GROUP BY suggestion
+    GROUP BY suggestion 
   )
     SELECT 
     s.suggestion,
@@ -61,5 +61,35 @@ WHERE
   ( size(product_secondary_labels) = 2 and char_length(product_label) > 1 )
 );
 
-SELECT *
+CREATE OR REPLACE TEMPORARY VIEW redundant_tag_ids AS (
+  WITH t2 AS (
+    SELECT 
+      *,
+      substring_index(
+        suggestion,
+        ' ',
+        size(split(suggestion, ' ')) - 1
+      ) as no_label_suggestion
+    FROM smart_tags
+  )
+
+  SELECT t1.smart_tag_id
+  FROM smart_tags t1
+  INNER JOIN t2
+    ON t1.suggestion=t2.no_label_suggestion
+  WHERE 
+    t2.n_hits/t1.n_hits > .6
+);
+
+SELECT 
+  smart_tag_id,
+  first(suggestion) as suggestion,
+  max(product_label) as product_label,
+  first(product_secondary_labels) as product_secondary_labels,
+  first(n_hits) as n_hits
 FROM smart_tags
+WHERE smart_tag_id NOT IN (
+  SELECT smart_tag_id
+  FROM redundant_tag_ids
+)
+GROUP BY smart_tag_id 
