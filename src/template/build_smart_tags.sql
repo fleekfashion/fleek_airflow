@@ -1,5 +1,5 @@
 CREATE OR REPLACE TEMP VIEW parsedSubsets AS (
-  SELECT * FROM staging_boards.product_smart_tag
+  SELECT * FROM {{ params.product_smart_tag_table }} 
 );
 
 CREATE OR REPLACE TEMP VIEW hash_counts AS (
