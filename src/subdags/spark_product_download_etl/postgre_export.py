@@ -235,8 +235,8 @@ def get_operators(dag: DAG):
             params={
                 "src": f"""(
                     SELECT distinct product_id, suggestion_hash as smart_tag_id, null as useless
-                    FROM staging_boards.product_smart_tag
-                    WHERE suggestion_hash in (SELECT smart_tag_id FROM staging_boards.smart_tag)
+                    FROM { boards.PRODUCT_SMART_TAG_TABLE.get_full_name() } 
+                    WHERE suggestion_hash in (SELECT smart_tag_id FROM {boards.SMART_TAG_TABLE.get_full_name() })
                 )
                 """,
                 "target": postboards.PRODUCT_SMART_TAG_TABLE.get_delta_name(staging=True),

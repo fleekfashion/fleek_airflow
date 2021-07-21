@@ -49,7 +49,7 @@ def _build_filter_string(args: dict):
         if type(local_args) == str:
             local_args = [local_args]
         if field in ["product_labels", "product_secondary_labels", "product_external_labels", "product_tags"]:
-            field = f"concat_ws(' && ', {field})"
+            field = f"concat_ws(' && ', array_sort({field}))"
         for local_arg in local_args:
             local_arg = local_arg.lower().replace('\\', '\\\\')
             LOCAL_FILTERS.append(f"lower({field}) rLIKE '{local_arg}'")
