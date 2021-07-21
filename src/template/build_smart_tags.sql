@@ -1,5 +1,5 @@
 CREATE OR REPLACE TEMP VIEW parsedSubsets AS (
-  SELECT * FROM staging_boards.product_smart_tag
+  SELECT * FROM {{ params.product_smart_tag_table }} 
 );
 
 CREATE OR REPLACE TEMP VIEW hash_counts AS (
@@ -57,8 +57,7 @@ SELECT
   *
 FROM t
 WHERE 
-  size(product_secondary_labels) = 1 or 
-  ( size(product_secondary_labels) = 2 and char_length(product_label) > 1 )
+  size(product_secondary_labels) IN (1, 2)
 );
 
 CREATE OR REPLACE TEMPORARY VIEW redundant_tag_ids AS (
