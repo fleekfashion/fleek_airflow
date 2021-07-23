@@ -20,6 +20,7 @@ BOARD_PRODUCT_TABLE_NAME = "board_product"
 PRODUCT_SMART_TAG_TABLE_NAME = 'product_smart_tag'
 USER_BOARD_TABLE_NAME = "user_board"
 REJECTED_BOARD_TABLE_NAME = "rejected_board"
+REJECTED_BOARD_SMART_TAG_POPUP_TABLE_NAME = "rejected_board_smart_tag_pop"
 
 BOARD_TABLE = PostgreTable(
     name=BOARD_TABLE_NAME,
@@ -315,6 +316,31 @@ REJECTED_BOARD_TABLE = PostgreTable(
     ]
 )
 
+REJECTED_BOARD_SMART_TAG_POPUP_TABLE = PostgreTable(
+    name=BOARD_SMART_TAG_TABLE_NAME,
+    columns=[
+        Column(
+            name="board_id",
+            type="uuid",
+            nullable=False
+        ),
+        Column(
+            name='useless',
+            type='bool',
+            nullable=True
+        )
+    ],
+    primary_key=PrimaryKey(
+        columns=["board_id"]
+    ),
+    foreign_keys=[
+        ForeignKey(
+            columns=["board_id"],
+            ref_table=BOARD_TABLE.get_full_name(),
+            ref_columns=["board_id"]
+        ),
+    ],
+)
 
 TABLES.extend([
     BOARD_TABLE,
@@ -323,5 +349,6 @@ TABLES.extend([
     BOARD_PRODUCT_TABLE,
     PRODUCT_SMART_TAG_TABLE,
     USER_BOARD_TABLE,
-    REJECTED_BOARD_TABLE
+    REJECTED_BOARD_TABLE,
+    REJECTED_BOARD_SMART_TAG_POPUP_TABLE
 ])
