@@ -150,7 +150,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             sql="template/build_smart_tags.sql",
             params={
                 "product_smart_tag_table": boards.PRODUCT_SMART_TAG_TABLE.get_full_name(),
-                "min_include": 100
+                "min_include": 75
             },
             local=True,
             output_table=boards.SMART_TAG_TABLE.get_full_name(),
