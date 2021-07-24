@@ -30,9 +30,13 @@ CREATE OR REPLACE TEMP VIEW filtered_hash_counts AS (
       c
     FROM hash_counts_pl
   )
-  SELECT *
+  SELECT
+    suggestion,
+    max(product_label) as product_label,
+    c
   FROM t
   WHERE c = max_c
+  GROUP BY suggestion, c
 );
 
 CREATE OR REPLACE TEMPORARY VIEW Suggestions AS (
@@ -40,11 +44,11 @@ CREATE OR REPLACE TEMPORARY VIEW Suggestions AS (
     SELECT 
       suggestion,
       first(suggestion_hash) as suggestion_hash,
-      max(product_label) as product_label,
+      product_label,
       first(secondary_subset) as secondary_labels,
       first(internal_color) as internal_color
     FROM parsedSubsets
-    GROUP BY suggestion 
+    GROUP BY suggestion, product_label
   )
     SELECT 
     s.suggestion,
@@ -58,8 +62,8 @@ CREATE OR REPLACE TEMPORARY VIEW Suggestions AS (
   INNER JOIN distinctSuggestions s
     ON c.suggestion = s.suggestion
     AND c.product_label = s.product_label
-  WHERE char_length(s.suggestion) > 0 AND c.c > {{ params.min_include }}
-  ORDER BY c DESC
+  WHERE char_length(s.suggestion) > 0 
+    AND c.c > {{ params.min_include }}
 );
 
 CREATE OR REPLACE TEMPORARY VIeW smart_tags AS (
