@@ -31,21 +31,25 @@ CREATE OR REPLACE TEMP VIEW filtered_hash_counts AS (
       c
     FROM hash_counts_pl
   )
-  SELECT *
+  SELECT
+    suggestion,
+    max(product_label) as product_label,
+    c
   FROM t
   WHERE c = max_c
+  GROUP BY suggestion, c
 );
 
 CREATE OR REPLACE TEMPORARY VIEW suggestions AS (
   WITH distinctSuggestions AS (
     SELECT 
       suggestion,
-      max(product_label) as product_label,
+      product_label,
       first(suggestion_hash) as suggestion_hash,
       first(secondary_subset) as secondary_subset,
       first(internal_color) as internal_color
     FROM parsedSubsets
-    GROUP BY suggestion
+    GROUP BY suggestion, product_label
   
   )
   SELECT 
