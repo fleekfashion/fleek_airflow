@@ -133,8 +133,6 @@ def get_operators(dag: DAG_TYPE) -> dict:
             params={
                 "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
                 "synonyms_table": static.SYNONYMS_TABLE.get_delta_name(),
-                "min_strong": 150,
-                "min_include": 50
             },
             local=True,
             output_table=boards.PRODUCT_SMART_TAG_TABLE.get_full_name(),
@@ -150,7 +148,7 @@ def get_operators(dag: DAG_TYPE) -> dict:
             sql="template/build_smart_tags.sql",
             params={
                 "product_smart_tag_table": boards.PRODUCT_SMART_TAG_TABLE.get_full_name(),
-                "min_include": 100
+                "min_include": 75
             },
             local=True,
             output_table=boards.SMART_TAG_TABLE.get_full_name(),
