@@ -98,7 +98,7 @@ CREATE OR REPLACE TEMPORARY VIEW redundant_tag_ids AS (
   INNER JOIN t2
     ON t1.suggestion=t2.no_label_suggestion
   WHERE 
-    t2.n_hits/t1.n_hits > .8
+    t2.n_hits/t1.n_hits > .65
 );
 
 SELECT 
