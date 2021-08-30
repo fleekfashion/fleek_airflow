@@ -60,6 +60,11 @@ BOARD_TABLE = PostgreTable(
             type="text",
             nullable=False
         ),
+        Column(
+            name="owner_user_id",
+            type="bigint",
+            nullable=True
+        ),
     ],
     primary_key=PrimaryKey(
         columns=["board_id"],
