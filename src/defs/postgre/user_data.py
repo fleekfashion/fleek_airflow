@@ -13,12 +13,37 @@ DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
 BQ_EXTERNAL_CONN_ID = "fleek-prod.us.cloudsql_ktest"
 
+USER_PROFILE_TABLE = "user_profile"
 USER_EVENTS_TABLE_NAME = "user_events"
 USER_FAVED_BRANDS_TABLE_NAME = "user_faved_brands"
 USER_MUTED_BRANDS_TABLE_NAME = "user_muted_brands"
 USER_PRODUCT_FAVES_TABLE_NAME = "user_product_faves"
 USER_PRODUCT_BAGS_TABLE_NAME = "user_product_bags"
 USER_PRODUCT_SEENS_TABLE_NAME = "user_product_seens"
+
+USER_PROFILE_TABLE = PostgreTable(
+    name=USER_PROFILE_TABLE,
+    columns=[
+        Column(
+            "user_id",
+            "bigint",
+            nullable=False
+        ),
+        Column(
+            "name",
+            "text",
+            nullable=True
+        ),
+        Column(
+            "profile_photo_url",
+            "text",
+            nullable=True
+        ),
+    ],
+    primary_key=PrimaryKey(
+        ["user_id"],
+    ),
+)
 
 USER_EVENTS_TABLE = PostgreTable(
     name=USER_EVENTS_TABLE_NAME,
@@ -75,6 +100,7 @@ USER_EVENTS_TABLE = PostgreTable(
         ),
     ]
 )
+
 USER_FAVED_BRANDS_TABLE = PostgreTable(
     name=USER_FAVED_BRANDS_TABLE_NAME,
     columns=[
@@ -232,6 +258,7 @@ USER_PRODUCT_SEENS_TABLE = PostgreTable(
 )
 
 TABLES.extend([
+    USER_PROFILE_TABLE,
     USER_EVENTS_TABLE,
     USER_FAVED_BRANDS_TABLE,
     USER_MUTED_BRANDS_TABLE,
