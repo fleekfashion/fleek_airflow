@@ -84,6 +84,16 @@ CREATE OR REPLACE TEMPORARY VIEW processed_urls AS (
   FROM pinfo 
   WHERE 
     advertiser_name = 'Warp + Weft'
+
+    UNION ALL
+
+  SELECT 
+    product_id,
+    'https://cdn.shopify.com/s/files/1/0578/6091/5389/products/' || reverse(split(product_image_url, '/'))[0] 
+      as product_image_url
+  FROM pinfo 
+  WHERE 
+    advertiser_name='Carbon38'
 );
 
 SELECT *
