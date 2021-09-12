@@ -161,9 +161,32 @@ def get_operators(dag: DAG_TYPE) -> dict:
         )
         
 
-        compute_product_similarity >> process_similar_products 
+        advertiser_top_smart_tags = SparkSQLOperator(
+            task_id="advertiser_top_smart_tags",
+            dag=dag,
+            sql="template/advertiser_top_smart_tags.sql",
+            params={
+                "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
+                "product_smart_tag_table": boards.PRODUCT_SMART_TAG_TABLE.get_full_name(),
+                "smart_tag_table": boards.SMART_TAG_TABLE.get_full_name(),
+                "min_c": 10,
+                "min_brand_pct": .01,
+                "rank_cutoff": 50,
+                "pl_rank_cutoff": 50
+            },
+            local=True,
+            output_table=boards.ADVERTISER_SMART_TAGS.get_full_name(),
+            options={
+                "overwriteSchema": "true" 
+            },
+            drop_duplicates=True,
+            duplicates_subset=['smart_tag_id', 'advertiser_name'],
+            mode="WRITE_TRUNCATE"
+        )
+
+        compute_product_similarity >> process_similar_products
         product_recs
         generate_product_color_options
         daily_top_product_tag >> daily_new_product_tag
-        product_smart_tags >> smart_tags
+        product_smart_tags >> smart_tags >> advertiser_top_smart_tags
     return group

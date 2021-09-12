@@ -13,8 +13,12 @@ INSTANCE = "fleek-app-prod1"
 DATABASE = "ktest"
 CONN_ID = f'google_cloud_sql_{DATABASE}'
 
+## Independent Tables
 BOARD_TABLE_NAME = "board"
 SMART_TAG_TABLE_NAME = "smart_tag"
+
+# Dependent Tables
+ADVERTISER_TOP_SMART_TAG_TABLE_NAME = "advertiser_top_smart_tag"
 BOARD_SMART_TAG_TABLE_NAME = "board_smart_tag"
 BOARD_PRODUCT_TABLE_NAME = "board_product"
 PRODUCT_SMART_TAG_TABLE_NAME = 'product_smart_tag'
@@ -105,6 +109,39 @@ SMART_TAG_TABLE = PostgreTable(
     ),
 )
 
+
+ADVERTISER_TOP_SMART_TAG_TABLE = PostgreTable(
+    name=ADVERTISER_TOP_SMART_TAG_TABLE_NAME,
+    columns=[
+        Column(
+            name="advertiser_name",
+            type="text",
+            nullable=False
+        ),
+        Column(
+            name="smart_tag_id",
+            type="bigint",
+            nullable=False
+        ),
+        Column(
+            name='score',
+            type='double precision',
+            nullable=True
+        )
+
+    ],
+    primary_key=PrimaryKey(
+        columns=["advertiser_name", "smart_tag_id"],
+    ),
+    foreign_keys=[
+        ForeignKey(
+            columns=["smart_tag_id"],
+            ref_table=SMART_TAG_TABLE.get_full_name(),
+            ref_columns=["smart_tag_id"]
+        )
+    ],
+)
+
 BOARD_SMART_TAG_TABLE = PostgreTable(
     name=BOARD_SMART_TAG_TABLE_NAME,
     columns=[
@@ -140,6 +177,7 @@ BOARD_SMART_TAG_TABLE = PostgreTable(
         ),
     ],
 )
+
 
 PRODUCT_SMART_TAG_TABLE = PostgreTable(
     name=PRODUCT_SMART_TAG_TABLE_NAME,
@@ -350,6 +388,7 @@ REJECTED_BOARD_SMART_TAG_POPUP_TABLE = PostgreTable(
 TABLES.extend([
     BOARD_TABLE,
     SMART_TAG_TABLE,
+    ADVERTISER_TOP_SMART_TAG_TABLE,
     BOARD_SMART_TAG_TABLE,
     BOARD_PRODUCT_TABLE,
     PRODUCT_SMART_TAG_TABLE,

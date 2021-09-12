@@ -271,6 +271,41 @@ def get_operators(dag: DAG):
             ";END;"
         )
 
+        STAGING_write_advertiser_top_boards = SparkSQLOperator(
+            task_id="STAGING_write_advertiser_top_boards",
+            dag=dag,
+            params={
+                "src": boards.ADVERTISER_SMART_TAGS.get_full_name(),
+                "target": postboards.ADVERTISER_TOP_SMART_TAG_TABLE.get_delta_name(staging=True),
+                "columns": postboards.ADVERTISER_TOP_SMART_TAG_TABLE \
+                            .get_columns() \
+                            .make_string(", "),
+                "mode": "OVERWRITE TABLE",
+                "filter": """
+                WHERE rank < 50 
+                    AND plrank*rank < 50
+                    AND char_length(product_label) > 1
+                """
+            },
+            sql="template/std_insert.sql",
+            local=True
+        )
+
+
+        PROD_write_advertiser_top_boards = CloudSqlQueryOperator(
+            dag=dag,
+            gcp_cloudsql_conn_id=persdefs.CONN_ID,
+            task_id="PROD_write_advertiser_top_boards",
+            sql=pquery.write_truncate(
+                table_name=postboards.ADVERTISER_TOP_SMART_TAG_TABLE.get_full_name(),
+                staging_name=postboards.ADVERTISER_TOP_SMART_TAG_TABLE \
+                        .get_full_name(staging=True),
+                columns=postboards.ADVERTISER_TOP_SMART_TAG_TABLE \
+                        .get_columns() \
+                        .to_list(),
+            ) 
+        )
+
         insert_product_size_info = SparkSQLOperator(
             task_id="STAGE_product_size_info",
             dag=dag,
@@ -375,13 +410,15 @@ def get_operators(dag: DAG):
         )
 
 
+
+
         insert_active_products >> merge_active_products >> [ 
             write_top_products, write_product_price_history, 
             prod_write_product_size_info, write_similar_items_prod,
             write_product_recs_prod, write_advertiser_count_table,
             write_product_color_options_prod, prod_write_product_labels,
             prod_write_secondary_labels, prod_write_product_smart_tags, 
-            build_price_drop_boards
+            build_price_drop_boards, STAGING_write_advertiser_top_boards
         ]
         write_similar_items_staging >> write_similar_items_prod
         write_product_recs_staging >> write_product_recs_prod
@@ -391,5 +428,6 @@ def get_operators(dag: DAG):
         write_product_smart_tags_staging >> prod_write_product_smart_tags
 
         write_product_price_history >> build_price_drop_boards
+        STAGING_write_advertiser_top_boards >> PROD_write_advertiser_top_boards
 
     return group 
