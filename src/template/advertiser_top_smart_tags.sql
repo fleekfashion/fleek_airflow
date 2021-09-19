@@ -1,11 +1,17 @@
 CREATE OR REPLACE TEMPORARY VIEW smart_tag_advertiser AS (
+  WITH distinct_product_smart_tag AS (
+    SELECT DISTINCT
+      product_id,
+      suggestion_hash as smart_tag_id
+      FROM {{ params.product_smart_tag_table }}
+  )
   SELECT 
-    pst.product_id,
-    pst.suggestion_hash as smart_tag_id,
+    dpst.product_id,
+    dpst.smart_tag_id,
     ap.advertiser_name
   FROM {{ params.active_products_table }} ap
-  INNER JOIN {{ params.product_smart_tag_table }} pst
-    ON ap.product_id = pst.product_id
+  INNER JOIN distinct_product_smart_tag dpst
+    ON ap.product_id = dpst.product_id
 );
 
 CREATE OR REPLACE TEMPORARY VIEW advertiser_counts AS ( SELECT 

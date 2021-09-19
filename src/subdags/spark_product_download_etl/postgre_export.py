@@ -282,8 +282,8 @@ def get_operators(dag: DAG):
                             .make_string(", "),
                 "mode": "OVERWRITE TABLE",
                 "filter": """
-                WHERE rank < 80 
-                    AND plrank*rank < 40
+                WHERE rank < 1000 
+                    AND plrank*rank < 200
                 """
             },
             sql="template/std_insert.sql",
