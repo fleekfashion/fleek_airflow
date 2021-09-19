@@ -171,8 +171,6 @@ def get_operators(dag: DAG_TYPE) -> dict:
                 "smart_tag_table": boards.SMART_TAG_TABLE.get_full_name(),
                 "min_c": 10,
                 "min_brand_pct": .01,
-                "rank_cutoff": 50,
-                "pl_rank_cutoff": 50
             },
             local=True,
             output_table=boards.ADVERTISER_SMART_TAGS.get_full_name(),
