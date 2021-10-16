@@ -111,7 +111,7 @@ autocomplete_upload = SparkScriptOperator(
     params={
         "active_products_table": pcdefs.ACTIVE_PRODUCTS_TABLE.get_full_name(),
         "min_strong": 150,
-        "min_include": 50,
+        "min_include": 35,
         "product_smart_tag_table": boards.PRODUCT_SMART_TAG_TABLE.get_full_name(),
     },
     init_scripts=["install_meilisearch.sh"],
