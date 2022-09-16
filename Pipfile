@@ -13,7 +13,7 @@ meilisearch = "*"
 mypy = "*"
 
 [packages]
-apache-airflow = {extras = ["postgres", "mysql"],version = "==2.1.0"}
+apache-airflow = {extras = ["postgres", "mysql"],version = "==2.3.4"}
 mysqlclient = "*"
 dill = "*"
 awscli = {"version>" = "1.18.100"}
